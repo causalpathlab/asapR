@@ -1,0 +1,14 @@
+Package: CHANGEME
+Type: Package
+Title: CHANGEME
+Version: 0.1
+Date: 2023-01-23
+Authors@R: c(person("first", "last", role = c("aut", "cre"), email = "email@email.ca"), person("first", "last", role = c("aut")))
+Maintainer: first last <email@email.ca>
+Description: CHANGEME
+License: MIT License
+Imports: Rcpp, RcppEigen, dqrng, sitmo, BH
+LinkingTo: Rcpp, RcppEigen, dqrng, sitmo, BH
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
