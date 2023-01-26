@@ -18,12 +18,12 @@
 // [[Rcpp::export]]
 Rcpp::List
 mmutil_simulate_poisson_mixture(const Rcpp::List r_mu_list,
-                                     const std::size_t Ncell,
-                                     const std::string output,
-                                     const float dir_alpha = 1.0,
-                                     const float gam_alpha = 2.0,
-                                     const float gam_beta = 2.0,
-                                     const std::size_t rseed = 42)
+                                const std::size_t Ncell,
+                                const std::string output,
+                                const float dir_alpha = 1.0,
+                                const float gam_alpha = 2.0,
+                                const float gam_beta = 2.0,
+                                const std::size_t rseed = 42)
 {
 
     ASSERT_RETL(r_mu_list.size() > 0, "must have a list of mu matrices");
@@ -249,12 +249,11 @@ mmutil_simulate_poisson_mixture(const Rcpp::List r_mu_list,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-mmutil_simulate_poisson(
-    const Eigen::MatrixXf mu,
-    const Eigen::VectorXf rho,
-    const std::string output,
-    Rcpp::Nullable<Rcpp::IntegerVector> r_indv = R_NilValue,
-    const std::size_t rseed = 42)
+mmutil_simulate_poisson(const Eigen::MatrixXf mu,
+                        const Eigen::VectorXf rho,
+                        const std::string output,
+                        Rcpp::Nullable<Rcpp::IntegerVector> r_indv = R_NilValue,
+                        const std::size_t rseed = 42)
 {
     const Index max_row = mu.rows();
     const Index Nind = mu.cols();

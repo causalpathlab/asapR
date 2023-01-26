@@ -72,7 +72,7 @@ struct one_column_reader_t {
         }
     }
 
-    void eval_end_of_file() {}
+    void eval_end_of_file() { }
 
     BGZF *fp;
 
@@ -393,7 +393,7 @@ find_consecutive_blocks(const VEC1 &index_tab,
             ub_mem = index_tab[ub];
         }
 
-        ret.emplace_back(memory_block_t{ lb, lb_mem, ub, ub_mem });
+        ret.emplace_back(memory_block_t { lb, lb_mem, ub, ub_mem });
     }
 
     return ret;
@@ -585,6 +585,12 @@ private:
         return ret;
     }
 };
+
+SpMat read_eigen_sparse_subset_col(const std::string mtx_file,
+                                   const Index lb,
+                                   const Index ub,
+                                   const Index lb_mem,
+                                   const Index ub_mem);
 
 SpMat read_eigen_sparse_subset_col(const std::string mtx_file,
                                    const std::vector<Index> &index_tab,

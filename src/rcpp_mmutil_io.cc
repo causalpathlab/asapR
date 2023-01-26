@@ -53,7 +53,7 @@ mmutil_info(const std::string mtx_file)
 // [[Rcpp::export]]
 int
 mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> &X,
-                      const std::string mtx_file)
+                 const std::string mtx_file)
 {
     const std::string idx_file = mtx_file + ".index";
 
@@ -110,11 +110,11 @@ int _mmutil_read_columns_triplets(const std::string mtx_file,
 // [[Rcpp::export]]
 Rcpp::List
 mmutil_read_columns_sparse(const std::string mtx_file,
-                                const Rcpp::NumericVector &memory_location,
-                                const Rcpp::NumericVector &r_column_index,
-                                const bool verbose = false,
-                                const std::size_t NUM_THREADS = 1,
-                                const std::size_t MIN_SIZE = 10)
+                           const Rcpp::NumericVector &memory_location,
+                           const Rcpp::NumericVector &r_column_index,
+                           const bool verbose = false,
+                           const std::size_t NUM_THREADS = 1,
+                           const std::size_t MIN_SIZE = 10)
 {
     Index max_row = 0, max_col = 0;
     triplet_reader_t::TripletVec Tvec;
@@ -240,11 +240,11 @@ mmutil_read_columns_sparse(const std::string mtx_file,
 // [[Rcpp::export]]
 Rcpp::NumericMatrix
 mmutil_read_columns(const std::string mtx_file,
-                         const Rcpp::NumericVector &memory_location,
-                         const Rcpp::NumericVector &r_column_index,
-                         const bool verbose = false,
-                         const std::size_t NUM_THREADS = 1,
-                         const std::size_t MIN_SIZE = 10)
+                    const Rcpp::NumericVector &memory_location,
+                    const Rcpp::NumericVector &r_column_index,
+                    const bool verbose = false,
+                    const std::size_t NUM_THREADS = 1,
+                    const std::size_t MIN_SIZE = 10)
 {
 
     Index max_row = 0, max_col = 0;
