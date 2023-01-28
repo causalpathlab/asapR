@@ -11,58 +11,44 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// mmutil_merge_file_sets
-Rcpp::List mmutil_merge_file_sets(Rcpp::Nullable<const Rcpp::StringVector> r_headers, Rcpp::Nullable<const Rcpp::StringVector> r_batches, Rcpp::Nullable<const Rcpp::StringVector> r_mtx_files, Rcpp::Nullable<const Rcpp::StringVector> r_row_files, Rcpp::Nullable<const Rcpp::StringVector> r_col_files, Rcpp::Nullable<const Rcpp::StringVector> r_fixed_rows, const std::string output, const double nnz_cutoff, const std::string delim);
-RcppExport SEXP _CHANGEME_mmutil_merge_file_sets(SEXP r_headersSEXP, SEXP r_batchesSEXP, SEXP r_mtx_filesSEXP, SEXP r_row_filesSEXP, SEXP r_col_filesSEXP, SEXP r_fixed_rowsSEXP, SEXP outputSEXP, SEXP nnz_cutoffSEXP, SEXP delimSEXP) {
+// asap_fit_nmf
+Rcpp::List asap_fit_nmf(const Eigen::MatrixXf& Y, const std::size_t maxK, const std::size_t mcmc, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed);
+RcppExport SEXP _asapR_asap_fit_nmf(SEXP YSEXP, SEXP maxKSEXP, SEXP mcmcSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_headers(r_headersSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_batches(r_batchesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_mtx_files(r_mtx_filesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_row_files(r_row_filesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_col_files(r_col_filesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::Nullable<const Rcpp::StringVector> >::type r_fixed_rows(r_fixed_rowsSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type output(outputSEXP);
-    Rcpp::traits::input_parameter< const double >::type nnz_cutoff(nnz_cutoffSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type delim(delimSEXP);
-    rcpp_result_gen = Rcpp::wrap(mmutil_merge_file_sets(r_headers, r_batches, r_mtx_files, r_row_files, r_col_files, r_fixed_rows, output, nnz_cutoff, delim));
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type mcmc(mcmcSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y, maxK, mcmc, burnin, verbose, a0, b0, rseed));
     return rcpp_result_gen;
 END_RCPP
 }
-// mmutil_copy_selected_rows
-Rcpp::List mmutil_copy_selected_rows(const std::string mtx_file, const std::string row_file, const std::string col_file, const Rcpp::StringVector& r_selected, const std::string output);
-RcppExport SEXP _CHANGEME_mmutil_copy_selected_rows(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP r_selectedSEXP, SEXP outputSEXP) {
+// asap_random_bulk_data
+Rcpp::List asap_random_bulk_data(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const std::size_t num_factors, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE);
+RcppExport SEXP _asapR_asap_random_bulk_data(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP num_factorsSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::string >::type mtx_file(mtx_fileSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type row_file(row_fileSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type col_file(col_fileSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type r_selected(r_selectedSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type output(outputSEXP);
-    rcpp_result_gen = Rcpp::wrap(mmutil_copy_selected_rows(mtx_file, row_file, col_file, r_selected, output));
-    return rcpp_result_gen;
-END_RCPP
-}
-// mmutil_copy_selected_columns
-Rcpp::List mmutil_copy_selected_columns(const std::string mtx_file, const std::string row_file, const std::string col_file, const Rcpp::StringVector& r_selected, const std::string output);
-RcppExport SEXP _CHANGEME_mmutil_copy_selected_columns(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP r_selectedSEXP, SEXP outputSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::string >::type mtx_file(mtx_fileSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type row_file(row_fileSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type col_file(col_fileSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type r_selected(r_selectedSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type output(outputSEXP);
-    rcpp_result_gen = Rcpp::wrap(mmutil_copy_selected_columns(mtx_file, row_file, col_file, r_selected, output));
+    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type memory_location(memory_locationSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type num_factors(num_factorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data(mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE));
     return rcpp_result_gen;
 END_RCPP
 }
 // mmutil_build_index
 int mmutil_build_index(const std::string mtx_file, const std::string index_file);
-RcppExport SEXP _CHANGEME_mmutil_build_index(SEXP mtx_fileSEXP, SEXP index_fileSEXP) {
+RcppExport SEXP _asapR_mmutil_build_index(SEXP mtx_fileSEXP, SEXP index_fileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -74,7 +60,7 @@ END_RCPP
 }
 // mmutil_read_index
 Rcpp::NumericVector mmutil_read_index(const std::string index_file);
-RcppExport SEXP _CHANGEME_mmutil_read_index(SEXP index_fileSEXP) {
+RcppExport SEXP _asapR_mmutil_read_index(SEXP index_fileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -85,7 +71,7 @@ END_RCPP
 }
 // mmutil_check_index
 int mmutil_check_index(const std::string mtx_file, const Rcpp::NumericVector& index_tab);
-RcppExport SEXP _CHANGEME_mmutil_check_index(SEXP mtx_fileSEXP, SEXP index_tabSEXP) {
+RcppExport SEXP _asapR_mmutil_check_index(SEXP mtx_fileSEXP, SEXP index_tabSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -97,7 +83,7 @@ END_RCPP
 }
 // mmutil_info
 Rcpp::List mmutil_info(const std::string mtx_file);
-RcppExport SEXP _CHANGEME_mmutil_info(SEXP mtx_fileSEXP) {
+RcppExport SEXP _asapR_mmutil_info(SEXP mtx_fileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -108,7 +94,7 @@ END_RCPP
 }
 // mmutil_write_mtx
 int mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor>& X, const std::string mtx_file);
-RcppExport SEXP _CHANGEME_mmutil_write_mtx(SEXP XSEXP, SEXP mtx_fileSEXP) {
+RcppExport SEXP _asapR_mmutil_write_mtx(SEXP XSEXP, SEXP mtx_fileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -120,7 +106,7 @@ END_RCPP
 }
 // mmutil_read_columns_sparse
 Rcpp::List mmutil_read_columns_sparse(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Rcpp::NumericVector& r_column_index, const bool verbose, const std::size_t NUM_THREADS, const std::size_t MIN_SIZE);
-RcppExport SEXP _CHANGEME_mmutil_read_columns_sparse(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP r_column_indexSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP MIN_SIZESEXP) {
+RcppExport SEXP _asapR_mmutil_read_columns_sparse(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP r_column_indexSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP MIN_SIZESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -136,7 +122,7 @@ END_RCPP
 }
 // mmutil_read_columns
 Rcpp::NumericMatrix mmutil_read_columns(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Rcpp::NumericVector& r_column_index, const bool verbose, const std::size_t NUM_THREADS, const std::size_t MIN_SIZE);
-RcppExport SEXP _CHANGEME_mmutil_read_columns(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP r_column_indexSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP MIN_SIZESEXP) {
+RcppExport SEXP _asapR_mmutil_read_columns(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP r_column_indexSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP MIN_SIZESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -152,7 +138,7 @@ END_RCPP
 }
 // mmutil_simulate_poisson_mixture
 Rcpp::List mmutil_simulate_poisson_mixture(const Rcpp::List r_mu_list, const std::size_t Ncell, const std::string output, const float dir_alpha, const float gam_alpha, const float gam_beta, const std::size_t rseed);
-RcppExport SEXP _CHANGEME_mmutil_simulate_poisson_mixture(SEXP r_mu_listSEXP, SEXP NcellSEXP, SEXP outputSEXP, SEXP dir_alphaSEXP, SEXP gam_alphaSEXP, SEXP gam_betaSEXP, SEXP rseedSEXP) {
+RcppExport SEXP _asapR_mmutil_simulate_poisson_mixture(SEXP r_mu_listSEXP, SEXP NcellSEXP, SEXP outputSEXP, SEXP dir_alphaSEXP, SEXP gam_alphaSEXP, SEXP gam_betaSEXP, SEXP rseedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -169,7 +155,7 @@ END_RCPP
 }
 // mmutil_simulate_poisson
 Rcpp::List mmutil_simulate_poisson(const Eigen::MatrixXf mu, const Eigen::VectorXf rho, const std::string output, Rcpp::Nullable<Rcpp::IntegerVector> r_indv, const std::size_t rseed);
-RcppExport SEXP _CHANGEME_mmutil_simulate_poisson(SEXP muSEXP, SEXP rhoSEXP, SEXP outputSEXP, SEXP r_indvSEXP, SEXP rseedSEXP) {
+RcppExport SEXP _asapR_mmutil_simulate_poisson(SEXP muSEXP, SEXP rhoSEXP, SEXP outputSEXP, SEXP r_indvSEXP, SEXP rseedSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -184,22 +170,21 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_CHANGEME_mmutil_merge_file_sets", (DL_FUNC) &_CHANGEME_mmutil_merge_file_sets, 9},
-    {"_CHANGEME_mmutil_copy_selected_rows", (DL_FUNC) &_CHANGEME_mmutil_copy_selected_rows, 5},
-    {"_CHANGEME_mmutil_copy_selected_columns", (DL_FUNC) &_CHANGEME_mmutil_copy_selected_columns, 5},
-    {"_CHANGEME_mmutil_build_index", (DL_FUNC) &_CHANGEME_mmutil_build_index, 2},
-    {"_CHANGEME_mmutil_read_index", (DL_FUNC) &_CHANGEME_mmutil_read_index, 1},
-    {"_CHANGEME_mmutil_check_index", (DL_FUNC) &_CHANGEME_mmutil_check_index, 2},
-    {"_CHANGEME_mmutil_info", (DL_FUNC) &_CHANGEME_mmutil_info, 1},
-    {"_CHANGEME_mmutil_write_mtx", (DL_FUNC) &_CHANGEME_mmutil_write_mtx, 2},
-    {"_CHANGEME_mmutil_read_columns_sparse", (DL_FUNC) &_CHANGEME_mmutil_read_columns_sparse, 6},
-    {"_CHANGEME_mmutil_read_columns", (DL_FUNC) &_CHANGEME_mmutil_read_columns, 6},
-    {"_CHANGEME_mmutil_simulate_poisson_mixture", (DL_FUNC) &_CHANGEME_mmutil_simulate_poisson_mixture, 7},
-    {"_CHANGEME_mmutil_simulate_poisson", (DL_FUNC) &_CHANGEME_mmutil_simulate_poisson, 5},
+    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 8},
+    {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
+    {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
+    {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},
+    {"_asapR_mmutil_check_index", (DL_FUNC) &_asapR_mmutil_check_index, 2},
+    {"_asapR_mmutil_info", (DL_FUNC) &_asapR_mmutil_info, 1},
+    {"_asapR_mmutil_write_mtx", (DL_FUNC) &_asapR_mmutil_write_mtx, 2},
+    {"_asapR_mmutil_read_columns_sparse", (DL_FUNC) &_asapR_mmutil_read_columns_sparse, 6},
+    {"_asapR_mmutil_read_columns", (DL_FUNC) &_asapR_mmutil_read_columns, 6},
+    {"_asapR_mmutil_simulate_poisson_mixture", (DL_FUNC) &_asapR_mmutil_simulate_poisson_mixture, 7},
+    {"_asapR_mmutil_simulate_poisson", (DL_FUNC) &_asapR_mmutil_simulate_poisson, 5},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_CHANGEME(DllInfo *dll) {
+RcppExport void R_init_asapR(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

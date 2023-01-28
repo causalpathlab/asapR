@@ -225,7 +225,7 @@ struct histogram_collector_t {
         }
     }
 
-    void eval_end_of_file() {}
+    void eval_end_of_file() { }
 
     Index max_row;
     Index max_col;
@@ -233,8 +233,8 @@ struct histogram_collector_t {
     std::unordered_map<Index, Index> freq_map;
 };
 
-struct discrete_sampler_t {
-    explicit discrete_sampler_t(const Index k)
+struct logit_sampler_t {
+    explicit logit_sampler_t(const Index k)
         : K(k)
     {
     }
@@ -247,8 +247,7 @@ struct discrete_sampler_t {
         const Scalar maxval = xx.maxCoeff(&argmax_k);
         const Scalar exp_sumval = xx.unaryExpr([&maxval](const Scalar x) {
                                         return fasterexp(x - maxval);
-                                    })
-                                      .sum();
+                                    }).sum();
 
         const Scalar u = Unif(Rng) * exp_sumval;
         Scalar cum = 0.0;
@@ -268,8 +267,8 @@ struct discrete_sampler_t {
     const Index K;
 
 private:
-    std::minstd_rand Rng{ std::random_device{}() };
-    std::uniform_real_distribution<Scalar> Unif{ 0.0, 1.0 };
+    std::minstd_rand Rng { std::random_device {}() };
+    std::uniform_real_distribution<Scalar> Unif { 0.0, 1.0 };
 
     template <typename Derived>
     inline Scalar _log_sum_exp(const Eigen::MatrixBase<Derived> &log_vec)
@@ -296,7 +295,7 @@ private:
 
 struct cf_index_sampler_t {
 
-    using DS = discrete_sampler_t;
+    using DS = logit_sampler_t;
 
     using Vec = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
 

@@ -1,11 +1,11 @@
-Package: CHANGEME
+Package: asapR
 Type: Package
-Title: CHANGEME
+Title: Annotating Single-cell data matrix by Approximate Pseudo-bulk projection in R
 Version: 0.1
 Date: 2023-01-23
-Authors@R: c(person("first", "last", role = c("aut", "cre"), email = "email@email.ca"), person("first", "last", role = c("aut")))
-Maintainer: first last <email@email.ca>
-Description: CHANGEME
+Authors@R: c(person("Yongjin", "Park", role = c("aut", "cre"), email = "ypp@stat.ubc.ca"), person("Sishir", "Subedi", role = c("aut")))
+Maintainer: Yongjin Park <ypp@stat.ubc.ca>
+Description: Annotating Single-cell data matrix by Approximate Pseudo-bulk projection
 License: MIT License
 Imports: Rcpp, RcppEigen, dqrng, sitmo, BH
 LinkingTo: Rcpp, RcppEigen, dqrng, sitmo, BH

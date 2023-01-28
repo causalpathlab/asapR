@@ -585,6 +585,8 @@ struct running_stat_t {
         return Var;
     }
 
+    const T sd() { return var().cwiseSqrt(); }
+
     const Index d1;
     const Index d2;
 

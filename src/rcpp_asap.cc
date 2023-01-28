@@ -1,36 +1,195 @@
-#include "mmutil.hh"
-#include "mmutil_stat.hh"
-#include "mmutil_bgzf_util.hh"
-#include "mmutil_util.hh"
-#include "mmutil_index.hh"
-#include "mmutil_io.hh"
-#include "tuple_util.hh"
+#include "rcpp_asap.hh"
 
-#include "svd.hh"
-
-#include <algorithm>
-#include <functional>
-#include <string>
-#include <unordered_set>
-
-// [[Rcpp::depends(dqrng, sitmo, BH)]]
-#include <dqrng.h>
-#include <dqrng_distribution.h>
-#include <boost/random/normal_distribution.hpp>
-#include <boost/random/binomial_distribution.hpp>
-#include <boost/random/poisson_distribution.hpp>
-#include <boost/random/gamma_distribution.hpp>
-#include <boost/random/discrete_distribution.hpp>
-#include <boost/random/uniform_int_distribution.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
-#include <xoshiro.h>
-
-using namespace mmutil::io;
-using namespace mmutil::bgzf;
-
+//' Non-negative matrix factorization
 //'
-//' @param mtx_file
+//' @param Y data matrix (gene x sample)
+//' @param maxK maximum number of factors
+//' @param mcmc number of MCMC steps
+//' @param verbose verbosity
+//' @param a0 gamma(a0, b0)
+//' @param b0 gamma(a0, b0)
+//' @param rseed random seed
 //'
+// [[Rcpp::export]]
+Rcpp::List
+asap_fit_nmf(const Eigen::MatrixXf &Y,
+             const std::size_t maxK,
+             const std::size_t mcmc = 100,
+             const std::size_t burnin = 10,
+             const bool verbose = true,
+             const double a0 = 1.,
+             const double b0 = 1.,
+             const std::size_t rseed = 42)
+{
+
+    const Index D = Y.rows();
+    const Index N = Y.cols();
+    const Index K = maxK;
+
+    Mat onesD(D, 1);
+    onesD.setOnes();
+    Mat onesN(N, 1);
+    onesN.setOnes();
+
+    using idx_vec = std::vector<Index>;
+    using RNG = dqrng::xoshiro256plus;
+    RNG rng(rseed);
+
+    ///////////////////////////////
+    // Step 1. Degree correction //
+    ///////////////////////////////
+    using gamma_t = gamma_param_t<RNG>;
+    gamma_t row_degree(D, 1, a0, b0, rng);
+    gamma_t column_degree(N, 1, a0, b0, rng);
+
+    auto update_degree = [&]() {
+        column_degree.update(Y.transpose() * onesD,            //
+                             onesN * row_degree.mean().sum()); //
+        column_degree.calibrate();
+
+        row_degree.update(Y * onesN,                           //
+                          onesD * column_degree.mean().sum()); //
+        row_degree.calibrate();
+    };
+
+    update_degree();
+
+    ////////////////////////////
+    // Step 2. Initialization //
+    ////////////////////////////
+
+    gamma_t row_param(D, K, a0, b0, rng);
+    gamma_t column_param(N, K, a0, b0, rng);
+
+    ////////////////////////////
+    // Step 3. MC-EM or VB-EM //
+    ////////////////////////////
+
+    using latent_t = latent_matrix_t<RNG>;
+    latent_t latent(D, N, rng, K);
+    latent.randomize();
+
+    // Update topic-specific sample patterns
+    auto update_column_param = [&]() {
+        for (Index k = 0; k < K; ++k) {
+            const Scalar row_sum = row_param.mean().col(k).sum();
+            column_param.update_col(latent.slice_k(Y, k).transpose() * onesD,
+                                    column_degree.mean() * row_sum,
+                                    k);
+        }
+        column_param.calibrate();
+    };
+
+    // Update topic-specific gene patterns
+    auto update_row_param = [&]() {
+        for (Index k = 0; k < K; ++k) {
+            const Scalar column_sum = column_param.mean().col(k).sum();
+            row_param.update_col(latent.slice_k(Y, k) * onesN,
+                                 row_degree.mean() * column_sum,
+                                 k);
+        }
+        row_param.calibrate();
+    };
+
+    update_column_param();
+    update_row_param();
+
+    auto average_log_likelihood = [&]() {
+        constexpr Scalar tol = 1e-8;
+        return (Y.cwiseProduct(
+                    ((row_param.mean() * column_param.mean().transpose())
+                         .array() +
+                     tol)
+                        .log()
+                        .matrix()) -
+                row_param.mean() * column_param.mean().transpose())
+            .colwise()
+            .sum()
+            .mean();
+    };
+
+    Scalar llik = average_log_likelihood();
+    std::vector<Scalar> llik_trace;
+    llik_trace.emplace_back(llik);
+
+    if (verbose)
+        TLOG("Initial log-likelihood: " << llik);
+
+    boost::random::uniform_01<Scalar> runif;
+    discrete_sampler_t<RNG> proposal_sampler(rng, K);
+
+    auto update_latent_mh = [&]() {
+        //////////////////////////////
+        // Make gene-based proposal //
+        //////////////////////////////
+
+        const idx_vec &prop = proposal_sampler(row_param.mean());
+
+        ////////////////////////////////////////////////////
+        // Take a Metropolis-Hastings step for each (i,j) //
+        ////////////////////////////////////////////////////
+
+        const Mat &log_beta = column_param.log_mean();
+        constexpr Scalar zero = 0;
+
+        for (Index j = 0; j < N; ++j) {
+            for (Index i = 0; i < D; ++i) {
+                const Index k_old = latent.coeff(i, j), k_new = prop.at(i);
+                if (k_old != k_new) {
+                    const Scalar l_new = log_beta.coeff(j, k_new);
+                    const Scalar l_old = log_beta.coeff(j, k_old);
+                    const Scalar log_mh_ratio = std::min(zero, l_new - l_old);
+                    const Scalar u = runif(rng);
+                    if (u <= 0 || fasterlog(u) < log_mh_ratio) {
+                        latent.set(i, j, k_new);
+                    }
+                }
+            }
+        }
+    };
+
+    running_stat_t<Mat> row_stat(D, K);
+    running_stat_t<Mat> column_stat(N, K);
+
+    for (std::size_t t = 0; t < (mcmc + burnin); ++t) {
+        update_latent_mh();
+        update_column_param();
+        update_row_param();
+        llik = average_log_likelihood();
+        llik_trace.emplace_back(llik);
+        if (verbose) {
+            TLOG("MCMC: " << t << " " << llik);
+        } else {
+            // TODO
+        }
+        if (t >= burnin) {
+            row_stat(row_param.mean());
+            column_stat(column_param.mean());
+        }
+    }
+
+    // const Mat dd = column_degree.mean();
+    // const Mat ff = row_degree.mean();
+
+    auto _summary = [](running_stat_t<Mat> &stat) {
+        return Rcpp::List::create(Rcpp::_["mean"] = stat.mean(),
+                                  Rcpp::_["sd"] = stat.sd());
+    };
+
+    return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
+                              Rcpp::_["row"] = _summary(row_stat),
+                              Rcpp::_["column"] = _summary(column_stat));
+}
+
+//' Generate approximate pseudo-bulk data by random projections
+//'
+//' @param mtx_file matrix-market-formatted data file (bgzip)
+//' @param memory_location column indexing for the mtx
+//' @param num_factors a desired number of random factors
+//' @param rseed random seed
+//' @param verbose verbosity
+//' @param NUM_THREADS number of threads in data reading
+//' @param BLOCK_SIZE disk I/O block size (number of columns)
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -64,12 +223,8 @@ asap_random_bulk_data(const std::string mtx_file,
     dqrng::xoshiro256plus rng(rseed);
     norm_dist_t norm_dist(0., 1.);
 
-    auto rnorm = [&rng, &norm_dist](const Scalar &x) -> Scalar {
-        return norm_dist(rng);
-    };
-
-    Mat R(K, D);
-    R = R.unaryExpr(rnorm);
+    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
+    Mat R = Mat::NullaryExpr(K, D, rnorm);
 
     if (verbose) {
         TLOG("Random projection: " << R.rows() << " x " << R.cols());
