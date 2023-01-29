@@ -5,8 +5,96 @@
 #include "math.hh"
 #include "util.hh"
 
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random/binomial_distribution.hpp>
+#include <boost/random/poisson_distribution.hpp>
+#include <boost/random/gamma_distribution.hpp>
+#include <boost/random/discrete_distribution.hpp>
+#include <boost/random/uniform_int_distribution.hpp>
+#include <boost/random/uniform_real_distribution.hpp>
+#include <boost/random/uniform_01.hpp>
+
 #ifndef EIGEN_UTIL_HH_
 #define EIGEN_UTIL_HH_
+
+template <typename T, typename RNG>
+struct discrete_sampler_t {
+
+    using disc_distrib = boost::random::discrete_distribution<>;
+    using disc_param = disc_distrib::param_type;
+
+    using Scalar = typename T::Scalar;
+    using Index = typename T::Index;
+
+    using IndexVec = std::vector<Index>;
+
+    explicit discrete_sampler_t(RNG &_rng, const Index k)
+        : rng(_rng)
+        , K(k)
+        , _weights(k)
+        , _rdisc(_weights)
+    {
+    }
+
+    template <typename Derived>
+    const IndexVec &sample(const Eigen::MatrixBase<Derived> &W)
+    {
+        using ROW = typename Eigen::internal::plain_row_type<Derived>::type;
+        check_size(W);
+
+        for (Index g = 0; g < W.rows(); ++g) {
+            Eigen::Map<ROW>(&_weights[0], 1, K) = W.row(g);
+            _sampled[g] = _rdisc(rng, disc_param(_weights));
+        }
+        return _sampled;
+    }
+
+    template <typename Derived>
+    const IndexVec &sample_logit(const Eigen::MatrixBase<Derived> &W)
+    {
+        using ROW = typename Eigen::internal::plain_row_type<Derived>::type;
+        check_size(W);
+
+        for (Index g = 0; g < W.rows(); ++g) {
+
+            // safer than this: W.row(g).cwiseExp();
+            const Scalar max_logit = W.row(g).maxCoeff();
+            Eigen::Map<ROW>(&_weights[0], 1, K) =
+                (W.row(g).array() - max_logit).matrix().unaryExpr(exp_op);
+
+            _sampled[g] = _rdisc(rng, disc_param(_weights));
+        }
+        return _sampled;
+    }
+
+    template <typename Derived>
+    const IndexVec &operator()(const Eigen::MatrixBase<Derived> &W)
+    {
+        return sample(W);
+    }
+
+    template <typename Derived>
+    void check_size(const Eigen::MatrixBase<Derived> &W)
+    {
+        if (W.rows() != _sampled.size())
+            _sampled.resize(W.rows());
+
+        if (W.cols() != _weights.size())
+            _weights.resize(W.cols());
+    }
+
+    const IndexVec &sampled() const { return _sampled; }
+
+    RNG &rng;
+    const Index K;
+    std::vector<Scalar> _weights;
+    disc_distrib _rdisc;
+    IndexVec _sampled;
+
+    struct exp_op_t {
+        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+    } exp_op;
+};
 
 template <typename EigenVec>
 inline auto

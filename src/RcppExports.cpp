@@ -12,20 +12,24 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // asap_fit_nmf
-Rcpp::List asap_fit_nmf(const Eigen::MatrixXf& Y, const std::size_t maxK, const std::size_t mcmc, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed);
-RcppExport SEXP _asapR_asap_fit_nmf(SEXP YSEXP, SEXP maxKSEXP, SEXP mcmcSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP) {
+Rcpp::List asap_fit_nmf(const Eigen::MatrixXf Y, const std::size_t maxK, const std::size_t mcem, const std::size_t burnin, const std::size_t latent_iter, const std::size_t thining, const bool verbose, const bool eval_llik, const double a0, const double b0, const std::size_t rseed, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_nmf(SEXP YSEXP, SEXP maxKSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP latent_iterSEXP, SEXP thiningSEXP, SEXP verboseSEXP, SEXP eval_llikSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP NUM_THREADSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type Y(YSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y(YSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type mcmc(mcmcSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type mcem(mcemSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type latent_iter(latent_iterSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type thining(thiningSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const bool >::type eval_llik(eval_llikSEXP);
     Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
     Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y, maxK, mcmc, burnin, verbose, a0, b0, rseed));
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y, maxK, mcem, burnin, latent_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -170,7 +174,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 8},
+    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 12},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
     {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},

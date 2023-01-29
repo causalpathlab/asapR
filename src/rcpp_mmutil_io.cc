@@ -1,5 +1,4 @@
 #include "mmutil.hh"
-#include "mmutil_stat.hh"
 #include "mmutil_bgzf_util.hh"
 #include "mmutil_util.hh"
 #include "mmutil_index.hh"

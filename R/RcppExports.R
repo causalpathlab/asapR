@@ -11,8 +11,8 @@
 #' @param b0 gamma(a0, b0)
 #' @param rseed random seed
 #'
-asap_fit_nmf <- function(Y, maxK, mcmc = 100L, burnin = 10L, verbose = TRUE, a0 = 1., b0 = 1., rseed = 42L) {
-    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcmc, burnin, verbose, a0, b0, rseed)
+asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections

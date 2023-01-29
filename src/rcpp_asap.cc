@@ -12,173 +12,133 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf(const Eigen::MatrixXf &Y,
+asap_fit_nmf(const Eigen::MatrixXf Y,
              const std::size_t maxK,
-             const std::size_t mcmc = 100,
+             const std::size_t mcem = 100,
              const std::size_t burnin = 10,
+             const std::size_t latent_iter = 10,
+             const std::size_t thining = 3,
              const bool verbose = true,
+             const bool eval_llik = true,
              const double a0 = 1.,
              const double b0 = 1.,
-             const std::size_t rseed = 42)
+             const std::size_t rseed = 42,
+             const std::size_t NUM_THREADS = 1)
 {
 
     const Index D = Y.rows();
     const Index N = Y.cols();
     const Index K = maxK;
 
-    Mat onesD(D, 1);
-    onesD.setOnes();
-    Mat onesN(N, 1);
-    onesN.setOnes();
-
-    using idx_vec = std::vector<Index>;
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
+    using gamma_t = gamma_param_t<Mat, RNG>;
+
+    poisson_nmf_t<Mat, RNG, gamma_t> model(D, N, K, a0, b0, rseed);
+    using latent_t = latent_matrix_t<RNG>;
+    latent_t aux(D, N, K, rng);
 
     ///////////////////////////////
     // Step 1. Degree correction //
     ///////////////////////////////
-    using gamma_t = gamma_param_t<RNG>;
-    gamma_t row_degree(D, 1, a0, b0, rng);
-    gamma_t column_degree(N, 1, a0, b0, rng);
 
-    auto update_degree = [&]() {
-        column_degree.update(Y.transpose() * onesD,            //
-                             onesN * row_degree.mean().sum()); //
-        column_degree.calibrate();
+    if (verbose)
+        TLOG("Degree distributions...");
 
-        row_degree.update(Y * onesN,                           //
-                          onesD * column_degree.mean().sum()); //
-        row_degree.calibrate();
-    };
-
-    update_degree();
+    for (Index t = 0; t < 5; ++t) {
+        model.update_degree(Y);
+    }
 
     ////////////////////////////
     // Step 2. Initialization //
     ////////////////////////////
 
-    gamma_t row_param(D, K, a0, b0, rng);
-    gamma_t column_param(N, K, a0, b0, rng);
-
-    ////////////////////////////
-    // Step 3. MC-EM or VB-EM //
-    ////////////////////////////
-
-    using latent_t = latent_matrix_t<RNG>;
-    latent_t latent(D, N, rng, K);
-    latent.randomize();
-
-    // Update topic-specific sample patterns
-    auto update_column_param = [&]() {
-        for (Index k = 0; k < K; ++k) {
-            const Scalar row_sum = row_param.mean().col(k).sum();
-            column_param.update_col(latent.slice_k(Y, k).transpose() * onesD,
-                                    column_degree.mean() * row_sum,
-                                    k);
-        }
-        column_param.calibrate();
-    };
-
-    // Update topic-specific gene patterns
-    auto update_row_param = [&]() {
-        for (Index k = 0; k < K; ++k) {
-            const Scalar column_sum = column_param.mean().col(k).sum();
-            row_param.update_col(latent.slice_k(Y, k) * onesN,
-                                 row_degree.mean() * column_sum,
-                                 k);
-        }
-        row_param.calibrate();
-    };
-
-    update_column_param();
-    update_row_param();
-
-    auto average_log_likelihood = [&]() {
-        constexpr Scalar tol = 1e-8;
-        return (Y.cwiseProduct(
-                    ((row_param.mean() * column_param.mean().transpose())
-                         .array() +
-                     tol)
-                        .log()
-                        .matrix()) -
-                row_param.mean() * column_param.mean().transpose())
-            .colwise()
-            .sum()
-            .mean();
-    };
-
-    Scalar llik = average_log_likelihood();
-    std::vector<Scalar> llik_trace;
-    llik_trace.emplace_back(llik);
-
     if (verbose)
-        TLOG("Initial log-likelihood: " << llik);
+        TLOG("Randomized auxiliary/latent matrix");
 
-    boost::random::uniform_01<Scalar> runif;
-    discrete_sampler_t<RNG> proposal_sampler(rng, K);
-
-    auto update_latent_mh = [&]() {
-        //////////////////////////////
-        // Make gene-based proposal //
-        //////////////////////////////
-
-        const idx_vec &prop = proposal_sampler(row_param.mean());
-
-        ////////////////////////////////////////////////////
-        // Take a Metropolis-Hastings step for each (i,j) //
-        ////////////////////////////////////////////////////
-
-        const Mat &log_beta = column_param.log_mean();
-        constexpr Scalar zero = 0;
-
-        for (Index j = 0; j < N; ++j) {
-            for (Index i = 0; i < D; ++i) {
-                const Index k_old = latent.coeff(i, j), k_new = prop.at(i);
-                if (k_old != k_new) {
-                    const Scalar l_new = log_beta.coeff(j, k_new);
-                    const Scalar l_old = log_beta.coeff(j, k_old);
-                    const Scalar log_mh_ratio = std::min(zero, l_new - l_old);
-                    const Scalar u = runif(rng);
-                    if (u <= 0 || fasterlog(u) < log_mh_ratio) {
-                        latent.set(i, j, k_new);
-                    }
-                }
-            }
-        }
-    };
+    aux.randomize();
+    // std::cout << aux.Z << std::endl;
+    model.update_column_topic(Y, aux);
+    model.update_row_topic(Y, aux);
 
     running_stat_t<Mat> row_stat(D, K);
     running_stat_t<Mat> column_stat(N, K);
 
-    for (std::size_t t = 0; t < (mcmc + burnin); ++t) {
-        update_latent_mh();
-        update_column_param();
-        update_row_param();
-        llik = average_log_likelihood();
+    ////////////////////////////
+    // Step 3. Monte Carlo EM //
+    ////////////////////////////
+
+    discrete_sampler_t<Mat, RNG> proposal(rng, K);
+
+    Scalar llik;
+    std::vector<Scalar> llik_trace;
+
+    if (eval_llik) {
+        llik = model.log_likelihood(Y, aux);
         llik_trace.emplace_back(llik);
+        if (verbose)
+            TLOG("Initial log-likelihood: " << llik);
+    }
+
+    for (std::size_t t = 0; t < (mcem + burnin); ++t) {
+        for (std::size_t s = 0; s < latent_iter; ++s) {
+            aux.sample_mh(proposal,
+                          model.row_topic.log_mean(),
+                          model.column_topic.log_mean(),
+                          NUM_THREADS);
+        }
+
+        model.update_column_topic(Y, aux);
+        model.update_row_topic(Y, aux);
+
+        if (eval_llik && t % thining == 0) {
+            llik = model.log_likelihood(Y, aux);
+            llik_trace.emplace_back(llik);
+        }
+
         if (verbose) {
-            TLOG("MCMC: " << t << " " << llik);
+            if (eval_llik) {
+                TLOG("MCEM: " << t << " " << llik);
+            } else {
+                TLOG("MCEM: " << t);
+            }
         } else {
             // TODO
         }
-        if (t >= burnin) {
-            row_stat(row_param.mean());
-            column_stat(column_param.mean());
+
+        if (t >= burnin && t % thining == 0) {
+
+            if (verbose) {
+                TLOG("Record keeping ...");
+            }
+
+            row_stat(model.row_topic.mean());
+            column_stat(model.column_topic.mean());
+        }
+
+        try {
+            Rcpp::checkUserInterrupt();
+        } catch (Rcpp::internal::InterruptedException e) {
+            TLOG("User abort at " << t);
+            break;
         }
     }
-
-    // const Mat dd = column_degree.mean();
-    // const Mat ff = row_degree.mean();
 
     auto _summary = [](running_stat_t<Mat> &stat) {
         return Rcpp::List::create(Rcpp::_["mean"] = stat.mean(),
                                   Rcpp::_["sd"] = stat.sd());
     };
 
+    Rcpp::List null_out =
+        Rcpp::List::create(Rcpp::_["row"] = model.row_degree.mean(),
+                           Rcpp::_["column"] = model.column_degree.mean());
+
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
+                              Rcpp::_["null"] = null_out,
                               Rcpp::_["row"] = _summary(row_stat),
                               Rcpp::_["column"] = _summary(column_stat));
+
+    return Rcpp::List::create();
 }
 
 //' Generate approximate pseudo-bulk data by random projections
