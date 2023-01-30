@@ -16,7 +16,7 @@
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: FALSE)
 #' @param .rand.seed random seed (default: 42)
-#' @param .sample.col.row take column-wise MH step (default: TRUE)
+#' @param .sample.col.row Take column-wise MH step (default: TRUE)
 #'
 #'
 fit.asap <- function(mtx.file,
