@@ -45,17 +45,14 @@ struct latent_matrix_t {
         return Y.cwiseProduct(Z.unaryExpr(is_k_t(k)));
     }
 
+    // MH sampling proposal by rows, then test by columns
     template <typename Derived>
-    void sample_mh(const std::vector<Index> &rowwise_proposal,
-                   const Eigen::MatrixBase<Derived> &colwise_logit,
-                   const std::size_t NUM_THREADS = 1)
+    void sample_row_col(const std::vector<Index> &rowwise_proposal,
+                        const Eigen::MatrixBase<Derived> &colwise_logit,
+                        const std::size_t NUM_THREADS = 1)
     {
         constexpr Scalar zero = 0;
-
         boost::random::uniform_01<Scalar> runif;
-
-        // const Index D = rowwise_logit.rows();
-        // const Index N = colwise_logit.rows();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -66,18 +63,57 @@ struct latent_matrix_t {
 #else
         RNG &lrng = rng;
 #endif
-            for (Index jj = 0; jj < Z.cols(); ++jj) {
-                for (Index ii = 0; ii < Z.rows(); ++ii) {
-                    const Index k_old = Z(ii, jj);
-                    const Index k_new = rowwise_proposal.at(ii);
+            for (Index cc = 0; cc < Z.cols(); ++cc) {
+                for (Index rr = 0; rr < Z.rows(); ++rr) {
+                    const Index k_old = Z(rr, cc);
+                    const Index k_new = rowwise_proposal.at(rr);
                     if (k_old != k_new) {
-                        const Scalar l_new = colwise_logit(jj, k_new);
-                        const Scalar l_old = colwise_logit(jj, k_old);
+                        const Scalar l_new = colwise_logit(cc, k_new);
+                        const Scalar l_old = colwise_logit(cc, k_old);
                         const Scalar log_mh_ratio =
                             std::min(zero, l_new - l_old);
                         const Scalar u = runif(lrng);
                         if (u <= 0 || fasterlog(u) < log_mh_ratio) {
-                            Z(ii, jj) = k_new;
+                            Z(rr, cc) = k_new;
+                        }
+                    }
+                }
+            }
+#if defined(_OPENMP)
+        }
+#endif
+    }
+
+    // MH sampling proposal by columns, then test by rows
+    template <typename Derived>
+    void sample_col_row(const std::vector<Index> &colwise_proposal,
+                        const Eigen::MatrixBase<Derived> &rowwise_logit,
+                        const std::size_t NUM_THREADS = 1)
+    {
+        constexpr Scalar zero = 0;
+        boost::random::uniform_01<Scalar> runif;
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+        {
+            RNG lrng(rng);
+            lrng.long_jump(omp_get_thread_num() + 1);
+#pragma omp for
+#else
+        RNG &lrng = rng;
+#endif
+            for (Index rr = 0; rr < Z.rows(); ++rr) {
+                for (Index cc = 0; cc < Z.cols(); ++cc) {
+                    const Index k_old = Z(rr, cc);
+                    const Index k_new = colwise_proposal.at(cc);
+                    if (k_old != k_new) {
+                        const Scalar l_new = rowwise_logit(rr, k_new);
+                        const Scalar l_old = rowwise_logit(rr, k_old);
+                        const Scalar log_mh_ratio =
+                            std::min(zero, l_new - l_old);
+                        const Scalar u = runif(lrng);
+                        if (u <= 0 || fasterlog(u) < log_mh_ratio) {
+                            Z(rr, cc) = k_new;
                         }
                     }
                 }

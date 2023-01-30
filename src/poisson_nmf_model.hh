@@ -8,6 +8,7 @@ struct poisson_nmf_t {
 
     using Scalar = typename T::Scalar;
     using Index = typename T::Index;
+    using ColVec = typename Eigen::internal::plain_col_type<T>::type;
 
     explicit poisson_nmf_t(const Index d,
                            const Index n,
@@ -20,6 +21,7 @@ struct poisson_nmf_t {
         , K(k)
         , onesD(d, 1)
         , onesN(n, 1)
+        , tempK(K)
         , rng(rseed)
         , row_degree(d, 1, a0, b0, rng)
         , column_degree(n, 1, a0, b0, rng)
@@ -30,14 +32,42 @@ struct poisson_nmf_t {
         onesN.setOnes();
     }
 
+    void randomize_topics()
+    {
+        Mat row_a = Mat::Ones(D, K);
+        Mat row_b = row_topic.sample();
+        row_topic.update(row_a, row_b);
+
+        Mat column_a = Mat::Ones(N, K);
+        Mat column_b = column_topic.sample();
+        column_topic.update(column_a, column_b);
+    }
+
+    template <typename Derived>
+    void initialize_degree(const Eigen::MatrixBase<Derived> &Y)
+    {
+        column_degree.update(Y.transpose() * onesD, onesN);
+        column_degree.calibrate();
+        row_degree.update(Y * onesN, onesD * column_degree.mean().sum());
+        row_degree.calibrate();
+    }
+
     template <typename Derived>
     void update_degree(const Eigen::MatrixBase<Derived> &Y)
     {
-        const Scalar col_sum = column_degree.mean().sum();
-        row_degree.update(Y * onesN, onesD * col_sum);
+
+        // const Scalar col_sum = column_degree.mean().sum();
+        row_degree.update(Y * onesN,
+                          row_topic.mean() *
+                              (column_topic.mean().transpose() *
+                               column_degree.mean()));
         row_degree.calibrate();
-        const Scalar row_sum = row_degree.mean().sum();
-        column_degree.update(Y.transpose() * onesD, onesN * row_sum);
+
+        // const Scalar row_sum = row_degree.mean().sum();
+        column_degree.update(Y.transpose() * onesD,
+                             column_topic.mean() *
+                                 (row_topic.mean().transpose() *
+                                  row_degree.mean()));
         column_degree.calibrate();
     }
 
@@ -94,10 +124,11 @@ struct poisson_nmf_t {
     void update_column_topic(const Eigen::MatrixBase<Derived> &Y,
                              const Latent &latent)
     {
+        tempK = row_topic.mean().transpose() * take_row_degree();
+
         for (Index k = 0; k < K; ++k) {
-            const Scalar row_sum = row_topic.mean().col(k).sum();
             column_topic.update_col(latent.slice_k(Y, k).transpose() * onesD,
-                                    column_degree.mean() * row_sum,
+                                    column_degree.mean() * tempK(k),
                                     k);
         }
         column_topic.calibrate();
@@ -107,10 +138,11 @@ struct poisson_nmf_t {
     void update_row_topic(const Eigen::MatrixBase<Derived> &Y,
                           const Latent &latent)
     {
+        tempK = column_topic.mean().transpose() * take_column_degree();
+
         for (Index k = 0; k < K; ++k) {
-            const Scalar column_sum = column_topic.mean().col(k).sum();
             row_topic.update_col(latent.slice_k(Y, k) * onesN,
-                                 row_degree.mean() * column_sum,
+                                 row_degree.mean() * tempK(k),
                                  k);
         }
         row_topic.calibrate();
@@ -120,6 +152,7 @@ struct poisson_nmf_t {
 
     T onesD;
     T onesN;
+    ColVec tempK;
     RNG rng;
 
     PARAM row_degree;

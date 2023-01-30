@@ -95,12 +95,14 @@ asap_predict_mtx(const std::string mtx_file,
 
         using latent_t = latent_matrix_t<RNG>;
         latent_t aux(Y.rows(), Y.cols(), K, rng);
-        discrete_sampler_t<Mat, RNG> proposal(rng, K);
+        discrete_sampler_t<Mat, RNG> proposal_by_row(rng, K);
+        discrete_sampler_t<Mat, RNG> proposal_by_col(rng, K);
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);
 
         for (std::size_t t = 0; t < (mcem + burnin); ++t) {
 
-            aux.sample_mh(proposal.sample(beta), theta_b.log_mean());
+            aux.sample_row_col(proposal_by_row.sample(beta),
+                               theta_b.log_mean());
 
             for (Index k = 0; k < K; ++k) {
                 theta_b.update_col(aux.slice_k(Y, k).transpose() * onesD,
@@ -168,6 +170,7 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
              const std::size_t maxK,
              const std::size_t mcem = 100,
              const std::size_t burnin = 10,
+             const bool do_sample_col_row = true,
              const std::size_t latent_iter = 1,
              const std::size_t degree_iter = 1,
              const std::size_t thining = 3,
@@ -191,29 +194,6 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
     using latent_t = latent_matrix_t<RNG>;
     latent_t aux(D, N, K, rng);
 
-    ///////////////////////////////
-    // Step 1. Degree correction //
-    ///////////////////////////////
-
-    if (verbose)
-        TLOG("Degree distributions...");
-
-    for (Index t = 0; t < degree_iter; ++t) {
-        model.update_degree(Y);
-    }
-
-    ////////////////////////////
-    // Step 2. Initialization //
-    ////////////////////////////
-
-    if (verbose)
-        TLOG("Randomized auxiliary/latent matrix");
-
-    aux.randomize();
-    // std::cout << aux.Z << std::endl;
-    model.update_column_topic(Y, aux);
-    model.update_row_topic(Y, aux);
-
     running_stat_t<Mat> row_stat(D, K);
     running_stat_t<Mat> row_log_stat(D, K);
     running_stat_t<Mat> column_stat(N, K);
@@ -223,7 +203,24 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
     // Step 3. Monte Carlo EM //
     ////////////////////////////
 
-    discrete_sampler_t<Mat, RNG> proposal(rng, K);
+    discrete_sampler_t<Mat, RNG> proposal_by_row(rng, K);
+    discrete_sampler_t<Mat, RNG> proposal_by_col(rng, K);
+
+    model.initialize_degree(Y);
+    for (std::size_t s = 0; s < degree_iter; ++s) {
+        model.update_degree(Y);
+    }
+
+    if (verbose)
+        TLOG("Randomizing auxiliary/latent matrix");
+
+    aux.randomize();
+
+    model.update_column_topic(Y, aux);
+    model.update_row_topic(Y, aux);
+
+    if (verbose)
+        TLOG("Initialized model parameters");
 
     Scalar llik;
     std::vector<Scalar> llik_trace;
@@ -237,9 +234,18 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
 
     for (std::size_t t = 0; t < (mcem + burnin); ++t) {
         for (std::size_t s = 0; s < latent_iter; ++s) {
-            aux.sample_mh(proposal.sample_logit(model.row_topic.log_mean()),
-                          model.column_topic.log_mean(),
-                          NUM_THREADS);
+
+            aux.sample_row_col(proposal_by_row.sample_logit(
+                                   model.row_topic.log_mean()),
+                               model.column_topic.log_mean(),
+                               NUM_THREADS);
+
+            if (do_sample_col_row) {
+                aux.sample_col_row(proposal_by_col.sample_logit(
+                                       model.column_topic.log_mean()),
+                                   model.row_topic.log_mean(),
+                                   NUM_THREADS);
+            }
         }
 
         model.update_column_topic(Y, aux);
@@ -288,8 +294,9 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
                               Rcpp::_["degree"] = deg_out,
                               Rcpp::_["row"] = _summary(row_stat),
                               Rcpp::_["column"] = _summary(column_stat),
-                              Rcpp::_["ln.row"] = _summary(row_log_stat),
-                              Rcpp::_["ln.column"] = _summary(column_log_stat));
+                              Rcpp::_["log.row"] = _summary(row_log_stat),
+                              Rcpp::_["log.column"] =
+                                  _summary(column_log_stat));
 
     return Rcpp::List::create();
 }
@@ -385,7 +392,7 @@ asap_random_bulk_data(const std::string mtx_file,
 
     normalize_columns(Q);
     svd.compute(Q);
-    Mat Y = standardize(svd.matrixV()); // N x K
+    Mat random_dict = standardize(svd.matrixV()); // N x K
 
     if (verbose)
         TLOG("Finished SVD on the projected data");
@@ -403,7 +410,7 @@ asap_random_bulk_data(const std::string mtx_file,
         auto binary_shift = [&k](const Scalar &x) -> Index {
             return x > 0. ? (1 << k) : 0;
         };
-        bb += Y.col(k).unaryExpr(binary_shift);
+        bb += random_dict.col(k).unaryExpr(binary_shift);
     }
 
     const std::vector<Index> membership = std_vector(bb);
@@ -471,7 +478,7 @@ asap_random_bulk_data(const std::string mtx_file,
                                                    << PB.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = PB,
-                              Rcpp::_["Y"] = Y,
+                              Rcpp::_["rand.dict"] = random_dict,
                               Rcpp::_["positions"] = positions,
                               Rcpp::_["rand.proj"] = R);
 }

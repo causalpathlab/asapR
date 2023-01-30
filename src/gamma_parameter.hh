@@ -59,6 +59,13 @@ struct gamma_param_t {
 
     T sample() { return a_stat.binaryExpr(b_stat, rgamma_op); }
 
+    const T &sample_log_mean()
+    {
+        estimate_mean = a_stat.binaryExpr(b_stat, rgamma_op);
+        estimate_log = estimate_mean.unaryExpr(log_op);
+        return estimate_log;
+    }
+
     const Index rows() const { return nrows; }
     const Index cols() const { return ncols; }
 
@@ -73,7 +80,7 @@ struct gamma_param_t {
 
         const Scalar operator()(const Scalar &a, const Scalar &b) const
         {
-            return _rgamma(rng, gamma_distrib::param_type(a, b));
+            return _rgamma(rng, typename gamma_distrib::param_type(a, b));
         }
 
         RNG &rng;
@@ -87,6 +94,10 @@ struct gamma_param_t {
         }
     };
 
+    struct log_op_t {
+        const Scalar operator()(const Scalar &x) const { return fasterlog(x); }
+    };
+
     const Index nrows, ncols;
     const Scalar a0, b0;
 
@@ -97,6 +108,7 @@ struct gamma_param_t {
 
     rgamma_op_t rgamma_op;
     estimate_log_op_t estimate_log_op;
+    log_op_t log_op;
 };
 
 #endif

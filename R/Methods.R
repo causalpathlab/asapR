@@ -9,13 +9,14 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
-#' @param b0 Gamma(a0, b0) prior (default: sqrt(nrows))
+#' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
 #' @param verbose verbosity
 #' @param num.threads number of threads (default: 1)
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: FALSE)
 #' @param .rand.seed random seed (default: 42)
+#' @param .sample.col.row take column-wise MH step (default: TRUE)
 #'
 #'
 fit.asap <- function(mtx.file,
@@ -27,14 +28,15 @@ fit.asap <- function(mtx.file,
                      deg.step = 0,
                      .burnin = 10,
                      .thining = 3,
-                     a0=NULL,
-                     b0=NULL,
+                     a0 = 1,
+                     b0 = 1,
                      index.file = paste0(mtx.file, ".index"),
                      verbose = TRUE,
                      num.threads = 1,
                      block.size = 100,
                      eval.llik = FALSE,
-                     .rand.seed = 42){
+                     .rand.seed = 42,
+                     .sample.col.row = TRUE){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -61,15 +63,13 @@ fit.asap <- function(mtx.file,
         Y <- cbind(Y, .pb$PB)
     }
 
-    if(is.null(a0)) a0 <- 1
-    if(is.null(b0)) b0 <- sqrt(nrow(Y))
-
     message("Phase II: Perform Poisson matrix factorization")
 
     .nmf <- asap_fit_nmf(Y,
                          maxK = k,
                          mcem = em.step,
                          burnin = .burnin,
+                         do_sample_col_row = .sample.col.row,
                          latent_iter = e.step,
                          degree_iter = deg.step,
                          thining = .thining,
@@ -99,6 +99,9 @@ fit.asap <- function(mtx.file,
                              NUM_THREADS = num.threads,
                              BLOCK_SIZE = block.size)
 
+    message("normalizing the estimated model parameters")
+
+    ## The same idea borrowed from `fastTopics`
     uu <- apply(beta, 2, sum)
     beta <- sweep(beta, 2, uu, `/`)
     prop <- sweep(asap$theta, 2, uu, `*`)
@@ -107,8 +110,8 @@ fit.asap <- function(mtx.file,
 
     asap$beta <- beta
     asap$prop <- prop
-    asap$log.likelihood <- .nmf$log.likelihood
     asap$depth <- zz
+    asap$nmf <- .nmf
 
     return(asap)
 }
