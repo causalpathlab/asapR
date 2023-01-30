@@ -45,20 +45,17 @@ struct latent_matrix_t {
         return Y.cwiseProduct(Z.unaryExpr(is_k_t(k)));
     }
 
-    template <typename Sampler, typename Derived1, typename Derived2>
-    void sample_mh(Sampler &sampler,
-                   const Eigen::MatrixBase<Derived1> &rowwise_logit,
-                   const Eigen::MatrixBase<Derived2> &colwise_logit,
+    template <typename Derived>
+    void sample_mh(const std::vector<Index> &rowwise_proposal,
+                   const Eigen::MatrixBase<Derived> &colwise_logit,
                    const std::size_t NUM_THREADS = 1)
     {
-        using IdxVec = std::vector<Index>;
-        const IdxVec &proposal = sampler.sample_logit(rowwise_logit);
         constexpr Scalar zero = 0;
 
         boost::random::uniform_01<Scalar> runif;
 
-        const Index D = rowwise_logit.rows();
-        const Index N = colwise_logit.rows();
+        // const Index D = rowwise_logit.rows();
+        // const Index N = colwise_logit.rows();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -72,7 +69,7 @@ struct latent_matrix_t {
             for (Index jj = 0; jj < Z.cols(); ++jj) {
                 for (Index ii = 0; ii < Z.rows(); ++ii) {
                     const Index k_old = Z(ii, jj);
-                    const Index k_new = proposal.at(ii);
+                    const Index k_new = rowwise_proposal.at(ii);
                     if (k_old != k_new) {
                         const Scalar l_new = colwise_logit(jj, k_new);
                         const Scalar l_old = colwise_logit(jj, k_old);

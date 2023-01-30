@@ -1,22 +1,175 @@
 #include "rcpp_asap.hh"
 
+//' Predict NMF loading
+//'
+//' @param mtx_file matrix-market-formatted data file (bgzip)
+//' @param memory_location column indexing for the mtx
+//' @param beta row x factor dictionary
+//' @param mcem number of Monte Carl Expectation Maximization
+//' @param burnin burn-in period
+//' @param thining thining interval in record keeping
+//' @param a0 gamma(a0, b0)
+//' @param b0 gamma(a0, b0)
+//' @param rseed random seed
+//' @param verbose verbosity
+//' @param NUM_THREADS number of threads in data reading
+//' @param BLOCK_SIZE disk I/O block size (number of columns)
+//'
+// [[Rcpp::export]]
+Rcpp::List
+asap_predict_mtx(const std::string mtx_file,
+                 const Rcpp::NumericVector &memory_location,
+                 const Eigen::MatrixXf &beta,
+                 const std::size_t mcem = 100,
+                 const std::size_t burnin = 10,
+                 const std::size_t thining = 3,
+                 const double a0 = 1.,
+                 const double b0 = 1.,
+                 const std::size_t rseed = 42,
+                 const bool verbose = false,
+                 const std::size_t NUM_THREADS = 1,
+                 const std::size_t BLOCK_SIZE = 100)
+{
+    CHK_RETL(convert_bgzip(mtx_file));
+    mm_info_reader_t info;
+    CHK_RETL_(peek_bgzf_header(mtx_file, info),
+              "Failed to read the size of this mtx file:" << mtx_file);
+
+    const Index D = info.max_row; // dimensionality
+    const Index N = info.max_col; // number of cells
+    const Index K = beta.cols();  // number of topics
+    const Index block_size = BLOCK_SIZE;
+
+    ASSERT_RETL(beta.rows() == D,
+                "incompatible Beta with the file: " << mtx_file);
+
+    if (verbose) {
+        TLOG("Beta: " << D << " x " << K);
+    }
+
+    Vec beta_sum = beta.transpose().colwise().sum();
+    Mat onesD = Mat::Ones(D, 1);
+
+    Mat theta(N, K);
+    Mat theta_sd(N, K);
+    Mat log_theta(N, K);
+    Mat log_theta_sd(N, K);
+    Vec Degree(N);
+
+    if (verbose) {
+        TLOG("Start recalibrating column-wise loading parameters...");
+        TLOG("Theta: " << N << " x " << K);
+        Rcpp::Rcerr << "Total " << N;
+    }
+
+    Index Nprocessed = 0;
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+    for (Index lb = 0; lb < N; lb += block_size) {
+
+        const Index ub = std::min(N, block_size + lb);
+
+        ///////////////////////////////////////
+        // memory location = 0 means the end //
+        ///////////////////////////////////////
+
+        const Index lb_mem = memory_location[lb];
+        const Index ub_mem = ub < N ? memory_location[ub] : 0;
+
+        const SpMat xx =
+            read_eigen_sparse_subset_col(mtx_file, lb, ub, lb_mem, ub_mem);
+
+        const Mat Y = xx;
+
+        running_stat_t<Mat> stat(Y.cols(), K);
+        running_stat_t<Mat> log_stat(Y.cols(), K);
+
+        using RNG = dqrng::xoshiro256plus;
+        using gamma_t = gamma_param_t<Mat, RNG>;
+        RNG rng(rseed + lb);
+
+        const Mat degree = Y.transpose().colwise().sum();
+
+        using latent_t = latent_matrix_t<RNG>;
+        latent_t aux(Y.rows(), Y.cols(), K, rng);
+        discrete_sampler_t<Mat, RNG> proposal(rng, K);
+        gamma_t theta_b(Y.cols(), K, a0, b0, rng);
+
+        for (std::size_t t = 0; t < (mcem + burnin); ++t) {
+
+            aux.sample_mh(proposal.sample(beta), theta_b.log_mean());
+
+            for (Index k = 0; k < K; ++k) {
+                theta_b.update_col(aux.slice_k(Y, k).transpose() * onesD,
+                                   degree * beta_sum(k),
+                                   k);
+            }
+            theta_b.calibrate();
+
+            if (t >= burnin && t % thining == 0) {
+                stat(theta_b.mean());
+                log_stat(theta_b.log_mean());
+            }
+        }
+
+        Nprocessed += Y.cols();
+        if (verbose) {
+            Rcpp::Rcerr << "\rprocessed: " << Nprocessed;
+        }
+
+        const Mat _mean = stat.mean(), _sd = stat.sd();
+        const Mat _log_mean = log_stat.mean(), _log_sd = log_stat.sd();
+
+        for (Index i = 0; i < (ub - lb); ++i) {
+            const Index j = i + lb;
+            theta.row(j) = _mean.row(i);
+            theta_sd.row(j) = _sd.row(i);
+            log_theta.row(j) = _log_mean.row(i);
+            log_theta_sd.row(j) = _log_sd.row(i);
+            Degree(j) = degree(i);
+        }
+    }
+
+    if (verbose) {
+        Rcpp::Rcerr << std::endl;
+    }
+
+    TLOG("Done");
+
+    return Rcpp::List::create(Rcpp::_["theta"] = theta,
+                              Rcpp::_["theta.sd"] = theta_sd,
+                              Rcpp::_["log.theta"] = log_theta,
+                              Rcpp::_["log.theta.sd"] = log_theta_sd,
+                              Rcpp::_["sample.degree"] = Degree);
+}
+
 //' Non-negative matrix factorization
 //'
 //' @param Y data matrix (gene x sample)
 //' @param maxK maximum number of factors
-//' @param mcmc number of MCMC steps
+//' @param mcem number of Monte Carl Expectation Maximization
+//' @param burnin burn-in period
+//' @param latent_iter latent sampling steps
+//' @param degree_iter row and column degree optimization steps
+//' @param thining thining interval in record keeping
 //' @param verbose verbosity
+//' @param eval_llik evaluate log-likelihood
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
 //' @param rseed random seed
+//' @param NUM_THREADS number of parallel jobs
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf(const Eigen::MatrixXf Y,
+asap_fit_nmf(const Eigen::MatrixXf &Y,
              const std::size_t maxK,
              const std::size_t mcem = 100,
              const std::size_t burnin = 10,
-             const std::size_t latent_iter = 10,
+             const std::size_t latent_iter = 1,
+             const std::size_t degree_iter = 1,
              const std::size_t thining = 3,
              const bool verbose = true,
              const bool eval_llik = true,
@@ -45,7 +198,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
     if (verbose)
         TLOG("Degree distributions...");
 
-    for (Index t = 0; t < 5; ++t) {
+    for (Index t = 0; t < degree_iter; ++t) {
         model.update_degree(Y);
     }
 
@@ -62,7 +215,9 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
     model.update_row_topic(Y, aux);
 
     running_stat_t<Mat> row_stat(D, K);
+    running_stat_t<Mat> row_log_stat(D, K);
     running_stat_t<Mat> column_stat(N, K);
+    running_stat_t<Mat> column_log_stat(N, K);
 
     ////////////////////////////
     // Step 3. Monte Carlo EM //
@@ -82,8 +237,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
 
     for (std::size_t t = 0; t < (mcem + burnin); ++t) {
         for (std::size_t s = 0; s < latent_iter; ++s) {
-            aux.sample_mh(proposal,
-                          model.row_topic.log_mean(),
+            aux.sample_mh(proposal.sample_logit(model.row_topic.log_mean()),
                           model.column_topic.log_mean(),
                           NUM_THREADS);
         }
@@ -107,19 +261,16 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
         }
 
         if (t >= burnin && t % thining == 0) {
-
-            if (verbose) {
-                TLOG("Record keeping ...");
-            }
-
             row_stat(model.row_topic.mean());
             column_stat(model.column_topic.mean());
+            row_log_stat(model.row_topic.log_mean());
+            column_log_stat(model.column_topic.log_mean());
         }
 
         try {
             Rcpp::checkUserInterrupt();
         } catch (Rcpp::internal::InterruptedException e) {
-            TLOG("User abort at " << t);
+            WLOG("Interruption by a user at t=" << t);
             break;
         }
     }
@@ -129,14 +280,16 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
                                   Rcpp::_["sd"] = stat.sd());
     };
 
-    Rcpp::List null_out =
+    Rcpp::List deg_out =
         Rcpp::List::create(Rcpp::_["row"] = model.row_degree.mean(),
                            Rcpp::_["column"] = model.column_degree.mean());
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
-                              Rcpp::_["null"] = null_out,
+                              Rcpp::_["degree"] = deg_out,
                               Rcpp::_["row"] = _summary(row_stat),
-                              Rcpp::_["column"] = _summary(column_stat));
+                              Rcpp::_["column"] = _summary(column_stat),
+                              Rcpp::_["ln.row"] = _summary(row_log_stat),
+                              Rcpp::_["ln.column"] = _summary(column_log_stat));
 
     return Rcpp::List::create();
 }
