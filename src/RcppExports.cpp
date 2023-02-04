@@ -74,6 +74,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// fit_poisson_cluster_rows
+Rcpp::List fit_poisson_cluster_rows(const Eigen::MatrixXf& X, const std::size_t Ltrunc, const double alpha, const double a0, const double b0, const std::size_t rseed, const std::size_t mcmc, const std::size_t burnin, const bool verbose);
+RcppExport SEXP _asapR_fit_poisson_cluster_rows(SEXP XSEXP, SEXP LtruncSEXP, SEXP alphaSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP mcmcSEXP, SEXP burninSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type Ltrunc(LtruncSEXP);
+    Rcpp::traits::input_parameter< const double >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type mcmc(mcmcSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(fit_poisson_cluster_rows(X, Ltrunc, alpha, a0, b0, rseed, mcmc, burnin, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // mmutil_build_index
 int mmutil_build_index(const std::string mtx_file, const std::string index_file);
 RcppExport SEXP _asapR_mmutil_build_index(SEXP mtx_fileSEXP, SEXP index_fileSEXP) {
@@ -201,6 +220,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_predict_mtx", (DL_FUNC) &_asapR_asap_predict_mtx, 12},
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
+    {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
     {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},
     {"_asapR_mmutil_check_index", (DL_FUNC) &_asapR_mmutil_check_index, 2},

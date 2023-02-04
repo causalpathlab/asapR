@@ -1,11 +1,11 @@
 #include "rcpp_asap.hh"
 
-//' Predict NMF loading
+//' Predict NMF loading -- this may be slow for high-dim data
 //'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param memory_location column indexing for the mtx
 //' @param beta row x factor dictionary
-//' @param mcem number of Monte Carl Expectation Maximization
+//' @param mcem number of Monte Carlo Expectation Maximization
 //' @param burnin burn-in period
 //' @param thining thining interval in record keeping
 //' @param a0 gamma(a0, b0)

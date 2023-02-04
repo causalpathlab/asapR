@@ -1,7 +1,7 @@
 #include "mmutil.hh"
 
-#ifndef poisson_model_hh_
-#define poisson_model_hh_
+#ifndef POISSON_NMF_MODEL_HH_
+#define POISSON_NMF_MODEL_HH_
 
 template <typename T, typename RNG, typename PARAM>
 struct poisson_nmf_t {

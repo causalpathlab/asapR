@@ -85,6 +85,14 @@ struct discrete_sampler_t {
 
     const IndexVec &sampled() const { return _sampled; }
 
+    void copy_to(IndexVec &dst) const
+    {
+        if (dst.size() != _sampled.size())
+            dst.resize(_sampled.size());
+
+        std::copy(std::begin(_sampled), std::end(_sampled), std::begin(dst));
+    }
+
     RNG &rng;
     const Index K;
     std::vector<Scalar> _weights;
@@ -439,55 +447,6 @@ hcat(const Eigen::MatrixBase<Derived> &_left,
     }
 
     return ret;
-}
-
-template <typename Derived>
-inline typename Derived::Scalar
-log_sum_exp(const Eigen::MatrixBase<Derived> &log_vec)
-{
-    using Scalar = typename Derived::Scalar;
-    using Index = typename Derived::Index;
-
-    const Derived &xx = log_vec.derived();
-
-    Scalar maxlogval = xx(0);
-    for (Index j = 1; j < xx.size(); ++j) {
-        if (xx(j) > maxlogval)
-            maxlogval = xx(j);
-    }
-
-    Scalar ret = 0;
-    for (Index j = 0; j < xx.size(); ++j) {
-        ret += fasterexp(xx(j) - maxlogval);
-    }
-    ret = fasterlog(ret) + maxlogval;
-    return ret;
-}
-
-template <typename Derived, typename Derived2>
-inline typename Derived::Scalar
-normalized_exp(const Eigen::MatrixBase<Derived> &_log_vec,
-               Eigen::MatrixBase<Derived2> &_ret)
-{
-    using Scalar = typename Derived::Scalar;
-    using Index = typename Derived::Index;
-
-    const Derived &log_vec = _log_vec.derived();
-    Derived &ret = _ret.derived();
-
-    Index argmax;
-    const Scalar log_denom = log_vec.maxCoeff(&argmax);
-
-    auto _exp = [&log_denom](const Scalar log_z) {
-        return fasterexp(log_z - log_denom);
-    };
-
-    ret = log_vec.unaryExpr(_exp).eval();
-    const Scalar denom = ret.sum();
-    ret /= denom;
-
-    const Scalar log_normalizer = fasterlog(denom) + log_denom;
-    return log_normalizer;
 }
 
 template <typename Derived>

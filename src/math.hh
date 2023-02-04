@@ -47,7 +47,6 @@ template <typename T>
 inline T
 _log_sum_exp(const T log_a, const T log_b)
 {
-    const T one = static_cast<T>(1.0);
     if (log_a > log_b) {
         return log_a + _softplus(log_b - log_a);
     }

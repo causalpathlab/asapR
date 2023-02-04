@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{asap_predict_mtx}
 \alias{asap_predict_mtx}
-\title{Predict NMF loading}
+\title{Predict NMF loading -- this may be slow for high-dim data}
 \usage{
 asap_predict_mtx(
   mtx_file,
@@ -26,7 +26,7 @@ asap_predict_mtx(
 
 \item{beta}{row x factor dictionary}
 
-\item{mcem}{number of Monte Carl Expectation Maximization}
+\item{mcem}{number of Monte Carlo Expectation Maximization}
 
 \item{burnin}{burn-in period}
 
@@ -45,5 +45,5 @@ asap_predict_mtx(
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 }
 \description{
-Predict NMF loading
+Predict NMF loading -- this may be slow for high-dim data
 }
