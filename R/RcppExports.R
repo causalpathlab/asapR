@@ -14,13 +14,14 @@
 #' @param rseed random seed
 #' @param verbose verbosity
 #' @param do_collapse collapse the dictionary matrix by clustering
+#' @param discrete_collapse do the row collapsing after discretization
 #' @param collapsing_level # clusters while collapsing
 #' @param collapsing_dpm_alpha collapsing cluster ~ DPM(alpha)
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #'
-asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, mcem = 100L, burnin = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, do_collapse = TRUE, collapsing_level = 100L, collapsing_dpm_alpha = 1., collapsing_mcmc = 200L, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE)
+asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, mcem = 100L, burnin = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, do_collapse = TRUE, discrete_collapse = TRUE, collapsing_level = 100L, collapsing_dpm_alpha = 1., collapsing_mcmc = 200L, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, discrete_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE)
 }
 
 #' Non-negative matrix factorization

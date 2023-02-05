@@ -13,6 +13,7 @@
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param do_collapse collapse the dictionary matrix by clustering
+//' @param discrete_collapse do the row collapsing after discretization
 //' @param collapsing_level # clusters while collapsing
 //' @param collapsing_dpm_alpha collapsing cluster ~ DPM(alpha)
 //' @param NUM_THREADS number of threads in data reading
@@ -31,6 +32,7 @@ asap_predict_mtx(const std::string mtx_file,
                  const std::size_t rseed = 42,
                  const bool verbose = false,
                  const bool do_collapse = true,
+                 const bool discrete_collapse = true,
                  const std::size_t collapsing_level = 100,
                  const double collapsing_dpm_alpha = 1.,
                  const std::size_t collapsing_mcmc = 200,
@@ -84,12 +86,17 @@ asap_predict_mtx(const std::string mtx_file,
                                   verbose);
 
         C.resize(L, beta_scaled.rows());
-        C.setZero();
-        const Mat Z = status.latent.mean();
-        for (Index r = 0; r < Z.rows(); ++r) {
-            Index argmax;
-            Z.row(r).maxCoeff(&argmax);
-            C(argmax, r) = 1.;
+
+        if (discrete_collapse) {
+            C.setZero();
+            const Mat Z = status.latent.mean();
+            for (Index r = 0; r < Z.rows(); ++r) {
+                Index argmax;
+                Z.row(r).maxCoeff(&argmax);
+                C(argmax, r) = 1.;
+            }
+        } else {
+            C = status.latent.mean().transpose();
         }
 
         collapsing_elbo.resize(status.elbo.size());
@@ -127,7 +134,6 @@ asap_predict_mtx(const std::string mtx_file,
 
     const Mat B = do_collapse ? (C * beta_dict) : beta_dict;
     const Vec S = B.transpose().colwise().sum();
-    const Mat log_B = B.unaryExpr(log_op);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -171,13 +177,7 @@ asap_predict_mtx(const std::string mtx_file,
             // E-step: latent sampling //
             /////////////////////////////
 
-            if (t % 2 == 0) { // alternate MCMC steps
-                aux.sample_row_col(proposal_by_row.sample(B),
-                                   theta_b.log_mean());
-            } else {
-                aux.sample_col_row(proposal_by_col.sample(theta_b.mean()),
-                                   log_B);
-            }
+            aux.sample_row_col(proposal_by_row.sample(B), theta_b.log_mean());
 
             ///////////////////////////////
             // M-step: update parameters //

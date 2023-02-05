@@ -9,6 +9,7 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param do.collapse.rows collapse rows to speed up the final NMF
+#' @param .collapsing.discrete do the row collapsing after discretization
 #' @param .collapsing.level collapsed dimension (default: 100)
 #' @param .collapsing.dpm (default: 1)
 #' @param .collapsing.mcmc (default: 500)
@@ -33,6 +34,7 @@ fit.topic.asap <- function(mtx.file,
                            .burnin = 10,
                            .thining = 3,
                            do.collapse.rows = TRUE,
+                           .collapse.discrete = FALSE,
                            .collapsing.level = 100,
                            .collapsing.dpm = 1.,
                            .collapsing.mcmc = 500,
@@ -44,7 +46,7 @@ fit.topic.asap <- function(mtx.file,
                            block.size = 100,
                            eval.llik = FALSE,
                            .rand.seed = 42,
-                           .sample.col.row = TRUE){
+                           .sample.col.row = FALSE){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -110,6 +112,7 @@ fit.topic.asap <- function(mtx.file,
                              rseed = .rand.seed,
                              verbose = verbose,
                              do_collapse = do.collapse.rows,
+                             discrete_collapse = .collapse.discrete,
                              collapsing_level = .collapsing.level,
                              collapsing_dpm_alpha = .collapsing.dpm,
                              collapsing_mcmc = .collapsing.mcmc,

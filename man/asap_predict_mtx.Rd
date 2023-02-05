@@ -16,6 +16,7 @@ asap_predict_mtx(
   rseed = 42L,
   verbose = FALSE,
   do_collapse = TRUE,
+  discrete_collapse = TRUE,
   collapsing_level = 100L,
   collapsing_dpm_alpha = 1,
   collapsing_mcmc = 200L,
@@ -45,6 +46,8 @@ asap_predict_mtx(
 \item{verbose}{verbosity}
 
 \item{do_collapse}{collapse the dictionary matrix by clustering}
+
+\item{discrete_collapse}{do the row collapsing after discretization}
 
 \item{collapsing_level}{clusters while collapsing}
 

@@ -15,6 +15,7 @@ fit.topic.asap(
   .burnin = 10,
   .thining = 3,
   do.collapse.rows = TRUE,
+  .collapse.discrete = FALSE,
   .collapsing.level = 100,
   .collapsing.dpm = 1,
   .collapsing.mcmc = 500,
@@ -26,7 +27,7 @@ fit.topic.asap(
   block.size = 100,
   eval.llik = FALSE,
   .rand.seed = 42,
-  .sample.col.row = TRUE
+  .sample.col.row = FALSE
 )
 }
 \arguments{
@@ -71,6 +72,8 @@ fit.topic.asap(
 \item{.rand.seed}{random seed (default: 42)}
 
 \item{.sample.col.row}{Take column-wise MH step (default: TRUE)}
+
+\item{.collapsing.discrete}{do the row collapsing after discretization}
 }
 \description{
 Fit a topic model by ASAP
