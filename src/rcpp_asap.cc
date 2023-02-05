@@ -89,7 +89,7 @@ asap_predict_mtx(const std::string mtx_file,
         for (Index r = 0; r < Z.rows(); ++r) {
             Index argmax;
             Z.row(r).maxCoeff(&argmax);
-            C(r, argmax) = 1.;
+            C(argmax, r) = 1.;
         }
 
         collapsing_elbo.resize(status.elbo.size());
