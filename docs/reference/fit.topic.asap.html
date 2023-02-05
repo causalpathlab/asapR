@@ -54,8 +54,12 @@
   deg.step <span class="op">=</span> <span class="fl">0</span>,
   .burnin <span class="op">=</span> <span class="fl">10</span>,
   .thining <span class="op">=</span> <span class="fl">3</span>,
-  a0 <span class="op">=</span> <span class="fl">1</span>,
-  b0 <span class="op">=</span> <span class="fl">1</span>,
+  do.collapse.rows <span class="op">=</span> <span class="cn">TRUE</span>,
+  .collapsing.level <span class="op">=</span> <span class="fl">100</span>,
+  .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
+  .collapsing.mcmc <span class="op">=</span> <span class="fl">500</span>,
+  a0 <span class="op">=</span> <span class="fl">0.01</span>,
+  b0 <span class="op">=</span> <span class="fl">1e-04</span>,
   index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,
   verbose <span class="op">=</span> <span class="cn">TRUE</span>,
   num.threads <span class="op">=</span> <span class="fl">1</span>,
@@ -100,12 +104,28 @@
 <dd><p>thining for the record keeping (default: 3)</p></dd>
 
 
+<dt>do.collapse.rows</dt>
+<dd><p>collapse rows to speed up the final NMF</p></dd>
+
+
+<dt>.collapsing.level</dt>
+<dd><p>collapsed dimension (default: 100)</p></dd>
+
+
+<dt>.collapsing.dpm</dt>
+<dd><p>(default: 1)</p></dd>
+
+
+<dt>.collapsing.mcmc</dt>
+<dd><p>(default: 500)</p></dd>
+
+
 <dt>a0</dt>
-<dd><p>Gamma(a0, b0) prior (default: 1)</p></dd>
+<dd><p>Gamma(a0, b0) prior (default: 1e-2)</p></dd>
 
 
 <dt>b0</dt>
-<dd><p>Gamma(a0, b0) prior (default: 1)</p></dd>
+<dd><p>Gamma(a0, b0) prior (default: 1e-4)</p></dd>
 
 
 <dt>index.file</dt>

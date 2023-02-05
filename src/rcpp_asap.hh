@@ -37,4 +37,8 @@ using namespace mmutil::bgzf;
 #include "gamma_parameter.hh"
 #include "latent_matrix.hh"
 
+#include "clustering.hh"
+#include "dirichlet_prior.hh"
+#include "poisson_cluster_model.hh"
+
 #endif

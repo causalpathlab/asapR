@@ -7,7 +7,7 @@
 asap_predict_mtx(
   mtx_file,
   memory_location,
-  beta,
+  beta_dict,
   mcem = 100L,
   burnin = 10L,
   thining = 3L,
@@ -15,6 +15,10 @@ asap_predict_mtx(
   b0 = 1,
   rseed = 42L,
   verbose = FALSE,
+  do_collapse = TRUE,
+  collapsing_level = 100L,
+  collapsing_dpm_alpha = 1,
+  collapsing_mcmc = 200L,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L
 )
@@ -24,7 +28,7 @@ asap_predict_mtx(
 
 \item{memory_location}{column indexing for the mtx}
 
-\item{beta}{row x factor dictionary}
+\item{beta_dict}{row x factor dictionary}
 
 \item{mcem}{number of Monte Carlo Expectation Maximization}
 
@@ -39,6 +43,12 @@ asap_predict_mtx(
 \item{rseed}{random seed}
 
 \item{verbose}{verbosity}
+
+\item{do_collapse}{collapse the dictionary matrix by clustering}
+
+\item{collapsing_level}{clusters while collapsing}
+
+\item{collapsing_dpm_alpha}{collapsing cluster ~ DPM(alpha)}
 
 \item{NUM_THREADS}{number of threads in data reading}
 

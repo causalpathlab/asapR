@@ -8,8 +8,12 @@
 #' @param deg.step Num of Degree calibration steps (default: 0)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
-#' @param a0 Gamma(a0, b0) prior (default: 1)
-#' @param b0 Gamma(a0, b0) prior (default: 1)
+#' @param do.collapse.rows collapse rows to speed up the final NMF
+#' @param .collapsing.level collapsed dimension (default: 100)
+#' @param .collapsing.dpm (default: 1)
+#' @param .collapsing.mcmc (default: 500)
+#' @param a0 Gamma(a0, b0) prior (default: 1e-2)
+#' @param b0 Gamma(a0, b0) prior (default: 1e-4)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
 #' @param verbose verbosity
 #' @param num.threads number of threads (default: 1)
@@ -28,8 +32,12 @@ fit.topic.asap <- function(mtx.file,
                            deg.step = 0,
                            .burnin = 10,
                            .thining = 3,
-                           a0 = 1,
-                           b0 = 1,
+                           do.collapse.rows = TRUE,
+                           .collapsing.level = 100,
+                           .collapsing.dpm = 1.,
+                           .collapsing.mcmc = 500,
+                           a0 = 1e-2,
+                           b0 = 1e-4,
                            index.file = paste0(mtx.file, ".index"),
                            verbose = TRUE,
                            num.threads = 1,
@@ -101,6 +109,10 @@ fit.topic.asap <- function(mtx.file,
                              b0 = b0,
                              rseed = .rand.seed,
                              verbose = verbose,
+                             do_collapse = do.collapse.rows,
+                             collapsing_level = .collapsing.level,
+                             collapsing_dpm_alpha = .collapsing.dpm,
+                             collapsing_mcmc = .collapsing.mcmc,
                              NUM_THREADS = num.threads,
                              BLOCK_SIZE = block.size)
 

@@ -4,7 +4,7 @@
 //'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param memory_location column indexing for the mtx
-//' @param beta row x factor dictionary
+//' @param beta_dict row x factor dictionary
 //' @param mcem number of Monte Carlo Expectation Maximization
 //' @param burnin burn-in period
 //' @param thining thining interval in record keeping
@@ -12,6 +12,9 @@
 //' @param b0 gamma(a0, b0)
 //' @param rseed random seed
 //' @param verbose verbosity
+//' @param do_collapse collapse the dictionary matrix by clustering
+//' @param collapsing_level # clusters while collapsing
+//' @param collapsing_dpm_alpha collapsing cluster ~ DPM(alpha)
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //'
@@ -19,7 +22,7 @@
 Rcpp::List
 asap_predict_mtx(const std::string mtx_file,
                  const Rcpp::NumericVector &memory_location,
-                 const Eigen::MatrixXf &beta,
+                 const Eigen::MatrixXf &beta_dict,
                  const std::size_t mcem = 100,
                  const std::size_t burnin = 10,
                  const std::size_t thining = 3,
@@ -27,6 +30,10 @@ asap_predict_mtx(const std::string mtx_file,
                  const double b0 = 1.,
                  const std::size_t rseed = 42,
                  const bool verbose = false,
+                 const bool do_collapse = true,
+                 const std::size_t collapsing_level = 100,
+                 const double collapsing_dpm_alpha = 1.,
+                 const std::size_t collapsing_mcmc = 200,
                  const std::size_t NUM_THREADS = 1,
                  const std::size_t BLOCK_SIZE = 100)
 {
@@ -35,19 +42,62 @@ asap_predict_mtx(const std::string mtx_file,
     CHK_RETL_(peek_bgzf_header(mtx_file, info),
               "Failed to read the size of this mtx file:" << mtx_file);
 
-    const Index D = info.max_row; // dimensionality
-    const Index N = info.max_col; // number of cells
-    const Index K = beta.cols();  // number of topics
+    const Index D = info.max_row;     // dimensionality
+    const Index N = info.max_col;     // number of cells
+    const Index K = beta_dict.cols(); // number of topics
     const Index block_size = BLOCK_SIZE;
 
-    ASSERT_RETL(beta.rows() == D,
+    ASSERT_RETL(beta_dict.rows() == D,
                 "incompatible Beta with the file: " << mtx_file);
 
     if (verbose) {
-        TLOG("Beta: " << D << " x " << K);
+        TLOG("Dictionary Beta: " << D << " x " << K);
     }
 
-    Vec beta_sum = beta.transpose().colwise().sum();
+    Mat C;
+    std::vector<Scalar> collapsing_elbo;
+
+    if (do_collapse) {
+
+        using F = poisson_component_t<Mat>;
+        using F0 = trunc_dpm_t<Mat>;
+        auto L = std::min(collapsing_level, static_cast<std::size_t>(D));
+
+        if (verbose) {
+            TLOG("Collapsing Beta matrix... " << D << " -> " << L);
+        }
+
+        Mat beta_scaled = beta_dict;
+        normalize_columns(beta_scaled);
+        beta_scaled *= static_cast<Scalar>(beta_dict.rows());
+
+        clustering_status_t<Mat> status(beta_dict.rows(), beta_dict.cols(), L);
+        clustering_by_lcvi<F, F0>(status,
+                                  beta_scaled,
+                                  L,
+                                  collapsing_dpm_alpha,
+                                  a0,
+                                  b0,
+                                  rseed,
+                                  collapsing_mcmc,
+                                  burnin,
+                                  verbose);
+
+        C.resize(L, beta_scaled.rows());
+        C.setZero();
+        const Mat Z = status.latent.mean();
+        for (Index r = 0; r < Z.rows(); ++r) {
+            Index argmax;
+            Z.row(r).maxCoeff(&argmax);
+            C(r, argmax) = 1.;
+        }
+
+        collapsing_elbo.resize(status.elbo.size());
+        std::copy(std::begin(status.elbo),
+                  std::end(status.elbo),
+                  std::begin(collapsing_elbo));
+    }
+
     Mat onesD = Mat::Ones(D, 1);
 
     Mat theta(N, K);
@@ -59,10 +109,25 @@ asap_predict_mtx(const std::string mtx_file,
     if (verbose) {
         TLOG("Start recalibrating column-wise loading parameters...");
         TLOG("Theta: " << N << " x " << K);
-        Rcpp::Rcerr << "Total " << N;
+        Rcpp::Rcerr << "Total " << N << std::flush;
     }
 
+    Mat llik_mat(static_cast<Index>(std::ceil(N / block_size)),
+                 static_cast<Index>(mcem + burnin));
+
     Index Nprocessed = 0;
+
+    const Scalar TOL = 1e-8;
+
+    auto log_op = [&TOL](const Scalar &x) -> Scalar {
+        if (x < TOL)
+            return fasterlog(TOL);
+        return fasterlog(x);
+    };
+
+    const Mat B = do_collapse ? (C * beta_dict) : beta_dict;
+    const Vec S = B.transpose().colwise().sum();
+    const Mat log_B = B.unaryExpr(log_op);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -71,6 +136,7 @@ asap_predict_mtx(const std::string mtx_file,
     for (Index lb = 0; lb < N; lb += block_size) {
 
         const Index ub = std::min(N, block_size + lb);
+        const Index b = lb / block_size;
 
         ///////////////////////////////////////
         // memory location = 0 means the end //
@@ -82,7 +148,7 @@ asap_predict_mtx(const std::string mtx_file,
         const SpMat xx =
             read_eigen_sparse_subset_col(mtx_file, lb, ub, lb_mem, ub_mem);
 
-        const Mat Y = xx;
+        const Mat Y = do_collapse ? (C * xx).eval() : xx;
 
         running_stat_t<Mat> stat(Y.cols(), K);
         running_stat_t<Mat> log_stat(Y.cols(), K);
@@ -101,25 +167,50 @@ asap_predict_mtx(const std::string mtx_file,
 
         for (std::size_t t = 0; t < (mcem + burnin); ++t) {
 
-            aux.sample_row_col(proposal_by_row.sample(beta),
-                               theta_b.log_mean());
+            /////////////////////////////
+            // E-step: latent sampling //
+            /////////////////////////////
+
+            if (t % 2 == 0) { // alternate MCMC steps
+                aux.sample_row_col(proposal_by_row.sample(B),
+                                   theta_b.log_mean());
+            } else {
+                aux.sample_col_row(proposal_by_col.sample(theta_b.mean()),
+                                   log_B);
+            }
+
+            ///////////////////////////////
+            // M-step: update parameters //
+            ///////////////////////////////
 
             for (Index k = 0; k < K; ++k) {
                 theta_b.update_col(aux.slice_k(Y, k).transpose() * onesD,
-                                   degree * beta_sum(k),
+                                   degree * S(k),
                                    k);
             }
+
             theta_b.calibrate();
 
             if (t >= burnin && t % thining == 0) {
                 stat(theta_b.mean());
                 log_stat(theta_b.log_mean());
             }
+
+            Scalar llik = 0;
+            for (Index k = 0; k < K; ++k) {
+                llik += (aux.slice_k(Y, k).array().rowwise() *
+                         theta_b.log_mean().col(k).transpose().array())
+                            .sum();
+            }
+            llik -= (B * theta_b.mean().transpose()).sum();
+            llik_mat(b, t) = llik;
         }
 
         Nprocessed += Y.cols();
         if (verbose) {
-            Rcpp::Rcerr << "\rprocessed: " << Nprocessed;
+            Rcpp::Rcerr << "\rprocessed: " << Nprocessed << std::flush;
+        } else {
+            Rcpp::Rcerr << "." << std::flush;
         }
 
         const Mat _mean = stat.mean(), _sd = stat.sd();
@@ -137,6 +228,8 @@ asap_predict_mtx(const std::string mtx_file,
 
     if (verbose) {
         Rcpp::Rcerr << std::endl;
+    } else {
+        Rcpp::Rcerr << std::endl;
     }
 
     TLOG("Done");
@@ -145,7 +238,10 @@ asap_predict_mtx(const std::string mtx_file,
                               Rcpp::_["theta.sd"] = theta_sd,
                               Rcpp::_["log.theta"] = log_theta,
                               Rcpp::_["log.theta.sd"] = log_theta_sd,
-                              Rcpp::_["sample.degree"] = Degree);
+                              Rcpp::_["log.likelihood"] = llik_mat,
+                              Rcpp::_["sample.degree"] = Degree,
+                              Rcpp::_["beta.collapsing"] = C,
+                              Rcpp::_["collapsing.elbo"] = collapsing_elbo);
 }
 
 //' Non-negative matrix factorization

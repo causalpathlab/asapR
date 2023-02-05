@@ -14,8 +14,12 @@ fit.topic.asap(
   deg.step = 0,
   .burnin = 10,
   .thining = 3,
-  a0 = 1,
-  b0 = 1,
+  do.collapse.rows = TRUE,
+  .collapsing.level = 100,
+  .collapsing.dpm = 1,
+  .collapsing.mcmc = 500,
+  a0 = 0.01,
+  b0 = 1e-04,
   index.file = paste0(mtx.file, ".index"),
   verbose = TRUE,
   num.threads = 1,
@@ -42,9 +46,17 @@ fit.topic.asap(
 
 \item{.thining}{thining for the record keeping (default: 3)}
 
-\item{a0}{Gamma(a0, b0) prior (default: 1)}
+\item{do.collapse.rows}{collapse rows to speed up the final NMF}
 
-\item{b0}{Gamma(a0, b0) prior (default: 1)}
+\item{.collapsing.level}{collapsed dimension (default: 100)}
+
+\item{.collapsing.dpm}{(default: 1)}
+
+\item{.collapsing.mcmc}{(default: 500)}
+
+\item{a0}{Gamma(a0, b0) prior (default: 1e-2)}
+
+\item{b0}{Gamma(a0, b0) prior (default: 1e-4)}
 
 \item{index.file}{a file for column indexes (default: "{mtx.file}.index")}
 

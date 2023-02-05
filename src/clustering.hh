@@ -173,14 +173,13 @@ clustering_by_lcvi(clustering_status_t<S> &status,
     }
 
     Mat log_prob(N, Ltrunc);
-    Mat argmax(N, Ltrunc);
+    Mat prob_01(N, Ltrunc);
     Mat param(D, Ltrunc);
 
     std::vector<Index> membership(N);
 
     for (Index r = 0; r < N; ++r) {
         const Index k = sampler(row_prob);
-        // WLOG("initial: " << r << " -> " << k);
         components[k].add_point(X.row(r));
         prior.add_to(k);
         membership[r] = k;
@@ -208,16 +207,19 @@ clustering_by_lcvi(clustering_status_t<S> &status,
 
             elbo += log_prob(r, k_new);
 
-            argmax.row(r).setZero();
-            argmax(r, k_new) = 1.;
+            prob_01.row(r).setZero();
+            prob_01(r, k_new) = 1.;
         }
 
         elbo_vec.emplace_back(elbo);
         if (verbose) {
-            TLOG("t: " << t << ", " << elbo);
+            TLOG("MCMC t: " << t << ", " << elbo);
+        } else {
+            if (t % 10 == 0)
+                Rcpp::Rcerr << "." << std::flush;
         }
         if (t > burnin) {
-            status.record_latent(argmax);
+            status.record_latent(prob_01);
             for (Index k = 0; k < Ltrunc; ++k) {
                 param.col(k) = components[k].posterior_mean().transpose();
             }
@@ -230,6 +232,9 @@ clustering_by_lcvi(clustering_status_t<S> &status,
             break;
         }
     }
+
+    Rcpp::Rcerr << std::endl;
+
     if (verbose) {
         TLOG("Done -- lcvi");
     }
