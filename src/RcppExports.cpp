@@ -12,8 +12,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // asap_predict_mtx
-Rcpp::List asap_predict_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf& beta_dict, const std::size_t mcem, const std::size_t burnin, const std::size_t thining, const double a0, const double b0, const std::size_t rseed, const bool verbose, const bool do_collapse, const bool discrete_collapse, const std::size_t collapsing_level, const double collapsing_dpm_alpha, const std::size_t collapsing_mcmc, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE);
-RcppExport SEXP _asapR_asap_predict_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP beta_dictSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP thiningSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP do_collapseSEXP, SEXP discrete_collapseSEXP, SEXP collapsing_levelSEXP, SEXP collapsing_dpm_alphaSEXP, SEXP collapsing_mcmcSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP) {
+Rcpp::List asap_predict_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf& beta_dict, const std::size_t mcem, const std::size_t burnin, const std::size_t thining, const double a0, const double b0, const std::size_t rseed, const bool verbose, const bool do_collapse, const bool do_beta_rescale, const bool discrete_collapse, const std::size_t collapsing_level, const double collapsing_dpm_alpha, const std::size_t collapsing_mcmc, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE);
+RcppExport SEXP _asapR_asap_predict_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP beta_dictSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP thiningSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP do_collapseSEXP, SEXP do_beta_rescaleSEXP, SEXP discrete_collapseSEXP, SEXP collapsing_levelSEXP, SEXP collapsing_dpm_alphaSEXP, SEXP collapsing_mcmcSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -28,19 +28,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_collapse(do_collapseSEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_beta_rescale(do_beta_rescaleSEXP);
     Rcpp::traits::input_parameter< const bool >::type discrete_collapse(discrete_collapseSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type collapsing_level(collapsing_levelSEXP);
     Rcpp::traits::input_parameter< const double >::type collapsing_dpm_alpha(collapsing_dpm_alphaSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type collapsing_mcmc(collapsing_mcmcSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_predict_mtx(mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, discrete_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE));
+    rcpp_result_gen = Rcpp::wrap(asap_predict_mtx(mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, do_beta_rescale, discrete_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE));
     return rcpp_result_gen;
 END_RCPP
 }
 // asap_fit_nmf
-Rcpp::List asap_fit_nmf(const Eigen::MatrixXf& Y, const std::size_t maxK, const std::size_t mcem, const std::size_t burnin, const bool do_sample_col_row, const std::size_t latent_iter, const std::size_t degree_iter, const std::size_t thining, const bool verbose, const bool eval_llik, const double a0, const double b0, const std::size_t rseed, const std::size_t NUM_THREADS);
-RcppExport SEXP _asapR_asap_fit_nmf(SEXP YSEXP, SEXP maxKSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP do_sample_col_rowSEXP, SEXP latent_iterSEXP, SEXP degree_iterSEXP, SEXP thiningSEXP, SEXP verboseSEXP, SEXP eval_llikSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP NUM_THREADSSEXP) {
+Rcpp::List asap_fit_nmf(const Eigen::MatrixXf& Y, const std::size_t maxK, const std::size_t mcem, const std::size_t burnin, const std::size_t latent_iter, const std::size_t degree_iter, const std::size_t thining, const bool verbose, const bool eval_llik, const double a0, const double b0, const std::size_t rseed, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_nmf(SEXP YSEXP, SEXP maxKSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP latent_iterSEXP, SEXP degree_iterSEXP, SEXP thiningSEXP, SEXP verboseSEXP, SEXP eval_llikSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP NUM_THREADSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -48,7 +49,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type mcem(mcemSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
-    Rcpp::traits::input_parameter< const bool >::type do_sample_col_row(do_sample_col_rowSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type latent_iter(latent_iterSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type degree_iter(degree_iterSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type thining(thiningSEXP);
@@ -58,7 +58,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y, maxK, mcem, burnin, do_sample_col_row, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS));
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y, maxK, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -222,8 +222,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_asapR_asap_predict_mtx", (DL_FUNC) &_asapR_asap_predict_mtx, 17},
-    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
+    {"_asapR_asap_predict_mtx", (DL_FUNC) &_asapR_asap_predict_mtx, 18},
+    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 13},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},

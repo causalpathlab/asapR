@@ -56,6 +56,8 @@
   rseed <span class="op">=</span> <span class="fl">42L</span>,
   verbose <span class="op">=</span> <span class="cn">FALSE</span>,
   do_collapse <span class="op">=</span> <span class="cn">TRUE</span>,
+  do_beta_rescale <span class="op">=</span> <span class="cn">FALSE</span>,
+  discrete_collapse <span class="op">=</span> <span class="cn">TRUE</span>,
   collapsing_level <span class="op">=</span> <span class="fl">100L</span>,
   collapsing_dpm_alpha <span class="op">=</span> <span class="fl">1</span>,
   collapsing_mcmc <span class="op">=</span> <span class="fl">200L</span>,
@@ -108,6 +110,10 @@
 
 <dt>do_collapse</dt>
 <dd><p>collapse the dictionary matrix by clustering</p></dd>
+
+
+<dt>discrete_collapse</dt>
+<dd><p>do the row collapsing after discretization</p></dd>
 
 
 <dt>collapsing_level</dt>

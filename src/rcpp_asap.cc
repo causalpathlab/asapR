@@ -32,6 +32,7 @@ asap_predict_mtx(const std::string mtx_file,
                  const std::size_t rseed = 42,
                  const bool verbose = false,
                  const bool do_collapse = true,
+                 const bool do_beta_rescale = false,
                  const bool discrete_collapse = true,
                  const std::size_t collapsing_level = 100,
                  const double collapsing_dpm_alpha = 1.,
@@ -70,8 +71,10 @@ asap_predict_mtx(const std::string mtx_file,
         }
 
         Mat beta_scaled = beta_dict;
-        normalize_columns(beta_scaled);
-        beta_scaled *= static_cast<Scalar>(beta_dict.rows());
+        if (do_beta_rescale) {
+            normalize_columns(beta_scaled);
+            beta_scaled *= static_cast<Scalar>(beta_dict.rows());
+        }
 
         clustering_status_t<Mat> status(beta_dict.rows(), beta_dict.cols(), L);
         clustering_by_lcvi<F, F0>(status,
@@ -126,13 +129,18 @@ asap_predict_mtx(const std::string mtx_file,
 
     const Scalar TOL = 1e-8;
 
-    auto log_op = [&TOL](const Scalar &x) -> Scalar {
-        if (x < TOL)
-            return fasterlog(TOL);
-        return fasterlog(x);
-    };
+    // auto log_op = [&TOL](const Scalar &x) -> Scalar {
+    //     if (x < TOL)
+    //         return fasterlog(TOL);
+    //     return fasterlog(x);
+    // };
 
-    const Mat B = do_collapse ? (C * beta_dict) : beta_dict;
+    Mat beta_scaled = beta_dict;
+    if (do_beta_rescale) {
+        normalize_columns(beta_scaled);
+    }
+
+    const Mat B = do_collapse ? (C * beta_scaled) : beta_scaled;
     const Vec S = B.transpose().colwise().sum();
 
 #if defined(_OPENMP)
@@ -210,7 +218,7 @@ asap_predict_mtx(const std::string mtx_file,
         if (verbose) {
             Rcpp::Rcerr << "\rprocessed: " << Nprocessed << std::flush;
         } else {
-            Rcpp::Rcerr << "." << std::flush;
+            Rcpp::Rcerr << "+ " << std::flush;
         }
 
         const Mat _mean = stat.mean(), _sd = stat.sd();
@@ -234,13 +242,15 @@ asap_predict_mtx(const std::string mtx_file,
 
     TLOG("Done");
 
-    return Rcpp::List::create(Rcpp::_["theta"] = theta,
+    return Rcpp::List::create(Rcpp::_["beta"] = beta_scaled,
+                              Rcpp::_["theta"] = theta,
                               Rcpp::_["theta.sd"] = theta_sd,
                               Rcpp::_["log.theta"] = log_theta,
                               Rcpp::_["log.theta.sd"] = log_theta_sd,
                               Rcpp::_["log.likelihood"] = llik_mat,
                               Rcpp::_["sample.degree"] = Degree,
-                              Rcpp::_["beta.collapsing"] = C,
+                              Rcpp::_["collapsing.factor"] = C,
+			      Rcpp::_["beta.collapsed"] = B,
                               Rcpp::_["collapsing.elbo"] = collapsing_elbo);
 }
 
@@ -266,7 +276,6 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
              const std::size_t maxK,
              const std::size_t mcem = 100,
              const std::size_t burnin = 10,
-             const bool do_sample_col_row = true,
              const std::size_t latent_iter = 1,
              const std::size_t degree_iter = 1,
              const std::size_t thining = 3,
@@ -336,12 +345,10 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
                                model.column_topic.log_mean(),
                                NUM_THREADS);
 
-            if (do_sample_col_row) {
-                aux.sample_col_row(proposal_by_col.sample_logit(
-                                       model.column_topic.log_mean()),
-                                   model.row_topic.log_mean(),
-                                   NUM_THREADS);
-            }
+            aux.sample_col_row(proposal_by_col.sample_logit(
+                                   model.column_topic.log_mean()),
+                               model.row_topic.log_mean(),
+                               NUM_THREADS);
         }
 
         model.update_column_topic(Y, aux);
@@ -352,14 +359,13 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
             llik_trace.emplace_back(llik);
         }
 
-        if (verbose) {
-            if (eval_llik) {
-                TLOG("MCEM: " << t << " " << llik);
-            } else {
-                TLOG("MCEM: " << t);
-            }
+        if (verbose && eval_llik) {
+            TLOG("MCEM: " << t << " " << llik);
         } else {
-            // TODO
+            if (t % 10 == 0)
+                Rcpp::Rcerr << ". " << std::flush;
+            if (t > 0 && t % 100 == 0)
+                Rcpp::Rcerr << std::endl;
         }
 
         if (t >= burnin && t % thining == 0) {
@@ -376,6 +382,8 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
             break;
         }
     }
+
+    Rcpp::Rcerr << std::endl;
 
     auto _summary = [](running_stat_t<Mat> &stat) {
         return Rcpp::List::create(Rcpp::_["mean"] = stat.mean(),

@@ -55,6 +55,8 @@
   .burnin <span class="op">=</span> <span class="fl">10</span>,
   .thining <span class="op">=</span> <span class="fl">3</span>,
   do.collapse.rows <span class="op">=</span> <span class="cn">TRUE</span>,
+  .beta.rescale <span class="op">=</span> <span class="cn">TRUE</span>,
+  .collapse.discrete <span class="op">=</span> <span class="cn">FALSE</span>,
   .collapsing.level <span class="op">=</span> <span class="fl">100</span>,
   .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
   .collapsing.mcmc <span class="op">=</span> <span class="fl">500</span>,
@@ -65,8 +67,7 @@
   num.threads <span class="op">=</span> <span class="fl">1</span>,
   block.size <span class="op">=</span> <span class="fl">100</span>,
   eval.llik <span class="op">=</span> <span class="cn">FALSE</span>,
-  .rand.seed <span class="op">=</span> <span class="fl">42</span>,
-  .sample.col.row <span class="op">=</span> <span class="cn">TRUE</span>
+  .rand.seed <span class="op">=</span> <span class="fl">42</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -106,6 +107,10 @@
 
 <dt>do.collapse.rows</dt>
 <dd><p>collapse rows to speed up the final NMF</p></dd>
+
+
+<dt>.beta.rescale</dt>
+<dd><p>rescale beta in the final prediction step</p></dd>
 
 
 <dt>.collapsing.level</dt>
@@ -152,8 +157,8 @@
 <dd><p>random seed (default: 42)</p></dd>
 
 
-<dt>.sample.col.row</dt>
-<dd><p>Take column-wise MH step (default: TRUE)</p></dd>
+<dt>.collapsing.discrete</dt>
+<dd><p>do the row collapsing after discretization</p></dd>
 
 </dl></div>
 

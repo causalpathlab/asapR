@@ -9,6 +9,7 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param do.collapse.rows collapse rows to speed up the final NMF
+#' @param .beta.rescale rescale beta in the final prediction step
 #' @param .collapsing.discrete do the row collapsing after discretization
 #' @param .collapsing.level collapsed dimension (default: 100)
 #' @param .collapsing.dpm (default: 1)
@@ -21,8 +22,6 @@
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: FALSE)
 #' @param .rand.seed random seed (default: 42)
-#' @param .sample.col.row Take column-wise MH step (default: TRUE)
-#'
 #'
 fit.topic.asap <- function(mtx.file,
                            k,
@@ -34,6 +33,7 @@ fit.topic.asap <- function(mtx.file,
                            .burnin = 10,
                            .thining = 3,
                            do.collapse.rows = TRUE,
+                           .beta.rescale = TRUE,
                            .collapse.discrete = FALSE,
                            .collapsing.level = 100,
                            .collapsing.dpm = 1.,
@@ -45,8 +45,7 @@ fit.topic.asap <- function(mtx.file,
                            num.threads = 1,
                            block.size = 100,
                            eval.llik = FALSE,
-                           .rand.seed = 42,
-                           .sample.col.row = FALSE){
+                           .rand.seed = 42){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -73,13 +72,12 @@ fit.topic.asap <- function(mtx.file,
         Y <- cbind(Y, .pb$PB)
     }
 
-    message("Phase II: Perform Poisson matrix factorization")
+    message("Phase II: Perform Poisson matrix factorization ...")
 
     .nmf <- asap_fit_nmf(Y,
                          maxK = k,
                          mcem = em.step,
                          burnin = .burnin,
-                         do_sample_col_row = .sample.col.row,
                          latent_iter = e.step,
                          degree_iter = deg.step,
                          thining = .thining,
@@ -95,15 +93,11 @@ fit.topic.asap <- function(mtx.file,
     .nmf$prop <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
-    message("Phase III: The loading parameters for the original column vectors")
-
-    beta <- .nmf$row$mean
-    uu <- apply(beta, 2, sum)
-    beta <- sweep(beta, 2, uu, `/`)
+    message("Phase III: Calibrating the loading parameters of the original data")
 
     asap <- asap_predict_mtx(mtx.file,
                              .index,
-                             beta,
+                             beta_dict = .nmf$row$mean,
                              mcem = em.step,
                              burnin = .burnin,
                              thining = .thining,
@@ -112,6 +106,7 @@ fit.topic.asap <- function(mtx.file,
                              rseed = .rand.seed,
                              verbose = verbose,
                              do_collapse = do.collapse.rows,
+                             do_beta_rescale = .beta.rescale,
                              discrete_collapse = .collapse.discrete,
                              collapsing_level = .collapsing.level,
                              collapsing_dpm_alpha = .collapsing.dpm,
@@ -121,7 +116,7 @@ fit.topic.asap <- function(mtx.file,
 
     message("normalizing the estimated model parameters")
 
-    .multinom <- pmf2topic(beta, asap$theta)
+    .multinom <- pmf2topic(asap$beta, asap$theta)
 
     asap$beta <- .multinom$beta
     asap$prop <- .multinom$prop
@@ -182,7 +177,6 @@ fit.topic.full <- function(mtx.file,
                         maxK = k,
                         mcem = em.step,
                         burnin = .burnin,
-                        do_sample_col_row = .sample.col.row,
                         latent_iter = e.step,
                         degree_iter = deg.step,
                         thining = .thining,

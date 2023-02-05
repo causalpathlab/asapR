@@ -213,10 +213,12 @@ clustering_by_lcvi(clustering_status_t<S> &status,
 
         elbo_vec.emplace_back(elbo);
         if (verbose) {
-            TLOG("MCMC t: " << t << ", " << elbo);
+            TLOG("Clustering by MCMC t = " << t << ", " << elbo);
         } else {
             if (t % 10 == 0)
-                Rcpp::Rcerr << "." << std::flush;
+                Rcpp::Rcerr << ". " << std::flush;
+            if (t > 0 && t % 100 == 0)
+                Rcpp::Rcerr << std::endl;
         }
         if (t > burnin) {
             status.record_latent(prob_01);

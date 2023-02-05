@@ -20,8 +20,8 @@
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #'
-asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, mcem = 100L, burnin = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, do_collapse = TRUE, discrete_collapse = TRUE, collapsing_level = 100L, collapsing_dpm_alpha = 1., collapsing_mcmc = 200L, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, discrete_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE)
+asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, mcem = 100L, burnin = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, do_collapse = TRUE, do_beta_rescale = FALSE, discrete_collapse = TRUE, collapsing_level = 100L, collapsing_dpm_alpha = 1., collapsing_mcmc = 200L, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, mcem, burnin, thining, a0, b0, rseed, verbose, do_collapse, do_beta_rescale, discrete_collapse, collapsing_level, collapsing_dpm_alpha, collapsing_mcmc, NUM_THREADS, BLOCK_SIZE)
 }
 
 #' Non-negative matrix factorization
@@ -40,8 +40,8 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, mcem = 100L, 
 #' @param rseed random seed
 #' @param NUM_THREADS number of parallel jobs
 #'
-asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, do_sample_col_row = TRUE, latent_iter = 1L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, do_sample_col_row, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS)
+asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 1L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
