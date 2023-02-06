@@ -1,4 +1,5 @@
 #include "mmutil.hh"
+#include "svd.hh"
 
 #ifndef POISSON_NMF_MODEL_HH_
 #define POISSON_NMF_MODEL_HH_
@@ -34,12 +35,29 @@ struct poisson_nmf_t {
 
     void randomize_topics()
     {
-        Mat row_a = Mat::Ones(D, K);
+        Mat row_a = T::Ones(D, K);
         Mat row_b = row_topic.sample();
         row_topic.update(row_a, row_b);
 
-        Mat column_a = Mat::Ones(N, K);
+        Mat column_a = T::Ones(N, K);
         Mat column_b = column_topic.sample();
+        column_topic.update(column_a, column_b);
+    }
+
+    template <typename Derived>
+    void initialize_by_svd(const Eigen::MatrixBase<Derived> &Y)
+    {
+        const std::size_t lu_iter = 5;    // this should be good
+        RandomizedSVD<T> svd(K, lu_iter); //
+        const Mat yy = standardize(Y.unaryExpr(log1p_op));
+        svd.compute(Y);
+
+        Mat row_a = standardize(svd.matrixU()).unaryExpr(exp_op);
+        Mat row_b = T::Ones(D, K) / static_cast<Scalar>(D);
+        row_topic.update(row_a, row_b);
+
+        Mat column_a = standardize(svd.matrixV()).unaryExpr(exp_op);
+        Mat column_b = T::Ones(N, K) / static_cast<Scalar>(N);
         column_topic.update(column_a, column_b);
     }
 
@@ -160,6 +178,21 @@ struct poisson_nmf_t {
 
     PARAM row_topic;
     PARAM column_topic;
+
+    struct log_op_t {
+        const Scalar operator()(const Scalar &x) const { return fasterlog(x); }
+    } log_op;
+
+    struct log1p_op_t {
+        const Scalar operator()(const Scalar &x) const
+        {
+            return fasterlog(1. + x);
+        }
+    } log1p_op;
+
+    struct exp_op_t {
+        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+    } exp_op;
 };
 
 #endif

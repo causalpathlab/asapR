@@ -14,8 +14,8 @@
 #' @param .collapsing.level collapsed dimension (default: 300)
 #' @param .collapsing.dpm (default: 1)
 #' @param .collapsing.mcmc (default: 100)
-#' @param a0 Gamma(a0, b0) prior (default: 1e-2)
-#' @param b0 Gamma(a0, b0) prior (default: 1e-4)
+#' @param a0 Gamma(a0, b0) prior (default: 1)
+#' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
 #' @param verbose verbosity
 #' @param num.threads number of threads (default: 1)
@@ -38,8 +38,8 @@ fit.topic.asap <- function(mtx.file,
                            .collapsing.level = 300,
                            .collapsing.dpm = 1.,
                            .collapsing.mcmc = 100,
-                           a0 = 1e-2,
-                           b0 = 1e-4,
+                           a0 = 1,
+                           b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
                            verbose = TRUE,
                            num.threads = 1,
@@ -70,6 +70,8 @@ fit.topic.asap <- function(mtx.file,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size)
         Y <- cbind(Y, .pb$PB)
+
+        message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))
     }
 
     message("Phase II: Perform Poisson matrix factorization ...")
@@ -98,7 +100,11 @@ fit.topic.asap <- function(mtx.file,
 
         message("Clustering to reduce dimensions...")
 
-        B <- .nmf$beta * nrow(.nmf$beta)
+        B <- .nmf$row$mean
+        uu <- apply(B, 2, sum)
+        B <- sweep(B, 2, uu, `/`) * nrow(B)
+        B[is.na(B)] <- 0
+
         clustering <- fit_poisson_cluster_rows(B,
                                                Ltrunc = .collapsing.level,
                                                alpha = .collapsing.dpm,
@@ -121,8 +127,9 @@ fit.topic.asap <- function(mtx.file,
                                 })
         }
 
-        .size <- pmax(apply(collapsing, 1, sum), 1)
+        .size <- apply(collapsing, 1, sum)
         collapsing <- sweep(collapsing, 1, .size, `/`)
+        collapsing[is.na(collapsing)] <- 0
 
     } else {
         clustering <- NULL
@@ -155,6 +162,7 @@ fit.topic.asap <- function(mtx.file,
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$clustering <- clustering
+    asap$Y <- Y
     return(asap)
 }
 

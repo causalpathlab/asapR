@@ -17,7 +17,8 @@ asap_fit_nmf(
   a0 = 1,
   b0 = 1,
   rseed = 42L,
-  NUM_THREADS = 1L
+  NUM_THREADS = 1L,
+  init_by_svd = FALSE
 )
 }
 \arguments{

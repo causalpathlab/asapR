@@ -17,6 +17,8 @@
 template <typename RNG>
 struct latent_matrix_t {
 
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+
     using IntegerMatrix = typename Eigen::
         Matrix<std::ptrdiff_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
 
@@ -45,11 +47,40 @@ struct latent_matrix_t {
         return Y.cwiseProduct(Z.unaryExpr(is_k_t(k)));
     }
 
+    // Gibbs sampling combining the log-probabilities of the rows and
+    // columns
+    template <typename Derived>
+    void gibbs_sample_row_col(const Eigen::MatrixBase<Derived> &rowLogit,
+                              const Eigen::MatrixBase<Derived> &colLogit,
+                              const std::size_t NUM_THREADS = 1)
+    {
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+        {
+            RNG lrng(rng);
+            lrng.long_jump(omp_get_thread_num() + 1);
+#pragma omp for
+#else
+        RNG &lrng = rng;
+#endif
+            for (Index rr = 0; rr < Z.rows(); ++rr) {
+                rowvec_sampler_t<Mat, RNG> sampler(lrng, K);
+                for (Index cc = 0; cc < Z.cols(); ++cc) {
+                    Z(rr, cc) =
+                        sampler(softmax(rowLogit.row(rr) + colLogit.row(cc)));
+                }
+            }
+#if defined(_OPENMP)
+        }
+#endif
+    }
+
     // MH sampling proposal by rows, then test by columns
     template <typename Derived>
-    void sample_row_col(const std::vector<Index> &rowwise_proposal,
-                        const Eigen::MatrixBase<Derived> &colwise_logit,
-                        const std::size_t NUM_THREADS = 1)
+    void mh_sample_row_col(const std::vector<Index> &rowwise_proposal,
+                           const Eigen::MatrixBase<Derived> &colwise_logit,
+                           const std::size_t NUM_THREADS = 1)
     {
         constexpr Scalar zero = 0;
         boost::random::uniform_01<Scalar> runif;
@@ -86,9 +117,9 @@ struct latent_matrix_t {
 
     // MH sampling proposal by columns, then test by rows
     template <typename Derived>
-    void sample_col_row(const std::vector<Index> &colwise_proposal,
-                        const Eigen::MatrixBase<Derived> &rowwise_logit,
-                        const std::size_t NUM_THREADS = 1)
+    void mh_sample_col_row(const std::vector<Index> &colwise_proposal,
+                           const Eigen::MatrixBase<Derived> &rowwise_logit,
+                           const std::size_t NUM_THREADS = 1)
     {
         constexpr Scalar zero = 0;
         boost::random::uniform_01<Scalar> runif;
@@ -167,16 +198,7 @@ private:
     ruint_op_t ruint_op;
     IntegerMatrix Z;
     RNG &rng;
-
-    // inline const Index coeff(const Index i, const Index j) const
-    // {
-    //     return Z.coeff(i, j);
-    // }
-
-    // inline void set(const Index i, const Index j, const Index v)
-    // {
-    //     Z(i, j) = v;
-    // }
+    softmax_op_t<Mat> softmax;
 };
 
 #endif

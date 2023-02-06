@@ -16,62 +16,6 @@
 #define CLUSTERING_HH_
 
 template <typename T>
-struct softmax_op_t {
-    using Scalar = typename T::Scalar;
-    using Index = typename T::Index;
-    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
-
-    RowVec operator()(const RowVec &logits)
-    {
-        const Scalar log_denom = std::accumulate(logits.data(),
-                                                 logits.data() + logits.size(),
-                                                 log_eps,
-                                                 log_sum_exp);
-
-        return (logits.array() - log_denom).matrix().unaryExpr(exp_op);
-    }
-
-    struct log_sum_exp_t {
-        Scalar operator()(const Scalar log_a, const Scalar log_b)
-        {
-            return _log_sum_exp(log_a, log_b);
-        }
-    } log_sum_exp;
-
-    struct exp_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
-    } exp_op;
-
-    static constexpr Scalar log_eps = -200; // log(eps) = -200
-};
-
-template <typename T, typename RNG>
-struct row_sampler_t {
-
-    using disc_distrib = boost::random::discrete_distribution<>;
-    using disc_param = disc_distrib::param_type;
-    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
-
-    explicit row_sampler_t(RNG &_rng, const Index k)
-        : rng(_rng)
-        , K(k)
-        , _prob(k)
-    {
-    }
-
-    Index operator()(const RowVec &prob)
-    {
-        Eigen::Map<RowVec>(&_prob[0], 1, K) = prob;
-        return _rdisc(rng, disc_param(_prob));
-    }
-
-    RNG &rng;
-    const Index K;
-    std::vector<Scalar> _prob;
-    disc_distrib _rdisc;
-};
-
-template <typename T>
 struct clustering_status_t {
     using Scalar = typename T::Scalar;
     using Index = typename T::Index;
@@ -143,7 +87,8 @@ clustering_by_lcvi(clustering_status_t<S> &status,
     RNG rng(rseed);
 
     softmax_op_t<Mat> softmax;
-    row_sampler_t<Mat, RNG> sampler(rng, Ltrunc);
+    rowvec_sampler_t<Mat, RNG> sampler(rng, Ltrunc);
+    RowVec log_prob_temp(Ltrunc);
     RowVec row_prob(Ltrunc);
     row_prob.setOnes();
     row_prob /= row_prob.sum();
@@ -171,8 +116,18 @@ clustering_by_lcvi(clustering_status_t<S> &status,
     Mat log_param(D, Ltrunc);
 
     std::vector<Index> membership(N);
+    std::vector<Index> samples(N);
+    std::iota(samples.begin(), samples.end(), 0);
+    std::shuffle(samples.begin(), samples.end(), rng);
 
-    for (Index r = 0; r < N; ++r) {
+    for (Index ii = 0; ii < N; ++ii) {
+        const Index r = samples.at(ii);
+        if (ii > 3 * Ltrunc) {
+            for (Index k = 0; k < Ltrunc; ++k) {
+                log_prob_temp(k) = components[k].log_predictive(X.row(r));
+            }
+            row_prob = softmax(log_prob.row(r));
+        }
         const Index k = sampler(row_prob);
         components[k].add_point(X.row(r));
         prior.add_to(k);
@@ -186,7 +141,9 @@ clustering_by_lcvi(clustering_status_t<S> &status,
 
         Scalar elbo = 0.;
 
-        for (Index r = 0; r < N; ++r) {
+        std::shuffle(samples.begin(), samples.end(), rng);
+        for (Index ii = 0; ii < N; ++ii) {
+            const Index r = samples.at(ii);
             const Index k_old = membership.at(r);
             components[k_old].remove_point(X.row(r));
             prior.subtract_from(k_old);

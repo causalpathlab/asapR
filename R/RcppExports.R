@@ -38,8 +38,8 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_resca
 #' @param rseed random seed
 #' @param NUM_THREADS number of parallel jobs
 #'
-asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 1L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS)
+asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 1L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L, init_by_svd = FALSE) {
+    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS, init_by_svd)
 }
 
 #' Generate approximate pseudo-bulk data by random projections

@@ -88,6 +88,14 @@ asap_predict_mtx(const std::string mtx_file,
     const Mat B = do_collapse ? (C * beta_scaled) : beta_scaled;
     const Vec S = B.transpose().colwise().sum();
 
+    auto log_op = [&TOL](const Scalar &x) -> Scalar {
+        if (x < TOL)
+            return fasterlog(TOL);
+        return fasterlog(x);
+    };
+
+    const Mat log_B = B.unaryExpr(log_op);
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
@@ -120,8 +128,6 @@ asap_predict_mtx(const std::string mtx_file,
 
         using latent_t = latent_matrix_t<RNG>;
         latent_t aux(Y.rows(), Y.cols(), K, rng);
-        discrete_sampler_t<Mat, RNG> proposal_by_row(rng, K);
-        discrete_sampler_t<Mat, RNG> proposal_by_col(rng, K);
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);
 
         for (std::size_t t = 0; t < (mcem + burnin); ++t) {
@@ -130,7 +136,7 @@ asap_predict_mtx(const std::string mtx_file,
             // E-step: latent sampling //
             /////////////////////////////
 
-            aux.sample_row_col(proposal_by_row.sample(B), theta_b.log_mean());
+            aux.gibbs_sample_row_col(log_B, theta_b.log_mean());
 
             ///////////////////////////////
             // M-step: update parameters //
@@ -228,12 +234,14 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
              const double a0 = 1.,
              const double b0 = 1.,
              const std::size_t rseed = 42,
-             const std::size_t NUM_THREADS = 1)
+             const std::size_t NUM_THREADS = 1,
+             const bool init_by_svd = false)
 {
 
     const Index D = Y.rows();
     const Index N = Y.cols();
     const Index K = maxK;
+    const Scalar TOL = 1e-8;
 
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
@@ -252,9 +260,6 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
     // Step 3. Monte Carlo EM //
     ////////////////////////////
 
-    discrete_sampler_t<Mat, RNG> proposal_by_row(rng, K);
-    discrete_sampler_t<Mat, RNG> proposal_by_col(rng, K);
-
     model.initialize_degree(Y);
     for (std::size_t s = 0; s < degree_iter; ++s) {
         model.update_degree(Y);
@@ -263,10 +268,13 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
     if (verbose)
         TLOG("Randomizing auxiliary/latent matrix");
 
-    aux.randomize();
-
-    model.update_column_topic(Y, aux);
-    model.update_row_topic(Y, aux);
+    if (init_by_svd) {
+        model.initialize_by_svd(Y);
+    } else {
+        aux.randomize();
+        model.update_column_topic(Y, aux);
+        model.update_row_topic(Y, aux);
+    }
 
     if (verbose)
         TLOG("Initialized model parameters");
@@ -283,16 +291,9 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
 
     for (std::size_t t = 0; t < (mcem + burnin); ++t) {
         for (std::size_t s = 0; s < latent_iter; ++s) {
-
-            aux.sample_row_col(proposal_by_row.sample_logit(
-                                   model.row_topic.log_mean()),
-                               model.column_topic.log_mean(),
-                               NUM_THREADS);
-
-            aux.sample_col_row(proposal_by_col.sample_logit(
-                                   model.column_topic.log_mean()),
-                               model.row_topic.log_mean(),
-                               NUM_THREADS);
+            aux.gibbs_sample_row_col(model.row_topic.log_mean(),
+                                     model.column_topic.log_mean(),
+                                     NUM_THREADS);
         }
 
         model.update_column_topic(Y, aux);
@@ -304,7 +305,7 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
         }
 
         if (verbose && eval_llik) {
-            TLOG("MCEM: " << t << " " << llik);
+            TLOG("NMF MCEM: " << t << " " << llik);
         } else {
             if (t > 0 && t % 10 == 0)
                 Rcpp::Rcerr << ". " << std::flush;

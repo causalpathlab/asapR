@@ -20,8 +20,8 @@ fit.topic.asap(
   .collapsing.level = 300,
   .collapsing.dpm = 1,
   .collapsing.mcmc = 100,
-  a0 = 0.01,
-  b0 = 1e-04,
+  a0 = 1,
+  b0 = 1,
   index.file = paste0(mtx.file, ".index"),
   verbose = TRUE,
   num.threads = 1,
@@ -57,9 +57,9 @@ fit.topic.asap(
 
 \item{.collapsing.mcmc}{(default: 100)}
 
-\item{a0}{Gamma(a0, b0) prior (default: 1e-2)}
+\item{a0}{Gamma(a0, b0) prior (default: 1)}
 
-\item{b0}{Gamma(a0, b0) prior (default: 1e-4)}
+\item{b0}{Gamma(a0, b0) prior (default: 1)}
 
 \item{index.file}{a file for column indexes (default: "{mtx.file}.index")}
 

@@ -17,8 +17,66 @@
 #ifndef EIGEN_UTIL_HH_
 #define EIGEN_UTIL_HH_
 
+template <typename T>
+struct softmax_op_t {
+    using Scalar = typename T::Scalar;
+    using Index = typename T::Index;
+    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
+
+    RowVec operator()(const RowVec &logits)
+    {
+        const Scalar log_denom = std::accumulate(logits.data(),
+                                                 logits.data() + logits.size(),
+                                                 log_eps,
+                                                 log_sum_exp);
+
+        return (logits.array() - log_denom).matrix().unaryExpr(exp_op);
+    }
+
+    struct log_sum_exp_t {
+        Scalar operator()(const Scalar log_a, const Scalar log_b)
+        {
+            return _log_sum_exp(log_a, log_b);
+        }
+    } log_sum_exp;
+
+    struct exp_op_t {
+        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+    } exp_op;
+
+    static constexpr Scalar log_eps = -200; // log(eps) = -200
+};
+
 template <typename T, typename RNG>
-struct discrete_sampler_t {
+struct rowvec_sampler_t {
+    using Scalar = typename T::Scalar;
+    using Index = typename T::Index;
+
+    using disc_distrib = boost::random::discrete_distribution<>;
+    using disc_param = disc_distrib::param_type;
+    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
+
+    explicit rowvec_sampler_t(RNG &_rng, const Index k)
+        : rng(_rng)
+        , K(k)
+        , _prob(k)
+    {
+    }
+
+    Index operator()(const RowVec &prob)
+    {
+        Eigen::Map<RowVec>(&_prob[0], 1, K) = prob;
+        return _rdisc(rng, disc_param(_prob));
+    }
+
+    RNG &rng;
+    const Index K;
+    std::vector<Scalar> _prob;
+    disc_distrib _rdisc;
+};
+
+template <typename T, typename RNG>
+struct matrix_sampler_t {
 
     using disc_distrib = boost::random::discrete_distribution<>;
     using disc_param = disc_distrib::param_type;
@@ -28,7 +86,7 @@ struct discrete_sampler_t {
 
     using IndexVec = std::vector<Index>;
 
-    explicit discrete_sampler_t(RNG &_rng, const Index k)
+    explicit matrix_sampler_t(RNG &_rng, const Index k)
         : rng(_rng)
         , K(k)
         , _weights(k)
