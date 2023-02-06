@@ -11,16 +11,16 @@
 #' @param do.collapse.rows collapse rows to speed up the final NMF
 #' @param .beta.rescale rescale beta in the final prediction step
 #' @param .collapsing.discrete do the row collapsing after discretization
-#' @param .collapsing.level collapsed dimension (default: 100)
+#' @param .collapsing.level collapsed dimension (default: 300)
 #' @param .collapsing.dpm (default: 1)
-#' @param .collapsing.mcmc (default: 500)
+#' @param .collapsing.mcmc (default: 100)
 #' @param a0 Gamma(a0, b0) prior (default: 1e-2)
 #' @param b0 Gamma(a0, b0) prior (default: 1e-4)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
 #' @param verbose verbosity
 #' @param num.threads number of threads (default: 1)
 #' @param block.size a block size for disk I/O (default: 100)
-#' @param eval.llik evaluate log-likelihood trace in PMF (default: FALSE)
+#' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
 #' @param .rand.seed random seed (default: 42)
 #'
 fit.topic.asap <- function(mtx.file,
@@ -35,16 +35,16 @@ fit.topic.asap <- function(mtx.file,
                            do.collapse.rows = TRUE,
                            .beta.rescale = TRUE,
                            .collapse.discrete = FALSE,
-                           .collapsing.level = 100,
+                           .collapsing.level = 300,
                            .collapsing.dpm = 1.,
-                           .collapsing.mcmc = 500,
+                           .collapsing.mcmc = 100,
                            a0 = 1e-2,
                            b0 = 1e-4,
                            index.file = paste0(mtx.file, ".index"),
                            verbose = TRUE,
                            num.threads = 1,
                            block.size = 100,
-                           eval.llik = FALSE,
+                           eval.llik = TRUE,
                            .rand.seed = 42){
 
     if(!file.exists(index.file)){
@@ -93,11 +93,49 @@ fit.topic.asap <- function(mtx.file,
     .nmf$prop <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
+
+    if(do.collapse.rows){
+
+        message("Clustering to reduce dimensions...")
+
+        B <- .nmf$beta * nrow(.nmf$beta)
+        clustering <- fit_poisson_cluster_rows(B,
+                                               Ltrunc = .collapsing.level,
+                                               alpha = .collapsing.dpm,
+                                               a0 = a0,
+                                               b0 = b0,
+                                               rseed = .rand.seed,
+                                               mcmc = .collapsing.mcmc,
+                                               burnin = .burnin,
+                                               verbose = verbose)
+
+        collapsing <- t(clustering$latent$mean)
+
+        if(.collapse.discrete){
+            collapsing <- apply(collapsing, 2,
+                                function(z){
+                                    k <- which.max(z)
+                                    ret <- z * 0
+                                    ret[k] <- 1
+                                    return(ret)
+                                })
+        }
+
+        .size <- pmax(apply(collapsing, 1, sum), 1)
+        collapsing <- sweep(collapsing, 1, .size, `/`)
+
+    } else {
+        clustering <- NULL
+        collapsing <- NULL
+    }
+
     message("Phase III: Calibrating the loading parameters of the original data")
 
     asap <- asap_predict_mtx(mtx.file,
                              .index,
                              beta_dict = .nmf$row$mean,
+                             do_beta_rescale = .beta.rescale,
+                             collapsing = collapsing,
                              mcem = em.step,
                              burnin = .burnin,
                              thining = .thining,
@@ -105,12 +143,6 @@ fit.topic.asap <- function(mtx.file,
                              b0 = b0,
                              rseed = .rand.seed,
                              verbose = verbose,
-                             do_collapse = do.collapse.rows,
-                             do_beta_rescale = .beta.rescale,
-                             discrete_collapse = .collapse.discrete,
-                             collapsing_level = .collapsing.level,
-                             collapsing_dpm_alpha = .collapsing.dpm,
-                             collapsing_mcmc = .collapsing.mcmc,
                              NUM_THREADS = num.threads,
                              BLOCK_SIZE = block.size)
 
@@ -122,7 +154,7 @@ fit.topic.asap <- function(mtx.file,
     asap$prop <- .multinom$prop
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
-
+    asap$clustering <- clustering
     return(asap)
 }
 

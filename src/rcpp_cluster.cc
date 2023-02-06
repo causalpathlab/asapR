@@ -47,5 +47,7 @@ fit_poisson_cluster_rows(const Eigen::MatrixXf &X,
 
     return Rcpp::List::create(Rcpp::_["elbo"] = status.elbo,
                               Rcpp::_["latent"] = _summary(status.latent),
-                              Rcpp::_["parameter"] = _summary(status.parameter));
+                              Rcpp::_["parameter"] = _summary(status.parameter),
+                              Rcpp::_["log.parameter"] =
+                                  _summary(status.log_parameter));
 }

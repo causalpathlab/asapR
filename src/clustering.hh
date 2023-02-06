@@ -84,21 +84,9 @@ struct clustering_status_t {
         , K(k)
         , latent(N, K)
         , parameter(D, K)
-        , tempDK(d, k)
-        , tempNK(n, k)
+        , log_parameter(D, K)
     {
     }
-
-    // template <typename Derived>
-    // void record_log_latent(const Eigen::MatrixBase<Derived> &log_prob)
-    // {
-    //     tempNK = (log_prob.colwise() - log_prob.rowwise().maxCoeff())
-    //                  .unaryExpr(exp_op)
-    //                  .eval();
-
-    //     latent((tempNK.array().colwise() / tempNK.rowwise().sum().array())
-    //                .matrix());
-    // }
 
     template <typename Derived>
     void record_latent(const Eigen::MatrixBase<Derived> &prob)
@@ -112,12 +100,17 @@ struct clustering_status_t {
         parameter(param);
     }
 
+    template <typename Derived>
+    void record_log_parameter(const Eigen::MatrixBase<Derived> &log_param)
+    {
+        log_parameter(log_param);
+    }
+
     const Index N, D, K;
     running_stat_t<T> latent;
     running_stat_t<T> parameter;
+    running_stat_t<T> log_parameter;
     std::vector<Scalar> elbo;
-    T tempDK;
-    T tempNK;
 
     struct exp_op_t {
         const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
@@ -175,6 +168,7 @@ clustering_by_lcvi(clustering_status_t<S> &status,
     Mat log_prob(N, Ltrunc);
     Mat prob_01(N, Ltrunc);
     Mat param(D, Ltrunc);
+    Mat log_param(D, Ltrunc);
 
     std::vector<Index> membership(N);
 
@@ -224,8 +218,11 @@ clustering_by_lcvi(clustering_status_t<S> &status,
             status.record_latent(prob_01);
             for (Index k = 0; k < Ltrunc; ++k) {
                 param.col(k) = components[k].posterior_mean().transpose();
+                log_param.col(k) =
+                    components[k].posterior_log_mean().transpose();
             }
             status.record_parameter(param);
+            status.record_log_parameter(log_param);
         }
         try {
             Rcpp::checkUserInterrupt();

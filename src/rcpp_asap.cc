@@ -4,7 +4,9 @@
 //'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param memory_location column indexing for the mtx
-//' @param beta_dict row x factor dictionary
+//' @param beta_dict row x factor dictionary (beta) matrix
+//' @param do_beta_rescale rescale the columns of the beta matrix
+//' @param collapsing r x row collapsing matrix (r < row)
 //' @param mcem number of Monte Carlo Expectation Maximization
 //' @param burnin burn-in period
 //' @param thining thining interval in record keeping
@@ -12,10 +14,6 @@
 //' @param b0 gamma(a0, b0)
 //' @param rseed random seed
 //' @param verbose verbosity
-//' @param do_collapse collapse the dictionary matrix by clustering
-//' @param discrete_collapse do the row collapsing after discretization
-//' @param collapsing_level # clusters while collapsing
-//' @param collapsing_dpm_alpha collapsing cluster ~ DPM(alpha)
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //'
@@ -24,6 +22,8 @@ Rcpp::List
 asap_predict_mtx(const std::string mtx_file,
                  const Rcpp::NumericVector &memory_location,
                  const Eigen::MatrixXf &beta_dict,
+                 const bool do_beta_rescale = false,
+                 Rcpp::Nullable<Rcpp::NumericMatrix> collapsing = R_NilValue,
                  const std::size_t mcem = 100,
                  const std::size_t burnin = 10,
                  const std::size_t thining = 3,
@@ -31,12 +31,6 @@ asap_predict_mtx(const std::string mtx_file,
                  const double b0 = 1.,
                  const std::size_t rseed = 42,
                  const bool verbose = false,
-                 const bool do_collapse = true,
-                 const bool do_beta_rescale = false,
-                 const bool discrete_collapse = true,
-                 const std::size_t collapsing_level = 100,
-                 const double collapsing_dpm_alpha = 1.,
-                 const std::size_t collapsing_mcmc = 200,
                  const std::size_t NUM_THREADS = 1,
                  const std::size_t BLOCK_SIZE = 100)
 {
@@ -49,6 +43,7 @@ asap_predict_mtx(const std::string mtx_file,
     const Index N = info.max_col;     // number of cells
     const Index K = beta_dict.cols(); // number of topics
     const Index block_size = BLOCK_SIZE;
+    const Scalar TOL = 1e-8;
 
     ASSERT_RETL(beta_dict.rows() == D,
                 "incompatible Beta with the file: " << mtx_file);
@@ -57,55 +52,13 @@ asap_predict_mtx(const std::string mtx_file,
         TLOG("Dictionary Beta: " << D << " x " << K);
     }
 
+    const bool do_collapse = collapsing.isNotNull() ? true : false;
+
     Mat C;
-    std::vector<Scalar> collapsing_elbo;
 
     if (do_collapse) {
-
-        using F = poisson_component_t<Mat>;
-        using F0 = trunc_dpm_t<Mat>;
-        auto L = std::min(collapsing_level, static_cast<std::size_t>(D));
-
-        if (verbose) {
-            TLOG("Collapsing Beta matrix... " << D << " -> " << L);
-        }
-
-        Mat beta_scaled = beta_dict;
-        if (do_beta_rescale) {
-            normalize_columns(beta_scaled);
-            beta_scaled *= static_cast<Scalar>(beta_dict.rows());
-        }
-
-        clustering_status_t<Mat> status(beta_dict.rows(), beta_dict.cols(), L);
-        clustering_by_lcvi<F, F0>(status,
-                                  beta_scaled,
-                                  L,
-                                  collapsing_dpm_alpha,
-                                  a0,
-                                  b0,
-                                  rseed,
-                                  collapsing_mcmc,
-                                  burnin,
-                                  verbose);
-
-        C.resize(L, beta_scaled.rows());
-
-        if (discrete_collapse) {
-            C.setZero();
-            const Mat Z = status.latent.mean();
-            for (Index r = 0; r < Z.rows(); ++r) {
-                Index argmax;
-                Z.row(r).maxCoeff(&argmax);
-                C(argmax, r) = 1.;
-            }
-        } else {
-            C = status.latent.mean().transpose();
-        }
-
-        collapsing_elbo.resize(status.elbo.size());
-        std::copy(std::begin(status.elbo),
-                  std::end(status.elbo),
-                  std::begin(collapsing_elbo));
+        C = Rcpp::as<Mat>(Rcpp::NumericMatrix(collapsing));
+        ASSERT_RETL(C.cols() == D, "incompatible collapsing matrix");
     }
 
     Mat onesD = Mat::Ones(D, 1);
@@ -126,14 +79,6 @@ asap_predict_mtx(const std::string mtx_file,
                  static_cast<Index>(mcem + burnin));
 
     Index Nprocessed = 0;
-
-    const Scalar TOL = 1e-8;
-
-    // auto log_op = [&TOL](const Scalar &x) -> Scalar {
-    //     if (x < TOL)
-    //         return fasterlog(TOL);
-    //     return fasterlog(x);
-    // };
 
     Mat beta_scaled = beta_dict;
     if (do_beta_rescale) {
@@ -250,8 +195,7 @@ asap_predict_mtx(const std::string mtx_file,
                               Rcpp::_["log.likelihood"] = llik_mat,
                               Rcpp::_["sample.degree"] = Degree,
                               Rcpp::_["collapsing.factor"] = C,
-			      Rcpp::_["beta.collapsed"] = B,
-                              Rcpp::_["collapsing.elbo"] = collapsing_elbo);
+                              Rcpp::_["beta.collapsed"] = B);
 }
 
 //' Non-negative matrix factorization
@@ -362,7 +306,7 @@ asap_fit_nmf(const Eigen::MatrixXf &Y,
         if (verbose && eval_llik) {
             TLOG("MCEM: " << t << " " << llik);
         } else {
-            if (t % 10 == 0)
+            if (t > 0 && t % 10 == 0)
                 Rcpp::Rcerr << ". " << std::flush;
             if (t > 0 && t % 100 == 0)
                 Rcpp::Rcerr << std::endl;

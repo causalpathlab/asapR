@@ -21,6 +21,7 @@ struct poisson_component_t {
         , Freq_stat(dim)
         , N_stat(0)
         , lgamma_op(_a0)
+        , digamma_op(_a0)
     {
         clear();
     }
@@ -86,7 +87,14 @@ struct poisson_component_t {
 
     RowVec posterior_mean() const
     {
-        return (Freq_stat.array() + b0).matrix() / (N_stat + b0);
+        return (Freq_stat.array() + a0).matrix() / (N_stat + b0);
+    }
+
+    RowVec posterior_log_mean() const
+    {
+        return (Freq_stat.unaryExpr(digamma_op).array() -
+                fasterlog(N_stat + b0))
+            .matrix();
     }
 
 private:
@@ -106,6 +114,20 @@ private:
     };
 
     lgamma_op_t lgamma_op;
+
+    struct digamma_op_t {
+        explicit digamma_op_t(const Scalar _a0)
+            : a0(_a0)
+        {
+        }
+        const Scalar operator()(const Scalar &xx) const
+        {
+            return fasterdigamma(a0 + xx);
+        }
+        const Scalar a0;
+    };
+
+    digamma_op_t digamma_op;
 };
 
 #endif
