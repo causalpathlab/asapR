@@ -57,16 +57,16 @@
   do.collapse.rows <span class="op">=</span> <span class="cn">TRUE</span>,
   .beta.rescale <span class="op">=</span> <span class="cn">TRUE</span>,
   .collapse.discrete <span class="op">=</span> <span class="cn">FALSE</span>,
-  .collapsing.level <span class="op">=</span> <span class="fl">100</span>,
+  .collapsing.level <span class="op">=</span> <span class="fl">300</span>,
   .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
-  .collapsing.mcmc <span class="op">=</span> <span class="fl">500</span>,
+  .collapsing.mcmc <span class="op">=</span> <span class="fl">100</span>,
   a0 <span class="op">=</span> <span class="fl">0.01</span>,
   b0 <span class="op">=</span> <span class="fl">1e-04</span>,
   index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,
   verbose <span class="op">=</span> <span class="cn">TRUE</span>,
   num.threads <span class="op">=</span> <span class="fl">1</span>,
   block.size <span class="op">=</span> <span class="fl">100</span>,
-  eval.llik <span class="op">=</span> <span class="cn">FALSE</span>,
+  eval.llik <span class="op">=</span> <span class="cn">TRUE</span>,
   .rand.seed <span class="op">=</span> <span class="fl">42</span>
 <span class="op">)</span></code></pre></div>
     </div>
@@ -114,7 +114,7 @@
 
 
 <dt>.collapsing.level</dt>
-<dd><p>collapsed dimension (default: 100)</p></dd>
+<dd><p>collapsed dimension (default: 300)</p></dd>
 
 
 <dt>.collapsing.dpm</dt>
@@ -122,7 +122,7 @@
 
 
 <dt>.collapsing.mcmc</dt>
-<dd><p>(default: 500)</p></dd>
+<dd><p>(default: 100)</p></dd>
 
 
 <dt>a0</dt>
@@ -150,7 +150,7 @@
 
 
 <dt>eval.llik</dt>
-<dd><p>evaluate log-likelihood trace in PMF (default: FALSE)</p></dd>
+<dd><p>evaluate log-likelihood trace in PMF (default: TRUE)</p></dd>
 
 
 <dt>.rand.seed</dt>
