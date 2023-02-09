@@ -21,7 +21,7 @@ read_eigen_sparse_subset_col(const std::string mtx_file,
     const Index max_row = info.max_row;
 
 #ifdef DEBUG
-    ASSERT(lb < ub);
+    ASSERT(lb < ub, "LB < UB");
 #endif
 
     Index max_col = 0;

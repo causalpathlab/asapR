@@ -8,10 +8,12 @@ using namespace mmutil::bgzf;
 // index bgzipped matrix market file //
 ///////////////////////////////////////
 
-int build_mmutil_index(std::string mtx_file,        // bgzip file
-                       std::string index_file = "") // index file
+int
+build_mmutil_index(const std::string mtx_file,         // bgzip file
+                   const std::string _index_file = "") // index file
 {
 
+    std::string index_file = _index_file;
     if (index_file.length() == 0) {
         index_file = mtx_file + ".index";
     }
@@ -62,7 +64,7 @@ int build_mmutil_index(std::string mtx_file,        // bgzip file
 }
 
 int
-read_mmutil_index(std::string index_file, std::vector<Index> &_index)
+read_mmutil_index(const std::string index_file, std::vector<Index> &_index)
 {
     _index.clear();
     std::vector<std::tuple<Index, Index>> temp;
@@ -104,7 +106,7 @@ read_mmutil_index(std::string index_file, std::vector<Index> &_index)
    @param index_tab a vector of index pairs
 */
 int
-check_index_tab(std::string mtx_file, std::vector<Index> &index_tab)
+check_index_tab(const std::string mtx_file, const std::vector<Index> &index_tab)
 {
     mm_info_reader_t info;
     CHECK(peek_bgzf_header(mtx_file, info));

@@ -36,6 +36,20 @@ struct gamma_param_t {
     const T &mean() const { return estimate_mean; }
     const T &log_mean() const { return estimate_log; }
 
+    void reset()
+    {
+        a_stat.setConstant(a0);
+        b_stat.setConstant(b0);
+    }
+
+    template <typename Derived1, typename Derived2>
+    void add(const Eigen::MatrixBase<Derived1> &add_a,
+             const Eigen::MatrixBase<Derived2> &add_b)
+    {
+        a_stat += add_a;
+        b_stat += add_b;
+    }
+
     template <typename Derived1, typename Derived2>
     void update(const Eigen::MatrixBase<Derived1> &update_a,
                 const Eigen::MatrixBase<Derived2> &update_b)

@@ -120,13 +120,17 @@ clustering_by_lcvi(clustering_status_t<S> &status,
     std::iota(samples.begin(), samples.end(), 0);
     std::shuffle(samples.begin(), samples.end(), rng);
 
+    ////////////////////
+    // initialization //
+    ////////////////////
+
     for (Index ii = 0; ii < N; ++ii) {
         const Index r = samples.at(ii);
         if (ii > 3 * Ltrunc) {
             for (Index k = 0; k < Ltrunc; ++k) {
                 log_prob_temp(k) = components[k].log_predictive(X.row(r));
             }
-            row_prob = softmax(log_prob.row(r));
+            row_prob = softmax(log_prob_temp);
         }
         const Index k = sampler(row_prob);
         components[k].add_point(X.row(r));

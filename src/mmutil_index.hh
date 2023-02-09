@@ -31,19 +31,19 @@ using namespace mmutil::bgzf;
    @param bgz_file : bgzipped mtx file
    @param idx_file : index file for the bgz file
 */
-int build_mmutil_index(std::string bgz_file, std::string idx_file);
+int build_mmutil_index(const std::string bgz_file, const std::string idx_file);
 
 /**
    @param idx_file : index file for the bgz file
    @param idx      : index map (a vector of memory locations)
 */
-int read_mmutil_index(std::string idx_file, std::vector<Index> &idx);
+int read_mmutil_index(const std::string idx_file, std::vector<Index> &idx);
 
 /**
    @param mtx_file matrix market file
    @param index_tab a vector of index pairs
 */
-int check_index_tab(std::string mtx_file, std::vector<Index> &index_tab);
+int check_index_tab(const std::string mtx_file, const std::vector<Index> &index_tab);
 
 ////////////////////////////////////////////////////////////////
 
@@ -127,7 +127,7 @@ struct mm_info_reader_t {
         max_elem = 0;
     }
 
-    void set_file(BGZF *_fp) {}
+    void set_file(BGZF *_fp) { }
 
     void eval_after_header(const index_t r, const index_t c, const index_t e)
     {
@@ -149,14 +149,14 @@ struct _index_checker_t {
 
     void set_file(BGZF *_fp) { fp = _fp; }
 
-    void eval_after_header(const Index r, const Index c, const Index e) {}
+    void eval_after_header(const Index r, const Index c, const Index e) { }
 
     void eval(const Index row, const Index col, const Scalar weight)
     {
         _found = col;
     }
 
-    void eval_end_of_file() {}
+    void eval_end_of_file() { }
 
     BGZF *fp;
 

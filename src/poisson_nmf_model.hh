@@ -28,6 +28,7 @@ struct poisson_nmf_t {
         , column_degree(n, 1, a0, b0, rng)
         , row_topic(d, k, a0, b0, rng)
         , column_topic(n, k, a0, b0, rng)
+        , topic_loading(k, 1, a0, b0, rng)
     {
         onesD.setOnes();
         onesN.setOnes();
@@ -102,6 +103,9 @@ struct poisson_nmf_t {
                 .sum();
 
         for (Index k = 0; k < K; ++k) {
+
+            term1 += latent.slice_k(Y, k).sum() * take_topic_log_loading(k);
+
             term1 += (latent.slice_k(Y, k).array().colwise() *
                       row_topic.log_mean().col(k).array())
                          .sum();
@@ -111,7 +115,9 @@ struct poisson_nmf_t {
         }
 
         term2 =
-            ((row_topic.mean().array().colwise() * take_row_degree().array())
+            (((row_topic.mean().array().colwise() * take_row_degree().array())
+                  .rowwise() *
+              take_topic_loading().transpose().array())
                  .matrix() *
              (column_topic.mean().transpose().array().rowwise() *
               take_column_degree().transpose().array())
@@ -121,28 +127,69 @@ struct poisson_nmf_t {
         return term0 + term1 - term2;
     }
 
-    const auto take_row_degree() const { return row_degree.mean().col(0); }
+    inline const auto take_row_degree() const
+    {
+        return row_degree.mean().col(0);
+    }
 
-    const auto take_row_log_degree() const
+    inline const auto take_topic_loading() const
+    {
+        return topic_loading.mean().col(0);
+    }
+
+    inline const auto take_topic_log_loading() const
+    {
+        return topic_loading.log_mean().col(0);
+    }
+
+    inline Scalar take_topic_loading(const Index k) const
+    {
+        return topic_loading.mean().coeff(k, 0);
+    }
+
+    inline Scalar take_topic_log_loading(const Index k) const
+    {
+        return topic_loading.log_mean().coeff(k, 0);
+    }
+
+    inline const auto take_row_log_degree() const
     {
         return row_degree.log_mean().col(0);
     }
 
-    const auto take_column_degree() const
+    inline const auto take_column_degree() const
     {
         return column_degree.mean().col(0);
     }
 
-    const auto take_column_log_degree() const
+    inline const auto take_column_log_degree() const
     {
         return column_degree.log_mean().col(0);
+    }
+
+    template <typename Derived, typename Latent>
+    void update_topic_loading(const Eigen::MatrixBase<Derived> &Y,
+                              const Latent &latent)
+    {
+        for (Index k = 0; k < K; ++k) {
+            tempK(k) = latent.slice_k(Y, k).sum();
+        }
+        tempK2 = (row_topic.mean().transpose() * take_row_degree())
+                     .cwiseProduct(column_topic.mean().transpose() *
+                                   take_column_degree());
+
+        topic_loading.update(tempK, tempK2);
+        topic_loading.calibrate();
     }
 
     template <typename Derived, typename Latent>
     void update_column_topic(const Eigen::MatrixBase<Derived> &Y,
                              const Latent &latent)
     {
-        tempK = row_topic.mean().transpose() * take_row_degree();
+        // a[j, k] = sum_i Y[i,j] * (Z[i,j] == k)
+        // b[j, k] = d_j * sum_i row[i, k] * topic[k]
+        tempK = (row_topic.mean().transpose() * take_row_degree())
+                    .cwiseProduct(take_topic_loading());
 
         for (Index k = 0; k < K; ++k) {
             column_topic.update_col(latent.slice_k(Y, k).transpose() * onesD,
@@ -156,7 +203,8 @@ struct poisson_nmf_t {
     void update_row_topic(const Eigen::MatrixBase<Derived> &Y,
                           const Latent &latent)
     {
-        tempK = column_topic.mean().transpose() * take_column_degree();
+        tempK = (column_topic.mean().transpose() * take_column_degree())
+                    .cwiseProduct(take_topic_loading());
 
         for (Index k = 0; k < K; ++k) {
             row_topic.update_col(latent.slice_k(Y, k) * onesN,
@@ -171,6 +219,7 @@ struct poisson_nmf_t {
     T onesD;
     T onesN;
     ColVec tempK;
+    ColVec tempK2;
     RNG rng;
 
     PARAM row_degree;
@@ -178,6 +227,7 @@ struct poisson_nmf_t {
 
     PARAM row_topic;
     PARAM column_topic;
+    PARAM topic_loading;
 
     struct log_op_t {
         const Scalar operator()(const Scalar &x) const { return fasterlog(x); }

@@ -6,6 +6,7 @@
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param e.step Num of E-step MCMC steps (default: 1)
 #' @param deg.step Num of Degree calibration steps (default: 0)
+#' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param do.collapse.rows collapse rows to speed up the final NMF
@@ -30,6 +31,7 @@ fit.topic.asap <- function(mtx.file,
                            em.step = 100,
                            e.step = 1,
                            deg.step = 0,
+                           max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
                            do.collapse.rows = TRUE,
@@ -73,6 +75,8 @@ fit.topic.asap <- function(mtx.file,
 
         message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))
     }
+
+    Y <- Y[, tail(order(apply(Y, 2, sum)), max.pb.size), drop = FALSE]
 
     message("Phase II: Perform Poisson matrix factorization ...")
 

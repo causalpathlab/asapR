@@ -47,13 +47,22 @@ struct latent_matrix_t {
         return Y.cwiseProduct(Z.unaryExpr(is_k_t(k)));
     }
 
+    // Y * (Z == k)
+    template <typename Derived>
+    Derived mult_slice_k(const Eigen::MatrixBase<Derived> &Y,
+                         const Index k) const
+    {
+        return Y * Z.unaryExpr(is_k_t(k));
+    }
+
     // Gibbs sampling combining the log-probabilities of the rows and
     // columns
-    template <typename Derived>
-    void gibbs_sample_row_col(const Eigen::MatrixBase<Derived> &rowLogit,
-                              const Eigen::MatrixBase<Derived> &colLogit,
+    template <typename Derived1, typename Derived2>
+    void gibbs_sample_row_col(const Eigen::MatrixBase<Derived1> &rowLogit,
+                              const Eigen::MatrixBase<Derived2> &colLogit,
                               const std::size_t NUM_THREADS = 1)
     {
+        using sampler_t = rowvec_sampler_t<Mat, RNG>;
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -65,7 +74,8 @@ struct latent_matrix_t {
         RNG &lrng = rng;
 #endif
             for (Index rr = 0; rr < Z.rows(); ++rr) {
-                rowvec_sampler_t<Mat, RNG> sampler(lrng, K);
+                sampler_t sampler(lrng, K); // should be thread-safe
+                softmax_op_t<Mat> softmax;  // should be thread-safe
                 for (Index cc = 0; cc < Z.cols(); ++cc) {
                     Z(rr, cc) =
                         sampler(softmax(rowLogit.row(rr) + colLogit.row(cc)));
@@ -198,7 +208,6 @@ private:
     ruint_op_t ruint_op;
     IntegerMatrix Z;
     RNG &rng;
-    softmax_op_t<Mat> softmax;
 };
 
 #endif

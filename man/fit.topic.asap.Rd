@@ -12,6 +12,7 @@ fit.topic.asap(
   em.step = 100,
   e.step = 1,
   deg.step = 0,
+  max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
   do.collapse.rows = TRUE,
@@ -42,6 +43,8 @@ fit.topic.asap(
 \item{e.step}{Num of E-step MCMC steps (default: 1)}
 
 \item{deg.step}{Num of Degree calibration steps (default: 0)}
+
+\item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
 \item{.burnin}{burn-in period in the record keeping (default: 10)}
 

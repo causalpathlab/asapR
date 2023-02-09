@@ -23,7 +23,7 @@ struct softmax_op_t {
     using Index = typename T::Index;
     using RowVec = typename Eigen::internal::plain_row_type<T>::type;
 
-    RowVec operator()(const RowVec &logits)
+    inline RowVec operator()(const RowVec &logits)
     {
         const Scalar log_denom = std::accumulate(logits.data(),
                                                  logits.data() + logits.size(),
@@ -63,7 +63,7 @@ struct rowvec_sampler_t {
     {
     }
 
-    Index operator()(const RowVec &prob)
+    inline Index operator()(const RowVec &prob)
     {
         Eigen::Map<RowVec>(&_prob[0], 1, K) = prob;
         return _rdisc(rng, disc_param(_prob));
@@ -114,12 +114,7 @@ struct matrix_sampler_t {
         check_size(W);
 
         for (Index g = 0; g < W.rows(); ++g) {
-
-            // safer than this: W.row(g).cwiseExp();
-            const Scalar max_logit = W.row(g).maxCoeff();
-            Eigen::Map<ROW>(&_weights[0], 1, K) =
-                (W.row(g).array() - max_logit).matrix().unaryExpr(exp_op);
-
+            Eigen::Map<ROW>(&_weights[0], 1, K) = softmax(W.row(g));
             _sampled[g] = _rdisc(rng, disc_param(_weights));
         }
         return _sampled;
@@ -157,9 +152,7 @@ struct matrix_sampler_t {
     disc_distrib _rdisc;
     IndexVec _sampled;
 
-    struct exp_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
-    } exp_op;
+    softmax_op_t<T> softmax;
 };
 
 template <typename EigenVec>
