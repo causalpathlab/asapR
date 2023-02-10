@@ -5,14 +5,15 @@
 #' @param num.proj the number of pseudobulk projection steps
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param e.step Num of E-step MCMC steps (default: 1)
-#' @param deg.step Num of Degree calibration steps (default: 0)
+#' @param deg.step Num of Degree calibration steps (default: 5)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param do.collapse.rows collapse rows to speed up the final NMF
+#' @param do.modNMF do modular NMF to speed up the initial NMF
 #' @param .beta.rescale rescale beta in the final prediction step
 #' @param .collapsing.discrete do the row collapsing after discretization
-#' @param .collapsing.level collapsed dimension (default: 300)
+#' @param .collapsing.level collapsed dimension (default: 3*k)
 #' @param .collapsing.dpm (default: 1)
 #' @param .collapsing.mcmc (default: 100)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
@@ -26,18 +27,19 @@
 #'
 fit.topic.asap <- function(mtx.file,
                            k,
-                           pb.factors = k,
+                           pb.factors = min(k, 5),
                            num.proj = 3,
                            em.step = 100,
-                           e.step = 1,
-                           deg.step = 0,
+                           e.step = 5,
+                           deg.step = 5,
                            max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
                            do.collapse.rows = TRUE,
+                           do.modNMF = FALSE,
                            .beta.rescale = TRUE,
                            .collapse.discrete = FALSE,
-                           .collapsing.level = 300,
+                           .collapsing.level = 3*k,
                            .collapsing.dpm = 1.,
                            .collapsing.mcmc = 100,
                            a0 = 1,
@@ -62,6 +64,7 @@ fit.topic.asap <- function(mtx.file,
     message("Phase I: Create random pseudo-bulk data")
 
     Y <- NULL
+    .pb.out <- NULL
 
     for(r in 1:num.proj){
         .pb <- asap_random_bulk_data(mtx.file,
@@ -80,21 +83,57 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase II: Perform Poisson matrix factorization ...")
 
-    .nmf <- asap_fit_nmf(Y,
-                         maxK = k,
-                         mcem = em.step,
-                         burnin = .burnin,
-                         latent_iter = e.step,
-                         degree_iter = deg.step,
-                         thining = .thining,
-                         verbose = verbose,
-                         eval_llik = eval.llik,
-                         a0=a0,
-                         b0=b0,
-                         rseed = .rand.seed,
-                         NUM_THREADS = num.threads)
+    if(do.modNMF){
 
-    .multinom <- pmf2topic(.nmf$row$mean, .nmf$column$mean)
+        .collapsing <- NULL
+
+        ## y.std <- sweep(Y, 1, apply(Y, 1, sum), `/`)
+        ## y.std <- y.std * ncol(y.std)
+
+        ## .clust <- fit_poisson_cluster_rows(y.std,
+        ##                                    Ltrunc = .collapsing.level,
+        ##                                    alpha = .collapsing.dpm,
+        ##                                    a0 = a0,
+        ##                                    b0 = b0,
+        ##                                    rseed = .rand.seed,
+        ##                                    mcmc = .collapsing.mcmc,
+        ##                                    burnin = .burnin,
+        ##                                    verbose = verbose)
+        ## .collapsing <- .clust$latent$mean
+
+        .nmf <- asap_fit_modular_nmf(Y, maxK = k,
+                                     collapsing = .collapsing,
+                                     maxL = .collapsing.level,
+                                     mcem = em.step,
+                                     burnin = .burnin,
+                                     latent_iter = e.step,
+                                     degree_iter = deg.step,
+                                     thining = .thining,
+                                     verbose = verbose,
+                                     eval_llik = eval.llik,
+                                     a0=a0,
+                                     b0=b0,
+                                     rseed = .rand.seed,
+                                     NUM_THREADS = num.threads)
+
+    } else {
+
+        .nmf <- asap_fit_nmf(Y,
+                             maxK = k,
+                             mcem = em.step,
+                             burnin = .burnin,
+                             latent_iter = e.step,
+                             degree_iter = deg.step,
+                             thining = .thining,
+                             verbose = verbose,
+                             eval_llik = eval.llik,
+                             a0=a0,
+                             b0=b0,
+                             rseed = .rand.seed,
+                             NUM_THREADS = num.threads)
+    }
+
+    .multinom <- pmf2topic(.nmf$dict$mean, .nmf$column$mean)
     .nmf$beta <- .multinom$beta
     .nmf$prop <- .multinom$prop
     .nmf$depth <- .multinom$depth
@@ -104,7 +143,7 @@ fit.topic.asap <- function(mtx.file,
 
         message("Clustering to reduce dimensions...")
 
-        B <- .nmf$row$mean
+        B <- .nmf$dict$mean
         uu <- apply(B, 2, sum)
         B <- sweep(B, 2, uu, `/`) * nrow(B)
         B[is.na(B)] <- 0
@@ -131,10 +170,6 @@ fit.topic.asap <- function(mtx.file,
                                 })
         }
 
-        .size <- apply(collapsing, 1, sum)
-        collapsing <- sweep(collapsing, 1, .size, `/`)
-        collapsing[is.na(collapsing)] <- 0
-
     } else {
         clustering <- NULL
         collapsing <- NULL
@@ -144,7 +179,7 @@ fit.topic.asap <- function(mtx.file,
 
     asap <- asap_predict_mtx(mtx.file,
                              .index,
-                             beta_dict = .nmf$row$mean,
+                             beta_dict = .nmf$dict$mean,
                              do_beta_rescale = .beta.rescale,
                              collapsing = collapsing,
                              mcem = em.step,
@@ -233,7 +268,7 @@ fit.topic.full <- function(mtx.file,
 
     message("normalizing the estimated model parameters")
 
-    .multinom <- pmf2topic(ret$row$mean, ret$column$mean)
+    .multinom <- pmf2topic(ret$dict$mean, ret$column$mean)
 
     ret$beta <- .multinom$beta
     ret$prop <- .multinom$prop

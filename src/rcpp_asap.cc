@@ -27,7 +27,7 @@ asap_fit_modular_nmf(
     Rcpp::Nullable<Rcpp::NumericMatrix> collapsing = R_NilValue,
     const std::size_t mcem = 100,
     const std::size_t burnin = 10,
-    const std::size_t latent_iter = 1,
+    const std::size_t latent_iter = 10,
     const std::size_t degree_iter = 1,
     const std::size_t thining = 3,
     const bool verbose = true,
@@ -37,7 +37,7 @@ asap_fit_modular_nmf(
     const std::size_t rseed = 42,
     const std::size_t NUM_THREADS = 1,
     const bool update_loading = true,
-    const bool gibbs_sampling = true)
+    const bool gibbs_sampling = false)
 {
 
     using RNG = dqrng::xoshiro256plus;
@@ -46,14 +46,14 @@ asap_fit_modular_nmf(
 
     const Index D = Y.rows();
     const Index N = Y.cols();
-    const Index K = maxK;
+    const Index K = std::min(static_cast<Index>(maxK), N);
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
     const ColVec y_sum = Y.rowwise().sum(); // D x 1
 
     Mat C_DL;
     if (collapsing.isNotNull()) {
         C_DL = Rcpp::as<Mat>(Rcpp::NumericMatrix(collapsing));
-        ASSERT_RETL(C_DL.cols() == D, "incompatible collapsing matrix");
+        ASSERT_RETL(C_DL.rows() == D, "incompatible collapsing matrix");
     }
 
     const Index L = collapsing.isNotNull() ? C_DL.cols() : maxL;
@@ -91,13 +91,7 @@ asap_fit_modular_nmf(
         TLOG("Randomizing auxiliary/latent matrix");
 
     Z_NL.randomize();
-
-    if (update_loading) {
-        model.update_loading_K(Y, C_DL, Z_NL);
-    }
-    model.update_column_topic(Y, C_DL, Z_NL);
-    model.update_middle_topic(Y, C_DL, Z_NL);
-    model.update_row_topic(Y, C_DL, Z_NL);
+    model.initialize_by_svd(Y);
 
     if (verbose)
         TLOG("Initialized model parameters");
@@ -112,6 +106,7 @@ asap_fit_modular_nmf(
             TLOG("Initial log-likelihood: " << llik);
     }
 
+    running_stat_t<Mat> dict_stat(D, K);
     running_stat_t<Mat> row_stat(D, L);
     running_stat_t<Mat> C_stat(D, L);
     running_stat_t<Mat> middle_stat(L, K);
@@ -123,9 +118,9 @@ asap_fit_modular_nmf(
 
     for (std::size_t t = 0; t < (mcem + burnin); ++t) {
 
-        ////////////////////////////////////////
-        // latent variables for factorization //
-        ////////////////////////////////////////
+        //////////////////////////////
+        // Update the middle factor //
+        //////////////////////////////
 
         logP_LK = model.middle_LK.log_mean().array().rowwise() +
             model.get_loading_logK().transpose().array();
@@ -147,9 +142,34 @@ asap_fit_modular_nmf(
         if (update_loading) {
             model.update_loading_K(Y, C_DL, Z_NL);
         }
-        model.update_column_topic(Y, C_DL, Z_NL);
         model.update_middle_topic(Y, C_DL, Z_NL);
-        model.update_row_topic(Y, C_DL, Z_NL);
+
+        ///////////////////////////////
+        // update the column factors //
+        ///////////////////////////////
+
+        logP_LK = model.middle_LK.log_mean().array().rowwise() +
+            model.get_loading_logK().transpose().array();
+
+        for (Index s = 0; s < latent_iter; ++s) {
+
+            if (gibbs_sampling) {
+                Z_NL.gibbs_sample_row_col(model.column_NK.log_mean(),
+                                          logP_LK,
+                                          NUM_THREADS);
+            } else {
+
+                Z_NL.mh_sample_col_row(col_proposal.sample_logit(logP_LK),
+                                       model.column_NK.log_mean(),
+                                       NUM_THREADS);
+            }
+        }
+
+        if (update_loading) {
+            model.update_loading_K(Y, C_DL, Z_NL);
+        }
+
+        model.update_column_topic(Y, C_DL, Z_NL);
 
         /////////////////////////////////////
         // latent variables for clustering //
@@ -174,12 +194,7 @@ asap_fit_modular_nmf(
             }
         }
 
-        // if (update_loading) {
-        //     model.update_loading_K(Y, C_DL, Z_NL);
-        // }
-        // model.update_row_topic(Y, C_DL, Z_NL);
-        // model.update_middle_topic(Y, C_DL, Z_NL);
-        // model.update_column_topic(Y, C_DL, Z_NL);
+        model.update_row_topic(Y, C_DL, Z_NL);
 
         if (eval_llik) {
             llik = model.log_likelihood(Y, C_DL, Z_NL);
@@ -197,6 +212,7 @@ asap_fit_modular_nmf(
 
         if (t >= burnin && t % thining == 0) {
             C_stat(C_DL);
+            dict_stat(model.row_DL.mean() * model.middle_LK.mean());
             row_stat(model.row_DL.mean());
             middle_stat(model.middle_LK.mean());
             column_stat(model.column_NK.mean());
@@ -224,6 +240,7 @@ asap_fit_modular_nmf(
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["degree"] = deg_out,
                               Rcpp::_["row.clust"] = _summary(C_stat),
+                              Rcpp::_["dict"] = _summary(dict_stat),
                               Rcpp::_["row"] = _summary(row_stat),
                               Rcpp::_["middle"] = _summary(middle_stat),
                               Rcpp::_["column"] = _summary(column_stat),
@@ -252,7 +269,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
              const std::size_t maxK,
              const std::size_t mcem = 100,
              const std::size_t burnin = 10,
-             const std::size_t latent_iter = 1,
+             const std::size_t latent_iter = 10,
              const std::size_t degree_iter = 1,
              const std::size_t thining = 3,
              const bool verbose = true,
@@ -262,13 +279,12 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
              const std::size_t rseed = 42,
              const std::size_t NUM_THREADS = 1,
              const bool update_loading = true,
-             const bool gibbs_sampling = true)
+             const bool gibbs_sampling = false)
 {
 
     const Index D = Y.rows();
     const Index N = Y.cols();
-    const Index K = maxK;
-    const Scalar TOL = 1e-8;
+    const Index K = std::min(static_cast<Index>(maxK), N);
 
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
@@ -278,9 +294,9 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
     using latent_t = latent_matrix_t<RNG>;
     latent_t aux(D, N, K, rng);
 
-    running_stat_t<Mat> row_stat(D, K);
-    running_stat_t<Mat> column_stat(N, K);
+    running_stat_t<Mat> dict_stat(D, K);
     running_stat_t<Mat> loading_stat(K, 1);
+    running_stat_t<Mat> column_stat(N, K);
 
     model.initialize_degree(Y);
     for (std::size_t s = 0; s < degree_iter; ++s) {
@@ -291,11 +307,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
         TLOG("Randomizing auxiliary/latent matrix");
 
     aux.randomize();
-    if (update_loading) {
-        model.update_topic_loading(Y, aux);
-    }
-    model.update_column_topic(Y, aux);
-    model.update_row_topic(Y, aux);
+    model.initialize_by_svd(Y);
 
     if (verbose)
         TLOG("Initialized model parameters");
@@ -315,6 +327,11 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
     Mat logP_DK(D, K);
 
     for (std::size_t t = 0; t < (mcem + burnin); ++t) {
+
+        /////////////////////////////////
+        // sampling to update the rows //
+        /////////////////////////////////
+
         logP_DK = model.row_topic.log_mean().array().rowwise() +
             model.take_topic_log_loading().transpose().array();
 
@@ -334,8 +351,33 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
         if (update_loading) {
             model.update_topic_loading(Y, aux);
         }
-        model.update_column_topic(Y, aux);
         model.update_row_topic(Y, aux);
+
+        ////////////////////////////////
+        // sampling to update columns //
+        ////////////////////////////////
+
+        logP_DK = model.row_topic.log_mean().array().rowwise() +
+            model.take_topic_log_loading().transpose().array();
+
+        for (std::size_t s = 0; s < latent_iter; ++s) {
+
+            if (gibbs_sampling) {
+                aux.gibbs_sample_row_col(logP_DK,
+                                         model.column_topic.log_mean(),
+                                         NUM_THREADS);
+            } else {
+                aux.mh_sample_row_col(row_proposal.sample_logit(logP_DK),
+                                      model.column_topic.log_mean(),
+                                      NUM_THREADS);
+            }
+        }
+
+        if (update_loading) {
+            model.update_topic_loading(Y, aux);
+        }
+
+        model.update_column_topic(Y, aux);
 
         if (eval_llik && t % thining == 0) {
             llik = model.log_likelihood(Y, aux);
@@ -353,7 +395,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
 
         if (t >= burnin && t % thining == 0) {
             loading_stat(model.topic_loading.mean());
-            row_stat(model.row_topic.mean());
+            dict_stat(model.row_topic.mean());
             column_stat(model.column_topic.mean());
         }
 
@@ -378,8 +420,8 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["degree"] = deg_out,
+                              Rcpp::_["dict"] = _summary(dict_stat),
                               Rcpp::_["loading"] = _summary(loading_stat),
-                              Rcpp::_["row"] = _summary(row_stat),
                               Rcpp::_["column"] = _summary(column_stat));
 
     return Rcpp::List::create();
@@ -576,6 +618,7 @@ asap_random_bulk_data(const std::string mtx_file,
 //' @param collapsing r x row collapsing matrix (r < row)
 //' @param mcem number of Monte Carlo Expectation Maximization
 //' @param burnin burn-in period
+//' @param latent_iter latent sampling steps
 //' @param thining thining interval in record keeping
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
@@ -593,13 +636,15 @@ asap_predict_mtx(const std::string mtx_file,
                  Rcpp::Nullable<Rcpp::NumericMatrix> collapsing = R_NilValue,
                  const std::size_t mcem = 100,
                  const std::size_t burnin = 10,
+                 const std::size_t latent_iter = 10,
                  const std::size_t thining = 3,
                  const double a0 = 1.,
                  const double b0 = 1.,
                  const std::size_t rseed = 42,
                  const bool verbose = false,
                  const std::size_t NUM_THREADS = 1,
-                 const std::size_t BLOCK_SIZE = 100)
+                 const std::size_t BLOCK_SIZE = 100,
+                 const bool gibbs_sampling = false)
 {
     CHK_RETL(convert_bgzip(mtx_file));
     mm_info_reader_t info;
@@ -697,14 +742,22 @@ asap_predict_mtx(const std::string mtx_file,
         latent_t aux(Y.rows(), Y.cols(), K, rng);
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);
 
+        matrix_sampler_t<Mat, RNG> row_proposal(rng, K);
+
         for (std::size_t t = 0; t < (mcem + burnin); ++t) {
 
             /////////////////////////////
             // E-step: latent sampling //
             /////////////////////////////
 
-            aux.gibbs_sample_row_col(log_B, theta_b.log_mean());
-
+            for (std::size_t s = 0; s < latent_iter; ++s) {
+                if (gibbs_sampling) {
+                    aux.gibbs_sample_row_col(log_B, theta_b.log_mean());
+                } else {
+                    aux.mh_sample_row_col(row_proposal.sample_logit(log_B),
+                                          theta_b.log_mean());
+                }
+            }
             ///////////////////////////////
             // M-step: update parameters //
             ///////////////////////////////

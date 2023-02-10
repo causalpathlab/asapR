@@ -52,13 +52,15 @@
   collapsing <span class="op">=</span> <span class="cn">NULL</span>,
   mcem <span class="op">=</span> <span class="fl">100L</span>,
   burnin <span class="op">=</span> <span class="fl">10L</span>,
+  latent_iter <span class="op">=</span> <span class="fl">10L</span>,
   thining <span class="op">=</span> <span class="fl">3L</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
   b0 <span class="op">=</span> <span class="fl">1</span>,
   rseed <span class="op">=</span> <span class="fl">42L</span>,
   verbose <span class="op">=</span> <span class="cn">FALSE</span>,
   NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
-  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>
+  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,
+  gibbs_sampling <span class="op">=</span> <span class="cn">FALSE</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -90,6 +92,10 @@
 
 <dt>burnin</dt>
 <dd><p>burn-in period</p></dd>
+
+
+<dt>latent_iter</dt>
+<dd><p>latent sampling steps</p></dd>
 
 
 <dt>thining</dt>

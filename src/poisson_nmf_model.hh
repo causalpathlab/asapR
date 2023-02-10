@@ -48,18 +48,21 @@ struct poisson_nmf_t {
     template <typename Derived>
     void initialize_by_svd(const Eigen::MatrixBase<Derived> &Y)
     {
-        const std::size_t lu_iter = 5;    // this should be good
+        const std::size_t lu_iter = 5; // this should be good
+
         RandomizedSVD<T> svd(K, lu_iter); //
         const Mat yy = standardize(Y.unaryExpr(log1p_op));
         svd.compute(Y);
 
+        const Scalar s = 0.1;
+
         Mat row_a = standardize(svd.matrixU()).unaryExpr(exp_op);
         Mat row_b = T::Ones(D, K) / static_cast<Scalar>(D);
-        row_topic.update(row_a, row_b);
+        row_topic.update(row_a * s, row_b);
 
         Mat column_a = standardize(svd.matrixV()).unaryExpr(exp_op);
         Mat column_b = T::Ones(N, K) / static_cast<Scalar>(N);
-        column_topic.update(column_a, column_b);
+        column_topic.update(column_a * s, column_b);
     }
 
     template <typename Derived>

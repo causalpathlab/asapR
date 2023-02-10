@@ -7,18 +7,19 @@
 fit.topic.asap(
   mtx.file,
   k,
-  pb.factors = k,
+  pb.factors = min(k, 5),
   num.proj = 3,
   em.step = 100,
-  e.step = 1,
-  deg.step = 0,
+  e.step = 5,
+  deg.step = 5,
   max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
   do.collapse.rows = TRUE,
+  do.modNMF = FALSE,
   .beta.rescale = TRUE,
   .collapse.discrete = FALSE,
-  .collapsing.level = 300,
+  .collapsing.level = 3 * k,
   .collapsing.dpm = 1,
   .collapsing.mcmc = 100,
   a0 = 1,
@@ -42,7 +43,7 @@ fit.topic.asap(
 
 \item{e.step}{Num of E-step MCMC steps (default: 1)}
 
-\item{deg.step}{Num of Degree calibration steps (default: 0)}
+\item{deg.step}{Num of Degree calibration steps (default: 5)}
 
 \item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
@@ -52,9 +53,11 @@ fit.topic.asap(
 
 \item{do.collapse.rows}{collapse rows to speed up the final NMF}
 
+\item{do.modNMF}{do modular NMF to speed up the initial NMF}
+
 \item{.beta.rescale}{rescale beta in the final prediction step}
 
-\item{.collapsing.level}{collapsed dimension (default: 300)}
+\item{.collapsing.level}{collapsed dimension (default: 3*k)}
 
 \item{.collapsing.dpm}{(default: 1)}
 

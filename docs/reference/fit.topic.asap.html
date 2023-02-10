@@ -47,18 +47,19 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">fit.topic.asap</span><span class="op">(</span>
   <span class="va">mtx.file</span>,
   <span class="va">k</span>,
-  pb.factors <span class="op">=</span> <span class="va">k</span>,
+  pb.factors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">k</span>, <span class="fl">5</span><span class="op">)</span>,
   num.proj <span class="op">=</span> <span class="fl">3</span>,
   em.step <span class="op">=</span> <span class="fl">100</span>,
-  e.step <span class="op">=</span> <span class="fl">1</span>,
-  deg.step <span class="op">=</span> <span class="fl">0</span>,
+  e.step <span class="op">=</span> <span class="fl">5</span>,
+  deg.step <span class="op">=</span> <span class="fl">5</span>,
   max.pb.size <span class="op">=</span> <span class="fl">1000</span>,
   .burnin <span class="op">=</span> <span class="fl">10</span>,
   .thining <span class="op">=</span> <span class="fl">3</span>,
   do.collapse.rows <span class="op">=</span> <span class="cn">TRUE</span>,
+  do.modNMF <span class="op">=</span> <span class="cn">FALSE</span>,
   .beta.rescale <span class="op">=</span> <span class="cn">TRUE</span>,
   .collapse.discrete <span class="op">=</span> <span class="cn">FALSE</span>,
-  .collapsing.level <span class="op">=</span> <span class="fl">300</span>,
+  .collapsing.level <span class="op">=</span> <span class="fl">3</span> <span class="op">*</span> <span class="va">k</span>,
   .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
   .collapsing.mcmc <span class="op">=</span> <span class="fl">100</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
@@ -95,7 +96,7 @@
 
 
 <dt>deg.step</dt>
-<dd><p>Num of Degree calibration steps (default: 0)</p></dd>
+<dd><p>Num of Degree calibration steps (default: 5)</p></dd>
 
 
 <dt>max.pb.size</dt>
@@ -114,12 +115,16 @@
 <dd><p>collapse rows to speed up the final NMF</p></dd>
 
 
+<dt>do.modNMF</dt>
+<dd><p>do modular NMF to speed up the initial NMF</p></dd>
+
+
 <dt>.beta.rescale</dt>
 <dd><p>rescale beta in the final prediction step</p></dd>
 
 
 <dt>.collapsing.level</dt>
-<dd><p>collapsed dimension (default: 300)</p></dd>
+<dd><p>collapsed dimension (default: 3*k)</p></dd>
 
 
 <dt>.collapsing.dpm</dt>

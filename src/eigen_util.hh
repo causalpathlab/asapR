@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <functional>
 #include <vector>
+#include <limits>
 
 #include "math.hh"
 #include "util.hh"
@@ -44,7 +45,7 @@ struct softmax_op_t {
         const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
     } exp_op;
 
-    static constexpr Scalar log_eps = -200; // log(eps) = -200
+    static constexpr Scalar log_eps = -std::numeric_limits<Scalar>::infinity();
 };
 
 template <typename T, typename RNG>

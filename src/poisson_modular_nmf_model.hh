@@ -49,7 +49,7 @@ struct poisson_modular_nmf_t {
 
     void randomize_topics()
     {
-        Mat row_a = T::Ones(D, K);
+        Mat row_a = T::Ones(D, L);
         Mat row_b = row_DL.sample();
         row_DL.update(row_a, row_b);
 
@@ -65,7 +65,28 @@ struct poisson_modular_nmf_t {
     template <typename Derived>
     void initialize_by_svd(const Eigen::MatrixBase<Derived> &Y)
     {
-        ELOG("This is not implemented yet");
+        const std::size_t lu_iter = 5; // this should be good
+
+        RandomizedSVD<T> svd(K, lu_iter); //
+        const Mat yy = standardize(Y.unaryExpr(log1p_op));
+        svd.compute(Y);
+
+        Mat row_a(D, L);
+        row_a.setZero();
+
+        for (Index j = 0; j < std::min(L, K); ++j) {
+            row_a.col(j) = svd.matrixU().col(j);
+        }
+
+        const Scalar s = 0.1;
+
+        row_DL.update(row_a * s, T::Ones(D, L) / static_cast<Scalar>(D));
+
+        middle_LK.update(standardize(T::Random(L, K)).unaryExpr(exp_op) * s,
+                         T::Ones(L, K));
+
+        column_NK.update(standardize(svd.matrixV()).unaryExpr(exp_op) * s,
+                         T::Ones(N, K) / static_cast<Scalar>(N));
     }
 
     template <typename Derived>

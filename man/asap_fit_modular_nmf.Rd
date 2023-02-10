@@ -11,7 +11,7 @@ asap_fit_modular_nmf(
   collapsing = NULL,
   mcem = 100L,
   burnin = 10L,
-  latent_iter = 1L,
+  latent_iter = 10L,
   degree_iter = 1L,
   thining = 3L,
   verbose = TRUE,
@@ -21,7 +21,7 @@ asap_fit_modular_nmf(
   rseed = 42L,
   NUM_THREADS = 1L,
   update_loading = TRUE,
-  gibbs_sampling = TRUE
+  gibbs_sampling = FALSE
 )
 }
 \arguments{

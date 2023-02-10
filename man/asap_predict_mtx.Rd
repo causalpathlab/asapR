@@ -12,13 +12,15 @@ asap_predict_mtx(
   collapsing = NULL,
   mcem = 100L,
   burnin = 10L,
+  latent_iter = 10L,
   thining = 3L,
   a0 = 1,
   b0 = 1,
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  BLOCK_SIZE = 100L,
+  gibbs_sampling = FALSE
 )
 }
 \arguments{
@@ -35,6 +37,8 @@ asap_predict_mtx(
 \item{mcem}{number of Monte Carlo Expectation Maximization}
 
 \item{burnin}{burn-in period}
+
+\item{latent_iter}{latent sampling steps}
 
 \item{thining}{thining interval in record keeping}
 
