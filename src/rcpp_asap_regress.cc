@@ -76,20 +76,21 @@ asap_regression_mtx(const std::string mtx_file,
         RNG rng;
         softmax_op_t<Mat> softmax;
 
-        ColVec Ysum = Y.colwise().sum().transpose(); // N x 1
-        gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // N x K
-        Mat log_Z(Y.cols(), K), Z(Y.cols(), K);      // N x K
+        ColVec Ysum = Y.colwise().sum().transpose(); // n x 1
+        gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // n x K
+        Mat log_Z(Y.cols(), K), Z(Y.cols(), K);      // n x K
         Mat R = (Y.transpose() * log_X).array().colwise() / Ysum.array();
-        //          N x D        D x K                      N x 1
+        //          n x D        D x K                      n x 1
 
-        ColVec onesN(N); // N x 1
-        onesN.setOnes(); //
+        ColVec onesN(Y.cols()); // n x 1
+        onesN.setOnes();        //
 
         for (std::size_t t = 0; t < max_iter; ++t) {
 
             log_Z = theta_b.log_mean() + R;
             for (Index i = 0; i < Y.cols(); ++i) {
                 Z.row(i) = softmax(log_Z.row(i));
+		Z.row(i) /= Z.row(i).sum();
             }
 
             for (Index k = 0; k < K; ++k) {
@@ -118,7 +119,7 @@ asap_regression_mtx(const std::string mtx_file,
     TLOG("Done");
 
     return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp_op),
-			      Rcpp::_["theta"] = theta_tot,
+                              Rcpp::_["theta"] = theta_tot,
                               Rcpp::_["latent"] = Z_tot,
                               Rcpp::_["log.theta"] = log_theta_tot);
 }

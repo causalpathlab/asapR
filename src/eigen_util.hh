@@ -24,12 +24,17 @@ struct softmax_op_t {
     using Index = typename T::Index;
     using RowVec = typename Eigen::internal::plain_row_type<T>::type;
 
-    inline RowVec operator()(const RowVec &logits)
+    inline RowVec operator()(const RowVec logits)
     {
-        const Scalar log_denom = std::accumulate(logits.data(),
-                                                 logits.data() + logits.size(),
-                                                 log_eps,
-                                                 log_sum_exp);
+        std::size_t K = logits.size();
+        Scalar log_a = logits(0);
+        Scalar log_denom = log_a;
+
+        if (K > 1)
+            log_denom = std::accumulate(logits.data() + 1,
+                                        logits.data() + K,
+                                        log_a,
+                                        log_sum_exp);
 
         return (logits.array() - log_denom).matrix().unaryExpr(exp_op);
     }
@@ -37,15 +42,19 @@ struct softmax_op_t {
     struct log_sum_exp_t {
         Scalar operator()(const Scalar log_a, const Scalar log_b)
         {
-            return _log_sum_exp(log_a, log_b);
+            Scalar v;
+            if (log_a < log_b) {
+                v = log_b + fasterlog(1 + fasterexp(log_a - log_b));
+            } else {
+                v = log_a + fasterlog(1 + fasterexp(log_b - log_a));
+            }
+            return v;
         }
     } log_sum_exp;
 
     struct exp_op_t {
         const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
     } exp_op;
-
-    static constexpr Scalar log_eps = -std::numeric_limits<Scalar>::infinity();
 };
 
 template <typename T, typename RNG>
