@@ -15,13 +15,9 @@ fit.topic.asap(
   max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
-  do.collapse.rows = FALSE,
   do.modNMF = FALSE,
   .beta.rescale = FALSE,
-  .collapse.discrete = FALSE,
   .collapsing.level = 100,
-  .collapsing.dpm = 1,
-  .collapsing.mcmc = 100,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -49,17 +45,11 @@ fit.topic.asap(
 
 \item{.thining}{thining for the record keeping (default: 3)}
 
-\item{do.collapse.rows}{collapse rows to speed up the final NMF}
-
 \item{do.modNMF}{do modular NMF to speed up the initial NMF}
 
 \item{.beta.rescale}{rescale beta in the final prediction step}
 
 \item{.collapsing.level}{collapsed dimension (default: 3*k)}
-
-\item{.collapsing.dpm}{(default: 1)}
-
-\item{.collapsing.mcmc}{(default: 100)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
@@ -76,8 +66,6 @@ fit.topic.asap(
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 
 \item{.rand.seed}{random seed (default: 42)}
-
-\item{.collapsing.discrete}{do the row collapsing after discretization}
 }
 \description{
 Fit a topic model by ASAP

@@ -143,7 +143,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["degree"] = deg_out,
                               Rcpp::_["dict"] = _summary(dict_stat),
-                              Rcpp::_["log.dict"] = _summary(dict_stat),
+                              Rcpp::_["log.dict"] = _summary(log_dict_stat),
                               Rcpp::_["loading"] = _summary(loading_stat),
                               Rcpp::_["column"] = _summary(column_stat));
 

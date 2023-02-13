@@ -133,6 +133,7 @@ asap_fit_modular_nmf(
     }
 
     running_stat_t<Mat> dict_stat(D, K);
+    running_stat_t<Mat> log_dict_stat(D, K);
     running_stat_t<Mat> row_stat(D, L);
     running_stat_t<Mat> C_stat(D, L);
     running_stat_t<Mat> middle_stat(L, K);
@@ -222,6 +223,10 @@ asap_fit_modular_nmf(
 
         model.update_row_topic(Y, C_DL, Z_NL);
 
+        ////////////////////////////////////////
+        // don't forget to recalibrate degree //
+        ////////////////////////////////////////
+
         model.update_degree(Y);
 
         if (eval_llik) {
@@ -241,6 +246,8 @@ asap_fit_modular_nmf(
         if (t >= burnin && t % thining == 0) {
             C_stat(C_DL);
             dict_stat(model.row_DL.mean() * model.middle_LK.mean());
+            log_dict_stat(C_DL.cwiseProduct(model.row_DL.log_mean()) +
+                          C_DL * model.middle_LK.log_mean());
             row_stat(model.row_DL.mean());
             middle_stat(model.middle_LK.mean());
             column_stat(model.column_NK.mean());
@@ -269,6 +276,7 @@ asap_fit_modular_nmf(
                               Rcpp::_["degree"] = deg_out,
                               Rcpp::_["row.clust"] = _summary(C_stat),
                               Rcpp::_["dict"] = _summary(dict_stat),
+                              Rcpp::_["log.dict"] = _summary(log_dict_stat),
                               Rcpp::_["row"] = _summary(row_stat),
                               Rcpp::_["middle"] = _summary(middle_stat),
                               Rcpp::_["column"] = _summary(column_stat),

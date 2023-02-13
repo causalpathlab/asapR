@@ -8,7 +8,6 @@ asap_regression_mtx(
   mtx_file,
   memory_location,
   log_x,
-  x = NULL,
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
@@ -22,9 +21,7 @@ asap_regression_mtx(
 
 \item{memory_location}{column indexing for the mtx}
 
-\item{log_x}{D x K log\link{dictionary} matrix}
-
-\item{x}{D x K dictionary/design matrix (optional)}
+\item{log_x}{D x K log dictionary/design matrix}
 
 \item{a0}{gamma(a0, b0)}
 

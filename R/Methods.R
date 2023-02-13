@@ -8,13 +8,9 @@
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
-#' @param do.collapse.rows collapse rows to speed up the final NMF
 #' @param do.modNMF do modular NMF to speed up the initial NMF
 #' @param .beta.rescale rescale beta in the final prediction step
-#' @param .collapsing.discrete do the row collapsing after discretization
 #' @param .collapsing.level collapsed dimension (default: 3*k)
-#' @param .collapsing.dpm (default: 1)
-#' @param .collapsing.mcmc (default: 100)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -34,13 +30,9 @@ fit.topic.asap <- function(mtx.file,
                            max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
-                           do.collapse.rows = FALSE,
                            do.modNMF = FALSE,
                            .beta.rescale = FALSE,
-                           .collapse.discrete = FALSE,
                            .collapsing.level = 100,
-                           .collapsing.dpm = 1.,
-                           .collapsing.mcmc = 100,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
@@ -54,8 +46,8 @@ fit.topic.asap <- function(mtx.file,
         mmutil_build_index(mtx.file, index.file)
     }
 
-    .index <- mmutil_read_index(index.file)
-    if(length(.index) < 1){
+    mtx.index <- mmutil_read_index(index.file)
+    if(length(mtx.index) < 1){
         message("Failed to read the indexing file: ", index.file)
         return(NULL)
     }
@@ -66,8 +58,8 @@ fit.topic.asap <- function(mtx.file,
     .pb.out <- NULL
 
     for(r in 1:num.proj){
-        .pb <- asap_random_bulk_data(mtx.file,
-                                     .index,
+        .pb <- asap_random_bulk_data(mtx_file = mtx.file,
+                                     memory_location = mtx.index,
                                      num_factors = pb.factors,
                                      rseed = .rand.seed + r,
                                      verbose = verbose,
@@ -119,58 +111,16 @@ fit.topic.asap <- function(mtx.file,
     .nmf$prop <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
-    if(do.collapse.rows){
-
-        message("Clustering to reduce dimensions...")
-
-        B <- .nmf$dict$mean
-        uu <- apply(B, 2, sum)
-        B <- sweep(B, 2, uu, `/`) * nrow(B)
-        B[is.na(B)] <- 0
-
-        clustering <- fit_poisson_cluster_rows(B,
-                                               Ltrunc = .collapsing.level,
-                                               alpha = .collapsing.dpm,
-                                               a0 = a0,
-                                               b0 = b0,
-                                               rseed = .rand.seed,
-                                               mcmc = .collapsing.mcmc,
-                                               burnin = .burnin,
-                                               verbose = verbose)
-
-        collapsing <- t(clustering$latent$mean)
-
-        if(.collapse.discrete){
-            collapsing <- apply(collapsing, 2,
-                                function(z){
-                                    k <- which.max(z)
-                                    ret <- z * 0
-                                    ret[k] <- 1
-                                    return(ret)
-                                })
-        }
-
-    } else {
-        clustering <- NULL
-        collapsing <- NULL
-    }
-
     message("Phase III: Calibrating the loading parameters of the original data")
 
-    asap <- asap_predict_mtx(mtx.file,
-                             .index,
-                             beta_dict = .nmf$dict$mean,
-                             do_beta_rescale = .beta.rescale,
-                             collapsing = collapsing,
-                             mcem = em.step,
-                             burnin = .burnin,
-                             thining = .thining,
-                             a0 = a0,
-                             b0 = b0,
-                             rseed = .rand.seed,
-                             verbose = verbose,
-                             NUM_THREADS = num.threads,
-                             BLOCK_SIZE = block.size)
+    asap <- asap_regression_mtx(mtx_file = mtx.file,
+                                memory_location = mtx.index,
+                                log_x = .nmf$log.dict$mean,
+                                a0 = a0, b0 = b0,
+                                max_iter = em.step,
+                                verbose = verbose,
+                                NUM_THREADS = num.threads,
+                                BLOCK_SIZE = block.size)
 
     message("normalizing the estimated model parameters")
 
@@ -180,7 +130,6 @@ fit.topic.asap <- function(mtx.file,
     asap$prop <- .multinom$prop
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
-    asap$clustering <- clustering
     asap$Y <- Y
     return(asap)
 }

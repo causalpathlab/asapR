@@ -81,16 +81,15 @@ asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed 
 #'
 #' @param mtx_file matrix-market-formatted data file (bgzip)
 #' @param memory_location column indexing for the mtx
-#' @param log_x D x K log[dictionary] matrix
-#' @param x D x K dictionary/design matrix (optional)
+#' @param log_x D x K log dictionary/design matrix
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #'
-asap_regression_mtx <- function(mtx_file, memory_location, log_x, x = NULL, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, x, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
+asap_regression_mtx <- function(mtx_file, memory_location, log_x, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
 }
 
 #' Clustering the rows of a count data matrix

@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/motivation_ASAP.html">ASAP: Annotating Single-cell data by Approximate Pseduobulk projection</a>
+    </li>
+    <li>
       <a href="../articles/notes_Poisson_regression.html">Scalable single-effect Poisson regression</a>
     </li>
   </ul></li>
@@ -58,7 +61,6 @@
   <span class="va">mtx_file</span>,
   <span class="va">memory_location</span>,
   <span class="va">log_x</span>,
-  x <span class="op">=</span> <span class="cn">NULL</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
   b0 <span class="op">=</span> <span class="fl">1</span>,
   max_iter <span class="op">=</span> <span class="fl">10L</span>,
@@ -79,11 +81,7 @@
 
 
 <dt>log_x</dt>
-<dd><p>D x K logdictionary matrix</p></dd>
-
-
-<dt>x</dt>
-<dd><p>D x K dictionary/design matrix (optional)</p></dd>
+<dd><p>D x K log dictionary/design matrix</p></dd>
 
 
 <dt>a0</dt>

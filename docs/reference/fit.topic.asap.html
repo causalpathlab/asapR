@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/motivation_ASAP.html">ASAP: Annotating Single-cell data by Approximate Pseduobulk projection</a>
+    </li>
+    <li>
       <a href="../articles/notes_Poisson_regression.html">Scalable single-effect Poisson regression</a>
     </li>
   </ul></li>
@@ -65,13 +68,9 @@
   max.pb.size <span class="op">=</span> <span class="fl">1000</span>,
   .burnin <span class="op">=</span> <span class="fl">10</span>,
   .thining <span class="op">=</span> <span class="fl">3</span>,
-  do.collapse.rows <span class="op">=</span> <span class="cn">FALSE</span>,
   do.modNMF <span class="op">=</span> <span class="cn">FALSE</span>,
   .beta.rescale <span class="op">=</span> <span class="cn">FALSE</span>,
-  .collapse.discrete <span class="op">=</span> <span class="cn">FALSE</span>,
   .collapsing.level <span class="op">=</span> <span class="fl">100</span>,
-  .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
-  .collapsing.mcmc <span class="op">=</span> <span class="fl">100</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
   b0 <span class="op">=</span> <span class="fl">1</span>,
   index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,
@@ -117,10 +116,6 @@
 <dd><p>thining for the record keeping (default: 3)</p></dd>
 
 
-<dt>do.collapse.rows</dt>
-<dd><p>collapse rows to speed up the final NMF</p></dd>
-
-
 <dt>do.modNMF</dt>
 <dd><p>do modular NMF to speed up the initial NMF</p></dd>
 
@@ -131,14 +126,6 @@
 
 <dt>.collapsing.level</dt>
 <dd><p>collapsed dimension (default: 3*k)</p></dd>
-
-
-<dt>.collapsing.dpm</dt>
-<dd><p>(default: 1)</p></dd>
-
-
-<dt>.collapsing.mcmc</dt>
-<dd><p>(default: 100)</p></dd>
 
 
 <dt>a0</dt>
@@ -171,10 +158,6 @@
 
 <dt>.rand.seed</dt>
 <dd><p>random seed (default: 42)</p></dd>
-
-
-<dt>.collapsing.discrete</dt>
-<dd><p>do the row collapsing after discretization</p></dd>
 
 </dl></div>
 

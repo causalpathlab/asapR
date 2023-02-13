@@ -4,8 +4,7 @@
 //'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param memory_location column indexing for the mtx
-//' @param log_x D x K log[dictionary] matrix
-//' @param x D x K dictionary/design matrix (optional)
+//' @param log_x D x K log dictionary/design matrix
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
 //' @param verbose verbosity
@@ -17,7 +16,6 @@ Rcpp::List
 asap_regression_mtx(const std::string mtx_file,
                     const Rcpp::NumericVector &memory_location,
                     const Eigen::MatrixXf log_x,
-                    Rcpp::Nullable<const Rcpp::NumericMatrix> x = R_NilValue,
                     const double a0 = 1.,
                     const double b0 = 1.,
                     const std::size_t max_iter = 10,
@@ -119,7 +117,8 @@ asap_regression_mtx(const std::string mtx_file,
     Rcpp::Rcerr << std::endl;
     TLOG("Done");
 
-    return Rcpp::List::create(Rcpp::_["theta"] = theta_tot,
+    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp_op),
+			      Rcpp::_["theta"] = theta_tot,
                               Rcpp::_["latent"] = Z_tot,
                               Rcpp::_["log.theta"] = log_theta_tot);
 }
