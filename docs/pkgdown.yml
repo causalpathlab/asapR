@@ -1,6 +1,7 @@
 pandoc: '2.5'
 pkgdown: 2.0.6
 pkgdown_sha: ~
-articles: {}
-last_built: 2023-02-10T19:57Z
+articles:
+  notes_Poisson_regression: notes_Poisson_regression.html
+last_built: 2023-02-13T04:04Z
 

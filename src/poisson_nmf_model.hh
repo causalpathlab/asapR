@@ -54,15 +54,15 @@ struct poisson_nmf_t {
         const Mat yy = standardize(Y.unaryExpr(log1p_op));
         svd.compute(Y);
 
-        const Scalar s = 0.1;
+        Mat row_a = standardize(svd.matrixU()).unaryExpr(exp_op) /
+            static_cast<Scalar>(D);
+        Mat row_b = T::Ones(D, K);
+        row_topic.update(row_a, row_b);
 
-        Mat row_a = standardize(svd.matrixU()).unaryExpr(exp_op);
-        Mat row_b = T::Ones(D, K) / static_cast<Scalar>(D);
-        row_topic.update(row_a * s, row_b);
-
-        Mat column_a = standardize(svd.matrixV()).unaryExpr(exp_op);
-        Mat column_b = T::Ones(N, K) / static_cast<Scalar>(N);
-        column_topic.update(column_a * s, column_b);
+        Mat column_a = standardize(svd.matrixV()).unaryExpr(exp_op) /
+            static_cast<Scalar>(N);
+        Mat column_b = T::Ones(N, K);
+        column_topic.update(column_a, column_b);
     }
 
     template <typename Derived>
@@ -78,19 +78,19 @@ struct poisson_nmf_t {
     void update_degree(const Eigen::MatrixBase<Derived> &Y)
     {
 
-        // const Scalar col_sum = column_degree.mean().sum();
-        row_degree.update(Y * onesN,
-                          row_topic.mean() *
-                              (column_topic.mean().transpose() *
-                               column_degree.mean()));
-        row_degree.calibrate();
-
         // const Scalar row_sum = row_degree.mean().sum();
         column_degree.update(Y.transpose() * onesD,
                              column_topic.mean() *
                                  (row_topic.mean().transpose() *
                                   row_degree.mean()));
         column_degree.calibrate();
+
+        // const Scalar col_sum = column_degree.mean().sum();
+        row_degree.update(Y * onesN,
+                          row_topic.mean() *
+                              (column_topic.mean().transpose() *
+                               column_degree.mean()));
+        row_degree.calibrate();
     }
 
     template <typename Derived, typename Latent>

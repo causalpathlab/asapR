@@ -78,15 +78,16 @@ struct poisson_modular_nmf_t {
             row_a.col(j) = svd.matrixU().col(j);
         }
 
-        const Scalar s = 0.1;
+        row_DL.update(standardize(row_a).unaryExpr(exp_op) /
+                          static_cast<Scalar>(D),
+                      T::Ones(D, L));
 
-        row_DL.update(row_a * s, T::Ones(D, L) / static_cast<Scalar>(D));
-
-        middle_LK.update(standardize(T::Random(L, K)).unaryExpr(exp_op) * s,
+        middle_LK.update(T::Ones(L, K) / static_cast<Scalar>(L * K),
                          T::Ones(L, K));
 
-        column_NK.update(standardize(svd.matrixV()).unaryExpr(exp_op) * s,
-                         T::Ones(N, K) / static_cast<Scalar>(N));
+        column_NK.update(standardize(svd.matrixV()).unaryExpr(exp_op) /
+                             static_cast<Scalar>(N),
+                         T::Ones(N, K));
     }
 
     template <typename Derived>
@@ -101,17 +102,17 @@ struct poisson_modular_nmf_t {
     template <typename Derived>
     void update_degree(const Eigen::MatrixBase<Derived> &Y)
     {
-        // const Scalar col_sum = column_N.mean().sum();
-        row_D.update(Y * onesN,
-                     row_DL.mean() * middle_LK.mean() *
-                         column_NK.mean().transpose() * column_N.mean());
-        row_D.calibrate();
-
         // const Scalar row_sum = row_D.mean().sum();
         column_N.update(Y.transpose() * onesD,
                         column_NK.mean() * middle_LK.mean().transpose() *
                             row_DL.mean().transpose() * row_D.mean());
         column_N.calibrate();
+
+        // const Scalar col_sum = column_N.mean().sum();
+        row_D.update(Y * onesN,
+                     row_DL.mean() * middle_LK.mean() *
+                         column_NK.mean().transpose() * column_N.mean());
+        row_D.calibrate();
     }
 
     template <typename Derived1, typename Derived2, typename Latent>

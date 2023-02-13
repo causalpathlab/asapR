@@ -25,6 +25,16 @@
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/notes_Poisson_regression.html">Scalable single-effect Poisson regression</a>
+    </li>
+  </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -55,11 +65,11 @@
   max.pb.size <span class="op">=</span> <span class="fl">1000</span>,
   .burnin <span class="op">=</span> <span class="fl">10</span>,
   .thining <span class="op">=</span> <span class="fl">3</span>,
-  do.collapse.rows <span class="op">=</span> <span class="cn">TRUE</span>,
+  do.collapse.rows <span class="op">=</span> <span class="cn">FALSE</span>,
   do.modNMF <span class="op">=</span> <span class="cn">FALSE</span>,
-  .beta.rescale <span class="op">=</span> <span class="cn">TRUE</span>,
+  .beta.rescale <span class="op">=</span> <span class="cn">FALSE</span>,
   .collapse.discrete <span class="op">=</span> <span class="cn">FALSE</span>,
-  .collapsing.level <span class="op">=</span> <span class="fl">3</span> <span class="op">*</span> <span class="va">k</span>,
+  .collapsing.level <span class="op">=</span> <span class="fl">100</span>,
   .collapsing.dpm <span class="op">=</span> <span class="fl">1</span>,
   .collapsing.mcmc <span class="op">=</span> <span class="fl">100</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
@@ -93,10 +103,6 @@
 
 <dt>e.step</dt>
 <dd><p>Num of E-step MCMC steps (default: 1)</p></dd>
-
-
-<dt>deg.step</dt>
-<dd><p>Num of Degree calibration steps (default: 5)</p></dd>
 
 
 <dt>max.pb.size</dt>

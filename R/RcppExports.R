@@ -10,7 +10,6 @@
 #' @param mcem number of Monte Carl Expectation Maximization
 #' @param burnin burn-in period
 #' @param latent_iter latent sampling steps
-#' @param degree_iter row and column degree optimization steps
 #' @param thining thining interval in record keeping
 #' @param verbose verbosity
 #' @param eval_llik evaluate log-likelihood
@@ -19,8 +18,8 @@
 #' @param rseed random seed
 #' @param NUM_THREADS number of parallel jobs
 #'
-asap_fit_modular_nmf <- function(Y, maxK, maxL, collapsing = NULL, mcem = 100L, burnin = 10L, latent_iter = 10L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L, update_loading = TRUE, gibbs_sampling = FALSE) {
-    .Call('_asapR_asap_fit_modular_nmf', PACKAGE = 'asapR', Y, maxK, maxL, collapsing, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS, update_loading, gibbs_sampling)
+asap_fit_modular_nmf <- function(Y, maxK, maxL, collapsing = NULL, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L, update_loading = TRUE, gibbs_sampling = FALSE) {
+    .Call('_asapR_asap_fit_modular_nmf', PACKAGE = 'asapR', Y, maxK, maxL, collapsing, mcem, burnin, latent_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS, update_loading, gibbs_sampling)
 }
 
 #' Non-negative matrix factorization
@@ -30,7 +29,6 @@ asap_fit_modular_nmf <- function(Y, maxK, maxL, collapsing = NULL, mcem = 100L, 
 #' @param mcem number of Monte Carl Expectation Maximization
 #' @param burnin burn-in period
 #' @param latent_iter latent sampling steps
-#' @param degree_iter row and column degree optimization steps
 #' @param thining thining interval in record keeping
 #' @param verbose verbosity
 #' @param eval_llik evaluate log-likelihood
@@ -39,22 +37,8 @@ asap_fit_modular_nmf <- function(Y, maxK, maxL, collapsing = NULL, mcem = 100L, 
 #' @param rseed random seed
 #' @param NUM_THREADS number of parallel jobs
 #'
-asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, degree_iter = 1L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L, update_loading = TRUE, gibbs_sampling = FALSE) {
-    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, degree_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS, update_loading, gibbs_sampling)
-}
-
-#' Generate approximate pseudo-bulk data by random projections
-#'
-#' @param mtx_file matrix-market-formatted data file (bgzip)
-#' @param memory_location column indexing for the mtx
-#' @param num_factors a desired number of random factors
-#' @param rseed random seed
-#' @param verbose verbosity
-#' @param NUM_THREADS number of threads in data reading
-#' @param BLOCK_SIZE disk I/O block size (number of columns)
-#'
-asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE)
+asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L, update_loading = TRUE, gibbs_sampling = FALSE) {
+    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS, update_loading, gibbs_sampling)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data
@@ -75,8 +59,38 @@ asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed 
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #'
-asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_rescale = FALSE, collapsing = NULL, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, gibbs_sampling = FALSE) {
+asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_rescale = TRUE, collapsing = NULL, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, a0 = 1., b0 = 1., rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, gibbs_sampling = FALSE) {
     .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, do_beta_rescale, collapsing, mcem, burnin, latent_iter, thining, a0, b0, rseed, verbose, NUM_THREADS, BLOCK_SIZE, gibbs_sampling)
+}
+
+#' Generate approximate pseudo-bulk data by random projections
+#'
+#' @param mtx_file matrix-market-formatted data file (bgzip)
+#' @param memory_location column indexing for the mtx
+#' @param num_factors a desired number of random factors
+#' @param rseed random seed
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#'
+asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE)
+}
+
+#' Poisson regression to estimate factor loading
+#'
+#' @param mtx_file matrix-market-formatted data file (bgzip)
+#' @param memory_location column indexing for the mtx
+#' @param log_x D x K log[dictionary] matrix
+#' @param x D x K dictionary/design matrix (optional)
+#' @param a0 gamma(a0, b0)
+#' @param b0 gamma(a0, b0)
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#'
+asap_regression_mtx <- function(mtx_file, memory_location, log_x, x = NULL, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, x, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
 }
 
 #' Clustering the rows of a count data matrix

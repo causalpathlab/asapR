@@ -8,7 +8,7 @@ asap_predict_mtx(
   mtx_file,
   memory_location,
   beta_dict,
-  do_beta_rescale = FALSE,
+  do_beta_rescale = TRUE,
   collapsing = NULL,
   mcem = 100L,
   burnin = 10L,

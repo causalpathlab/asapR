@@ -10,7 +10,6 @@ asap_fit_nmf(
   mcem = 100L,
   burnin = 10L,
   latent_iter = 10L,
-  degree_iter = 1L,
   thining = 3L,
   verbose = TRUE,
   eval_llik = TRUE,
@@ -32,8 +31,6 @@ asap_fit_nmf(
 \item{burnin}{burn-in period}
 
 \item{latent_iter}{latent sampling steps}
-
-\item{degree_iter}{row and column degree optimization steps}
 
 \item{thining}{thining interval in record keeping}
 

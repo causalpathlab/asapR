@@ -24,5 +24,5 @@ install: $(PKG)_$(VER).tar.gz
 	R CMD INSTALL $<
 
 site:
-	R -e "pkgdown::build_site()"
+	R -e "pkgdown::build_site(); pkgdown::build_articles()"
 

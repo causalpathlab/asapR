@@ -5,7 +5,6 @@
 #' @param num.proj the number of pseudobulk projection steps
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param e.step Num of E-step MCMC steps (default: 1)
-#' @param deg.step Num of Degree calibration steps (default: 5)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
@@ -35,11 +34,11 @@ fit.topic.asap <- function(mtx.file,
                            max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
-                           do.collapse.rows = TRUE,
+                           do.collapse.rows = FALSE,
                            do.modNMF = FALSE,
-                           .beta.rescale = TRUE,
+                           .beta.rescale = FALSE,
                            .collapse.discrete = FALSE,
-                           .collapsing.level = 3*k,
+                           .collapsing.level = 100,
                            .collapsing.dpm = 1.,
                            .collapsing.mcmc = 100,
                            a0 = 1,
@@ -85,29 +84,11 @@ fit.topic.asap <- function(mtx.file,
 
     if(do.modNMF){
 
-        .collapsing <- NULL
-
-        ## y.std <- sweep(Y, 1, apply(Y, 1, sum), `/`)
-        ## y.std <- y.std * ncol(y.std)
-
-        ## .clust <- fit_poisson_cluster_rows(y.std,
-        ##                                    Ltrunc = .collapsing.level,
-        ##                                    alpha = .collapsing.dpm,
-        ##                                    a0 = a0,
-        ##                                    b0 = b0,
-        ##                                    rseed = .rand.seed,
-        ##                                    mcmc = .collapsing.mcmc,
-        ##                                    burnin = .burnin,
-        ##                                    verbose = verbose)
-        ## .collapsing <- .clust$latent$mean
-
         .nmf <- asap_fit_modular_nmf(Y, maxK = k,
-                                     collapsing = .collapsing,
                                      maxL = .collapsing.level,
                                      mcem = em.step,
                                      burnin = .burnin,
                                      latent_iter = e.step,
-                                     degree_iter = deg.step,
                                      thining = .thining,
                                      verbose = verbose,
                                      eval_llik = eval.llik,
@@ -116,6 +97,7 @@ fit.topic.asap <- function(mtx.file,
                                      rseed = .rand.seed,
                                      NUM_THREADS = num.threads)
 
+
     } else {
 
         .nmf <- asap_fit_nmf(Y,
@@ -123,7 +105,6 @@ fit.topic.asap <- function(mtx.file,
                              mcem = em.step,
                              burnin = .burnin,
                              latent_iter = e.step,
-                             degree_iter = deg.step,
                              thining = .thining,
                              verbose = verbose,
                              eval_llik = eval.llik,
@@ -137,7 +118,6 @@ fit.topic.asap <- function(mtx.file,
     .nmf$beta <- .multinom$beta
     .nmf$prop <- .multinom$prop
     .nmf$depth <- .multinom$depth
-
 
     if(do.collapse.rows){
 
@@ -257,7 +237,6 @@ fit.topic.full <- function(mtx.file,
                         mcem = em.step,
                         burnin = .burnin,
                         latent_iter = e.step,
-                        degree_iter = deg.step,
                         thining = .thining,
                         verbose = verbose,
                         eval_llik = eval.llik,

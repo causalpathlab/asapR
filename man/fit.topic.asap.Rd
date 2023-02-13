@@ -15,11 +15,11 @@ fit.topic.asap(
   max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
-  do.collapse.rows = TRUE,
+  do.collapse.rows = FALSE,
   do.modNMF = FALSE,
-  .beta.rescale = TRUE,
+  .beta.rescale = FALSE,
   .collapse.discrete = FALSE,
-  .collapsing.level = 3 * k,
+  .collapsing.level = 100,
   .collapsing.dpm = 1,
   .collapsing.mcmc = 100,
   a0 = 1,
@@ -42,8 +42,6 @@ fit.topic.asap(
 \item{em.step}{Monte Carlo EM steps (default: 100)}
 
 \item{e.step}{Num of E-step MCMC steps (default: 1)}
-
-\item{deg.step}{Num of Degree calibration steps (default: 5)}
 
 \item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
