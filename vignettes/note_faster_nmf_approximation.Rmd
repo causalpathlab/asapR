@@ -1,0 +1,74 @@
+--
+title: "Expedite Poisson-NMF estimation via single-effect regression"
+author: "Yongjin Park"
+---
+
+What if we apply single-effect Poisson regression alternatively?
+
+Let's consider this parameterization:
+
+$$\lambda_{ij} = \sum_{k} \beta_{ik} \theta_{jk}$$
+
+Previously, we introduced $z_{ij}^{k}$ to help computation...
+
+If $q_{ij}^{k} = c_{ik} z_{jk}$ ...
+
+
+When you want to estimate $\beta_{ik} = z_{ik} \bar{\beta}_{k}$ given $\theta_{jk}$
+
+$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right) 
+- \sum_{i,j,k} \beta_{ik}\theta_{jk}
+\ge
+\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\bar{\beta}_{k} \theta_{jk}}{c_{ik}} 
+- \sum_{i,j,k} c_{ik} \bar{\beta}_{k}\theta_{jk}$$
+
+
+Find the most correlated factor $k$ (softly). Letting $\pi_{ik} \equiv \mathbb{E}\!\left[c_{ik}\right]$, 
+
+$$\ln \pi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \ln \theta_{jk}}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}} 
++  \underbrace{\mathbb{E}\!\left[\ln \bar{\beta}_{k}\right]}_{\textsf{previous preference}} + \textsf{const.}$$
+
+with $\sum_{k} \pi_{ik} = 1$, and 
+$$\bar{\beta}_{k} \sim \operatorname{Gamma}\left(a_{0} + \sum_{i,j} \pi_{ik} Y_{ij}, 
+b_{0} + \sum_{i} \pi_{ik} \sum_{j} \theta_{jk}\right)$$
+
+
+Since $\mathbb{E}\!\left[\beta_{ik}|c_{ik}=1\right] = \mathbb{E}\!\left[\bar{\beta}_{k}\right]$, 
+we have $\mathbb{E}\!\left[\beta_{ik}\right] = \mathbb{E}\!\left[c_{ik}\right] \mathbb{E}\!\left[\bar{\beta}_{k}\right]$
+
+Since $\mathbb{E}\!\left[\ln\beta_{ik}|c_{ik}=1\right] = \mathbb{E}\!\left[\ln\bar{\beta}_{k}\right]$, 
+we have $\mathbb{E}\!\left[\ln\beta_{ik}\right] = \mathbb{E}\!\left[c_{ik}\right] \mathbb{E}\!\left[\ln\bar{\beta}_{k}\right]$
+
+
+
+### Update the loading of each factor
+
+
+$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \bar{\theta}_{k} \right) 
+- \sum_{i,j,k} \beta_{ik}\bar{\theta}_{k}
+\ge
+\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \bar{\theta}_{k}}{z_{jk}} 
+- \sum_{i,j,k} \beta_{ik} z_{jk} \bar{\theta}_{k}$$
+
+Letting $\rho_{jk} \equiv \mathbb{E}\!\left[z_{jk}\right]$
+
+$$\ln \rho_{jk} 
+=
+\frac{\sum_{i} Y_{ij} \ln \beta_{ik}}{\sum_{i} Y_{ij}}
++ \ln \bar{\theta}_{k}
++ \textsf{const.}$$
+
+where $\sum_{k} \rho_{jk} = 1$, and
+
+$$\bar{\theta}_{k} \sim \operatorname{Gamma}\left(
+a_{0} + \sum_{i,j} \rho_{jk} Y_{ij},
+b_{0} + \sum_{j} \rho_{jk} \sum_{i} \beta_{ik}
+\right)$$
+
+
+
+$\mathbb{E}\!\left[\theta_{jk}\right] = \mathbb{E}\!\left[z_{jk}\right] \mathbb{E}\!\left[\bar{\theta}_{k}\right]$
+
+
+
+$\mathbb{E}\!\left[\ln\theta_{jk}\right] = \mathbb{E}\!\left[z_{jk}\right] \mathbb{E}\!\left[\ln\bar{\theta}_{k}\right]$
