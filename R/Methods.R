@@ -9,7 +9,6 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param do.modNMF do modular NMF to speed up the initial NMF
-#' @param .beta.rescale rescale beta in the final prediction step
 #' @param .collapsing.level collapsed dimension (default: 3*k)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
@@ -22,16 +21,14 @@
 #'
 fit.topic.asap <- function(mtx.file,
                            k,
-                           pb.factors = min(k, 5),
-                           num.proj = 3,
+                           pb.factors = 10,
+                           num.proj = 1,
                            em.step = 100,
                            e.step = 5,
-                           deg.step = 5,
                            max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
                            do.modNMF = FALSE,
-                           .beta.rescale = FALSE,
                            .collapsing.level = 100,
                            a0 = 1,
                            b0 = 1,
@@ -70,7 +67,9 @@ fit.topic.asap <- function(mtx.file,
         message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))
     }
 
-    Y <- Y[, tail(order(apply(Y, 2, sum)), max.pb.size), drop = FALSE]
+    if(ncol(Y) > max.pb.size){
+        Y <- Y[, sample(ncol(Y), max.pb.size), drop = FALSE]
+    }
 
     message("Phase II: Perform Poisson matrix factorization ...")
 
@@ -141,7 +140,6 @@ fit.topic.asap <- function(mtx.file,
 #' @param k number of topics
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param e.step Num of E-step MCMC steps (default: 1)
-#' @param deg.step Num of Degree calibration steps (default: 0)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
@@ -156,11 +154,8 @@ fit.topic.asap <- function(mtx.file,
 #'
 fit.topic.full <- function(mtx.file,
                            k,
-                           pb.factors = k,
-                           num.proj = 3,
                            em.step = 100,
                            e.step = 1,
-                           deg.step = 0,
                            .burnin = 10,
                            .thining = 3,
                            a0 = 1,

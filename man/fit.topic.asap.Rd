@@ -7,16 +7,14 @@
 fit.topic.asap(
   mtx.file,
   k,
-  pb.factors = min(k, 5),
-  num.proj = 3,
+  pb.factors = 10,
+  num.proj = 1,
   em.step = 100,
   e.step = 5,
-  deg.step = 5,
   max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
   do.modNMF = FALSE,
-  .beta.rescale = FALSE,
   .collapsing.level = 100,
   a0 = 1,
   b0 = 1,
@@ -46,8 +44,6 @@ fit.topic.asap(
 \item{.thining}{thining for the record keeping (default: 3)}
 
 \item{do.modNMF}{do modular NMF to speed up the initial NMF}
-
-\item{.beta.rescale}{rescale beta in the final prediction step}
 
 \item{.collapsing.level}{collapsed dimension (default: 3*k)}
 

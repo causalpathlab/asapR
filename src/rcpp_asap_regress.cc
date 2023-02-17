@@ -51,7 +51,9 @@ asap_regression_mtx(const std::string mtx_file,
     const Mat log_X = standardize(log_x);
     const RowVec Xsum = log_X.unaryExpr(exp_op).colwise().sum();
 
+    Mat R_tot(N, K);
     Mat Z_tot(N, K);
+    Mat logZ_tot(N, K);
     Mat theta_tot(N, K);
     Mat log_theta_tot(N, K);
 
@@ -78,7 +80,7 @@ asap_regression_mtx(const std::string mtx_file,
 
         ColVec Ysum = Y.colwise().sum().transpose(); // n x 1
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // n x K
-        Mat log_Z(Y.cols(), K), Z(Y.cols(), K);      // n x K
+        Mat logZ(Y.cols(), K), Z(Y.cols(), K);      // n x K
         Mat R = (Y.transpose() * log_X).array().colwise() / Ysum.array();
         //          n x D        D x K                      n x 1
 
@@ -87,10 +89,10 @@ asap_regression_mtx(const std::string mtx_file,
 
         for (std::size_t t = 0; t < max_iter; ++t) {
 
-            log_Z = theta_b.log_mean() + R;
+            logZ = theta_b.log_mean() + R;
             for (Index i = 0; i < Y.cols(); ++i) {
-                Z.row(i) = softmax(log_Z.row(i));
-		Z.row(i) /= Z.row(i).sum();
+                Z.row(i) = softmax(logZ.row(i));
+		// Z.row(i) /= Z.row(i).sum();
             }
 
             for (Index k = 0; k < K; ++k) {
@@ -103,6 +105,8 @@ asap_regression_mtx(const std::string mtx_file,
         for (Index i = 0; i < (ub - lb); ++i) {
             const Index j = i + lb;
             Z_tot.row(j) = Z.row(i);
+            logZ_tot.row(j) = logZ.row(i);
+            R_tot.row(j) = R.row(i);
             theta_tot.row(j) = theta_b.mean().row(i);
             log_theta_tot.row(j) = theta_b.log_mean().row(i);
         }
@@ -120,6 +124,8 @@ asap_regression_mtx(const std::string mtx_file,
 
     return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp_op),
                               Rcpp::_["theta"] = theta_tot,
+                              Rcpp::_["corr"] = R_tot,
                               Rcpp::_["latent"] = Z_tot,
+                              Rcpp::_["log.latent"] = logZ_tot,
                               Rcpp::_["log.theta"] = log_theta_tot);
 }

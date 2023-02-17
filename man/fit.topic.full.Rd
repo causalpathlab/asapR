@@ -7,11 +7,8 @@
 fit.topic.full(
   mtx.file,
   k,
-  pb.factors = k,
-  num.proj = 3,
   em.step = 100,
   e.step = 1,
-  deg.step = 0,
   .burnin = 10,
   .thining = 3,
   a0 = 1,
@@ -32,8 +29,6 @@ fit.topic.full(
 \item{em.step}{Monte Carlo EM steps (default: 100)}
 
 \item{e.step}{Num of E-step MCMC steps (default: 1)}
-
-\item{deg.step}{Num of Degree calibration steps (default: 0)}
 
 \item{.burnin}{burn-in period in the record keeping (default: 10)}
 
