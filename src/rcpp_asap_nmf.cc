@@ -146,6 +146,4 @@ asap_fit_nmf(const Eigen::MatrixXf Y,
                               Rcpp::_["log.dict"] = _summary(log_dict_stat),
                               Rcpp::_["loading"] = _summary(loading_stat),
                               Rcpp::_["column"] = _summary(column_stat));
-
-    return Rcpp::List::create();
 }

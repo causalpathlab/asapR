@@ -77,8 +77,8 @@ struct latent_matrix_t {
                 sampler_t sampler(lrng, K); // should be thread-safe
                 softmax_op_t<Mat> softmax;  // should be thread-safe
                 for (Index cc = 0; cc < Z.cols(); ++cc) {
-                    Z(rr, cc) =
-                        sampler(softmax(rowLogit.row(rr) + colLogit.row(cc)));
+                    Z(rr, cc) = sampler(
+                        softmax.apply_row(rowLogit.row(rr) + colLogit.row(cc)));
                 }
             }
 #if defined(_OPENMP)

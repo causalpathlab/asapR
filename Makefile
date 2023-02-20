@@ -21,7 +21,7 @@ check: $(PKG)_$(VER).tar.gz
 	R CMD check $<
 
 install: $(PKG)_$(VER).tar.gz
-	R CMD INSTALL $<
+	R -e "install.packages('$<')"
 
 site:
 	R -e "pkgdown::build_site(); pkgdown::build_articles()"

@@ -63,23 +63,19 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_resca
     .Call('_asapR_asap_predict_mtx', PACKAGE = 'asapR', mtx_file, memory_location, beta_dict, do_beta_rescale, collapsing, mcem, burnin, latent_iter, thining, a0, b0, rseed, verbose, NUM_THREADS, BLOCK_SIZE, gibbs_sampling)
 }
 
-#' Poisson regression to estimate factor loading
+#' A quick NMF estimation based on SuSiE-like Poisson regression
 #'
 #' @param Y data matrix (gene x sample)
 #' @param maxK maximum number of factors
-#' @param mcem number of Monte Carl Expectation Maximization
-#' @param burnin burn-in period
-#' @param latent_iter latent sampling steps
-#' @param thining thining interval in record keeping
+#' @param max_iter number of variation Expectation Maximization steps
+#' @param burnin number of burn-in iterations to apply re-scaling
 #' @param verbose verbosity
-#' @param eval_llik evaluate log-likelihood
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
 #' @param rseed random seed
-#' @param NUM_THREADS number of parallel jobs
 #'
-asap_fit_nmf_susie <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, thining = 3L, verbose = TRUE, eval_llik = TRUE, a0 = 1., b0 = 1., rseed = 42L, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_susie', PACKAGE = 'asapR', Y, maxK, mcem, burnin, latent_iter, thining, verbose, eval_llik, a0, b0, rseed, NUM_THREADS)
+asap_fit_nmf_susie <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1., b0 = 1., rseed = 42L) {
+    .Call('_asapR_asap_fit_nmf_susie', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed)
 }
 
 #' Generate approximate pseudo-bulk data by random projections

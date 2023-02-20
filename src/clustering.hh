@@ -130,7 +130,7 @@ clustering_by_lcvi(clustering_status_t<S> &status,
             for (Index k = 0; k < Ltrunc; ++k) {
                 log_prob_temp(k) = components[k].log_predictive(X.row(r));
             }
-            row_prob = softmax(log_prob_temp);
+            row_prob = softmax.apply_row(log_prob_temp);
         }
         const Index k = sampler(row_prob);
         components[k].add_point(X.row(r));
@@ -154,7 +154,7 @@ clustering_by_lcvi(clustering_status_t<S> &status,
             for (Index k = 0; k < Ltrunc; ++k) {
                 log_prob(r, k) = components[k].log_predictive(X.row(r));
             }
-            row_prob = softmax(log_prob.row(r));
+            row_prob = softmax.apply_row(log_prob.row(r));
             const Index k_new = sampler(row_prob);
             components[k_new].add_point(X.row(r));
             prior.add_to(k_new);

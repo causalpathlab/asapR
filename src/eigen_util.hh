@@ -23,20 +23,36 @@ struct softmax_op_t {
     using Scalar = typename T::Scalar;
     using Index = typename T::Index;
     using RowVec = typename Eigen::internal::plain_row_type<T>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<T>::type;
 
-    inline RowVec operator()(const RowVec logits)
+    inline RowVec apply_row(Eigen::Ref<const RowVec> logits)
     {
-        std::size_t K = logits.size();
-        Scalar log_a = logits(0);
-        Scalar log_denom = log_a;
+        return log_row(logits).unaryExpr(exp_op);
+    }
 
-        if (K > 1)
-            log_denom = std::accumulate(logits.data() + 1,
-                                        logits.data() + K,
-                                        log_a,
-                                        log_sum_exp);
+    inline ColVec apply_col(Eigen::Ref<const ColVec> logits)
+    {
+        return log_col(logits).unaryExpr(exp_op);
+    }
 
-        return (logits.array() - log_denom).matrix().unaryExpr(exp_op);
+    inline RowVec log_row(Eigen::Ref<const RowVec> logits)
+    {
+        Index K = logits.size();
+        Scalar log_denom = logits.coeff(0);
+        for (Index k = 1; k < K; ++k) {
+            log_denom = log_sum_exp(log_denom, logits.coeff(k));
+        }
+        return (logits.array() - log_denom).eval();
+    }
+
+    inline ColVec log_col(Eigen::Ref<const ColVec> logits)
+    {
+        Index K = logits.size();
+        Scalar log_denom = logits.coeff(0);
+        for (Index k = 1; k < K; ++k) {
+            log_denom = log_sum_exp(log_denom, logits.coeff(k));
+        }
+        return (logits.array() - log_denom).eval();
     }
 
     struct log_sum_exp_t {
@@ -44,16 +60,16 @@ struct softmax_op_t {
         {
             Scalar v;
             if (log_a < log_b) {
-                v = log_b + fasterlog(1 + fasterexp(log_a - log_b));
+                v = log_b + fasterlog(1. + fasterexp(log_a - log_b));
             } else {
-                v = log_a + fasterlog(1 + fasterexp(log_b - log_a));
+                v = log_a + fasterlog(1. + fasterexp(log_b - log_a));
             }
             return v;
         }
     } log_sum_exp;
 
     struct exp_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+        const Scalar operator()(const Scalar x) const { return fasterexp(x); }
     } exp_op;
 };
 
@@ -124,7 +140,7 @@ struct matrix_sampler_t {
         check_size(W);
 
         for (Index g = 0; g < W.rows(); ++g) {
-            Eigen::Map<ROW>(&_weights[0], 1, K) = softmax(W.row(g));
+            Eigen::Map<ROW>(&_weights[0], 1, K) = softmax.apply_row(W.row(g));
             _sampled[g] = _rdisc(rng, disc_param(_weights));
         }
         return _sampled;

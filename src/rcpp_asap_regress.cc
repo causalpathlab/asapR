@@ -80,7 +80,7 @@ asap_regression_mtx(const std::string mtx_file,
 
         ColVec Ysum = Y.colwise().sum().transpose(); // n x 1
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // n x K
-        Mat logZ(Y.cols(), K), Z(Y.cols(), K);      // n x K
+        Mat logZ(Y.cols(), K), Z(Y.cols(), K);       // n x K
         Mat R = (Y.transpose() * log_X).array().colwise() / Ysum.array();
         //          n x D        D x K                      n x 1
 
@@ -91,8 +91,7 @@ asap_regression_mtx(const std::string mtx_file,
 
             logZ = theta_b.log_mean() + R;
             for (Index i = 0; i < Y.cols(); ++i) {
-                Z.row(i) = softmax(logZ.row(i));
-		// Z.row(i) /= Z.row(i).sum();
+                Z.row(i) = softmax.apply_row(logZ.row(i));
             }
 
             for (Index k = 0; k < K; ++k) {
