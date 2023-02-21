@@ -44,15 +44,15 @@ X <- apply(.beta %*% .theta, 2, scale) * sqrt(.5) + .rnorm(ngenes, ncells) * sqr
 X <- round(Matrix::Matrix(exp(X), sparse=TRUE))
 
 ## must remove the index file if it exists
-unlink("temp.mtx.gz")
-unlink("temp.mtx.gz.index")
-mtx.data <- write.sparse(X, 1:ngenes, 1:ncells, "temp")
+## unlink("temp.mtx.gz")
+## unlink("temp.mtx.gz.index")
+## mtx.data <- write.sparse(X, 1:ngenes, 1:ncells, "temp")
 
 Y <- read.mtx.dense(mtx.data$mtx)
 
 .out <- asap_fit_nmf_susie(Y, 7);
 
-zz <- .out$Z[order(.membership), ]
+zz <- .out$theta[order(.membership), ]
 
 heatmap(zz, Rowv=NA)
 

@@ -40,7 +40,7 @@ asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn,
     Mat logitPi_dk(D, K);                // topic-specific row/feature selection
     Mat logscale_pi_dk(D, K);            //
 
-    const RowVec Y_n = Y_dn.colwise().sum();
+    const ColVec Y_n = Y_dn.colwise().sum().transpose();
     const ColVec Y_d = Y_dn.transpose().colwise().sum();
     const ColVec ones_n = ColVec::Ones(N);
     const RowVec ones_d = RowVec::Ones(D);
@@ -132,7 +132,7 @@ asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn,
 
         // Column: Update rho_nk
         logRho_nk = Y_dn.transpose() * logitPi_dk;
-        logRho_nk.array().rowwise() /= Y_n.array();
+        logRho_nk.array().colwise() /= Y_n.array();
         logRho_nk += theta_nk.log_mean();
 
         for (Index jj = 0; jj < N; ++jj) {
