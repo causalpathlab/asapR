@@ -35,7 +35,7 @@ asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn,
     using gamma_t = gamma_param_t<Mat, RNG>;
 
     gamma_t theta_nk(N, K, a0, b0, rng); // scaling for all the factor loading
-    gamma_t alpha_k(1, K, D, 1, rng);    // scaling for the dictionary
+    gamma_t alpha_k(1, K, a0, b0, rng);  // scaling for the dictionary
     Mat logRho_nk(N, K), rho_nk(N, K);   // column to topic latent assignment
     Mat logitPi_dk(D, K);                // topic-specific row/feature selection
     Mat logscale_pi_dk(D, K);            //

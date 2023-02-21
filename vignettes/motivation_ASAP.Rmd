@@ -50,7 +50,7 @@ X <- round(Matrix::Matrix(exp(X), sparse=TRUE))
 
 Y <- read.mtx.dense(mtx.data$mtx)
 
-.out <- asap_fit_nmf_susie(Y, 7);
+.out <- asap_fit_nmf_susie(Y, 7, max_iter=10);
 
 zz <- .out$theta[order(.membership), ]
 
