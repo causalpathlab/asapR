@@ -61,6 +61,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// asap_fit_nmf_alternate
+Rcpp::List asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed, const double EPS);
+RcppExport SEXP _asapR_asap_fit_nmf_alternate(SEXP Y_dnSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP EPSSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_dn(Y_dnSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_alternate(Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS));
+    return rcpp_result_gen;
+END_RCPP
+}
 // asap_predict_mtx
 Rcpp::List asap_predict_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf beta_dict, const bool do_beta_rescale, Rcpp::Nullable<Rcpp::NumericMatrix> collapsing, const std::size_t mcem, const std::size_t burnin, const std::size_t latent_iter, const std::size_t thining, const double a0, const double b0, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool gibbs_sampling);
 RcppExport SEXP _asapR_asap_predict_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP beta_dictSEXP, SEXP do_beta_rescaleSEXP, SEXP collapsingSEXP, SEXP mcemSEXP, SEXP burninSEXP, SEXP latent_iterSEXP, SEXP thiningSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP gibbs_samplingSEXP) {
@@ -84,25 +103,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
     Rcpp::traits::input_parameter< const bool >::type gibbs_sampling(gibbs_samplingSEXP);
     rcpp_result_gen = Rcpp::wrap(asap_predict_mtx(mtx_file, memory_location, beta_dict, do_beta_rescale, collapsing, mcem, burnin, latent_iter, thining, a0, b0, rseed, verbose, NUM_THREADS, BLOCK_SIZE, gibbs_sampling));
-    return rcpp_result_gen;
-END_RCPP
-}
-// asap_fit_nmf_susie
-Rcpp::List asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed, const double EPS);
-RcppExport SEXP _asapR_asap_fit_nmf_susie(SEXP Y_dnSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP EPSSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_dn(Y_dnSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
-    Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_susie(Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -287,8 +287,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_modular_nmf", (DL_FUNC) &_asapR_asap_fit_modular_nmf, 16},
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
+    {"_asapR_asap_fit_nmf_alternate", (DL_FUNC) &_asapR_asap_fit_nmf_alternate, 9},
     {"_asapR_asap_predict_mtx", (DL_FUNC) &_asapR_asap_predict_mtx, 16},
-    {"_asapR_asap_fit_nmf_susie", (DL_FUNC) &_asapR_asap_fit_nmf_susie, 9},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
     {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 9},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
