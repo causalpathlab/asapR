@@ -68,14 +68,14 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_resca
 #' @param Y data matrix (gene x sample)
 #' @param maxK maximum number of factors
 #' @param max_iter number of variation Expectation Maximization steps
-#' @param burnin number of burn-in iterations to apply re-scaling
+#' @param burnin number of optimization steps w/o scaling
 #' @param verbose verbosity
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
 #' @param rseed random seed
 #'
-asap_fit_nmf_susie <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1., b0 = 1., rseed = 42L) {
-    .Call('_asapR_asap_fit_nmf_susie', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed)
+asap_fit_nmf_susie <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1., b0 = 1., rseed = 42L, EPS = 1e-4) {
+    .Call('_asapR_asap_fit_nmf_susie', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections

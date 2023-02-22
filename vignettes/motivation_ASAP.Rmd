@@ -43,18 +43,29 @@ for(tt in 1:ntypes){
 X <- apply(.beta %*% .theta, 2, scale) * sqrt(.5) + .rnorm(ngenes, ncells) * sqrt(.5)
 X <- round(Matrix::Matrix(exp(X), sparse=TRUE))
 
+Y <- as.matrix(X)
+
+.out <- asap_fit_nmf_susie(Y, 7, max_iter=200, rseed=131, EPS=1e-2);
+
+plot(.out$log.likelihood)
+
+zz <- .out$theta[order(.membership), ]
+heatmap(zz, Rowv=NA)
+
+zz <- .out$log.rho[order(.membership), ]
+heatmap(zz, Rowv=NA)
+
+.out <- asap_fit_modular_nmf(Y, 7, 100, NUM_THREADS = 16)
+
+zz <- .out$column$mean[order(.membership), -2]
+heatmap(zz, Rowv=NA)
+
 ## must remove the index file if it exists
 ## unlink("temp.mtx.gz")
 ## unlink("temp.mtx.gz.index")
 ## mtx.data <- write.sparse(X, 1:ngenes, 1:ncells, "temp")
+## Y <- read.mtx.dense(mtx.data$mtx)
 
-Y <- read.mtx.dense(mtx.data$mtx)
-
-.out <- asap_fit_nmf_susie(Y, 7, max_iter=10);
-
-zz <- .out$theta[order(.membership), ]
-
-heatmap(zz, Rowv=NA)
 
 ```
 

@@ -88,8 +88,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_fit_nmf_susie
-Rcpp::List asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed);
-RcppExport SEXP _asapR_asap_fit_nmf_susie(SEXP Y_dnSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP) {
+Rcpp::List asap_fit_nmf_susie(const Eigen::MatrixXf Y_dn, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const std::size_t rseed, const double EPS);
+RcppExport SEXP _asapR_asap_fit_nmf_susie(SEXP Y_dnSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP rseedSEXP, SEXP EPSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -101,7 +101,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
     Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_susie(Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed));
+    Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_susie(Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -287,7 +288,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_modular_nmf", (DL_FUNC) &_asapR_asap_fit_modular_nmf, 16},
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_predict_mtx", (DL_FUNC) &_asapR_asap_predict_mtx, 16},
-    {"_asapR_asap_fit_nmf_susie", (DL_FUNC) &_asapR_asap_fit_nmf_susie, 8},
+    {"_asapR_asap_fit_nmf_susie", (DL_FUNC) &_asapR_asap_fit_nmf_susie, 9},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 7},
     {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 9},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
