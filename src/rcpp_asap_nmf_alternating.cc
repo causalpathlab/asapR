@@ -41,15 +41,20 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     Mat logPhi_dk(D, K), phi_dk(D, K); // row to topic latent assignment
     Mat logRho_nk(N, K), rho_nk(N, K); // column to topic latent assignment
 
-    const ColVec Y_n = Y_dn.colwise().sum().transpose();
-    const ColVec Y_d = Y_dn.transpose().colwise().sum();
-    const ColVec ones_n = ColVec::Ones(N);
-    const ColVec ones_d = ColVec::Ones(D);
-
     using norm_dist_t = boost::random::normal_distribution<Scalar>;
     norm_dist_t norm_dist(0., 1.);
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
     auto exp_op = [](const Scalar x) -> Scalar { return fasterexp(x); };
+    auto at_least_one = [](const Scalar x) -> Scalar {
+        return (x < 1.) ? 1. : x;
+    };
+
+    const ColVec Y_n = Y_dn.colwise().sum().transpose();
+    const ColVec Y_d = Y_dn.transpose().colwise().sum();
+    const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);
+    const ColVec Y_d1 = Y_d.unaryExpr(at_least_one);
+    const ColVec ones_n = ColVec::Ones(N);
+    const ColVec ones_d = ColVec::Ones(D);
 
     softmax_op_t<Mat> softmax;
 
@@ -73,11 +78,11 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     for (Index tt = 0; tt < burnin; ++tt) {
         X_nk = standardize(logRho_nk, EPS);
         logPhi_dk = Y_dn * X_nk;
-        logPhi_dk.array().colwise() /= Y_d.array();
+        logPhi_dk.array().colwise() /= Y_d1.array();
 
         X_dk = standardize(logPhi_dk, EPS);
         logRho_nk = Y_dn.transpose() * X_dk;
-        logRho_nk.array().colwise() /= Y_n.array();
+        logRho_nk.array().colwise() /= Y_n1.array();
         for (Index ii = 0; ii < D; ++ii) {
             phi_dk.row(ii) = softmax.apply_row(logPhi_dk.row(ii));
         }
@@ -115,7 +120,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
 
         X_nk = standardize(theta_nk.log_mean(), EPS);
         logPhi_dk = Y_dn * X_nk;
-        logPhi_dk.array().colwise() /= Y_d.array();
+        logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += beta_dk.log_mean();
 
         for (Index ii = 0; ii < D; ++ii) {
@@ -140,7 +145,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
 
         X_dk = standardize(beta_dk.log_mean(), EPS);
         logRho_nk = Y_dn.transpose() * X_dk;
-        logRho_nk.array().colwise() /= Y_n.array();
+        logRho_nk.array().colwise() /= Y_n1.array();
         logRho_nk += theta_nk.log_mean();
 
         for (Index jj = 0; jj < N; ++jj) {
