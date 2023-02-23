@@ -26,7 +26,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -35,7 +35,10 @@
       <a href="../articles/motivation_ASAP.html">ASAP: Annotating Single-cell data by Approximate Pseduobulk projection</a>
     </li>
     <li>
-      <a href="../articles/notes_Poisson_regression.html">Scalable single-effect Poisson regression</a>
+      <a href="../articles/note_Poisson_regression.html">Scalable single-effect Poisson regression</a>
+    </li>
+    <li>
+      <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via single-effect regression</a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -57,14 +60,14 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">mmutil_read_columns</span><span class="op">(</span>
-  <span class="va">mtx_file</span>,
-  <span class="va">memory_location</span>,
-  <span class="va">r_column_index</span>,
-  verbose <span class="op">=</span> <span class="cn">FALSE</span>,
-  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
-  MIN_SIZE <span class="op">=</span> <span class="fl">10L</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">mmutil_read_columns</span><span class="op">(</span></span>
+<span>  <span class="va">mtx_file</span>,</span>
+<span>  <span class="va">memory_location</span>,</span>
+<span>  <span class="va">r_column_index</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  MIN_SIZE <span class="op">=</span> <span class="fl">10L</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -90,32 +93,41 @@
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"></span>
-<span class="r-in"><span class="va">rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span> <span class="co"># one hundred cells</span></span>
-<span class="r-in"><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">10</span> <span class="op">*</span> <span class="fl">3</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">10</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span class="r-in"><span class="va">data.hdr</span> <span class="op">&lt;-</span> <span class="st">"test_sim"</span></span>
-<span class="r-in"><span class="va">.files</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_simulate_poisson</span><span class="op">(</span><span class="va">mm</span>, <span class="va">rr</span>, <span class="va">data.hdr</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> 'mmutil_simulate_poisson' is not an exported object from 'namespace:mmutilR'</span>
-<span class="r-in"><span class="va">data.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">mtx</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span> <span class="co"># one hundred cells</span></span></span>
+<span class="r-in"><span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">10</span> <span class="op">*</span> <span class="fl">3</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">10</span>, <span class="fl">3</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">data.hdr</span> <span class="op">&lt;-</span> <span class="st">"test_sim"</span></span></span>
+<span class="r-in"><span><span class="va">.files</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_simulate_poisson</span><span class="op">(</span><span class="va">mm</span>, <span class="va">rr</span>, <span class="va">data.hdr</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in dyn.load(file, DLLpath = DLLpath, ...):</span> unable to load shared object '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so':</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   dlopen(/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so, 0x0006): Library not loaded: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Referenced from: '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Reason: tried: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib' (no such file), '/usr/local/Cellar/r/4.2.2_1/lib/R/lib/libgfortran.5.dylib' (no such file)</span>
+<span class="r-in"><span><span class="va">data.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">mtx</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in eval(expr, envir, enclos):</span> object '.files' not found</span>
-<span class="r-in"><span class="va">idx.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">idx</span></span>
+<span class="r-in"><span><span class="va">idx.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">idx</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in eval(expr, envir, enclos):</span> object '.files' not found</span>
-<span class="r-in"><span class="va">mtx.idx</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_read_index</span><span class="op">(</span><span class="va">idx.file</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> 'mmutil_read_index' is not an exported object from 'namespace:mmutilR'</span>
-<span class="r-in"><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu">Matrix</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/externalFormats.html" class="external-link">readMM</a></span><span class="op">(</span><span class="va">data.file</span><span class="op">)</span><span class="op">)</span></span>
+<span class="r-in"><span><span class="va">mtx.idx</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_read_index</span><span class="op">(</span><span class="va">idx.file</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in dyn.load(file, DLLpath = DLLpath, ...):</span> unable to load shared object '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so':</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   dlopen(/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so, 0x0006): Library not loaded: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Referenced from: '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Reason: tried: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib' (no such file), '/usr/local/Cellar/r/4.2.2_1/lib/R/lib/libgfortran.5.dylib' (no such file)</span>
+<span class="r-in"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu">Matrix</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/externalFormats.html" class="external-link">readMM</a></span><span class="op">(</span><span class="va">data.file</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in Matrix::readMM(data.file):</span> object 'data.file' not found</span>
-<span class="r-in"><span class="va">col.pos</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">13</span>,<span class="fl">77</span><span class="op">)</span> <span class="co"># 1-based</span></span>
-<span class="r-in"><span class="va">yy</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_read_columns</span><span class="op">(</span></span>
-<span class="r-in">                 <span class="va">data.file</span>, <span class="va">mtx.idx</span>, <span class="va">col.pos</span><span class="op">)</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> 'mmutil_read_columns' is not an exported object from 'namespace:mmutilR'</span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op">==</span> <span class="va">yy</span><span class="op">)</span></span>
+<span class="r-in"><span><span class="va">col.pos</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">13</span>,<span class="fl">77</span><span class="op">)</span> <span class="co"># 1-based</span></span></span>
+<span class="r-in"><span><span class="va">yy</span> <span class="op">&lt;-</span> <span class="fu">mmutilR</span><span class="fu">::</span><span class="fu">mmutil_read_columns</span><span class="op">(</span></span></span>
+<span class="r-in"><span>                 <span class="va">data.file</span>, <span class="va">mtx.idx</span>, <span class="va">col.pos</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in dyn.load(file, DLLpath = DLLpath, ...):</span> unable to load shared object '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so':</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   dlopen(/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so, 0x0006): Library not loaded: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Referenced from: '/usr/local/lib/R/4.2/site-library/mmutilR/libs/mmutilR.so'</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span>   Reason: tried: '/usr/local/opt/gcc/lib/gcc/11/libgfortran.5.dylib' (no such file), '/usr/local/Cellar/r/4.2.2_1/lib/R/lib/libgfortran.5.dylib' (no such file)</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op">==</span> <span class="va">yy</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in eval(expr, envir, enclos):</span> object 'Y' not found</span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in head(Y[, col.pos, drop = FALSE]):</span> object 'Y' not found</span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in head(yy):</span> object 'yy' not found</span>
-<span class="r-in"><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="va">data.hdr</span><span class="op">)</span><span class="op">)</span></span>
-<span class="r-in"></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="va">data.hdr</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </div>
@@ -130,7 +142,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

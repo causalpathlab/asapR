@@ -3,35 +3,31 @@ title: "Expedite Poisson-NMF estimation via single-effect regression"
 author: "Yongjin Park"
 ---
 
-What if we apply single-effect Poisson regression alternatively? Let's consider this parameterization of Poisson distribution: $\lambda_{ij} = \sum_{k} \beta_{ik} \theta_{jk}$ Previously, we introduced $q_{ij}^{k}$ (triplets for each gene $i$, cell $j$, and factor $k$) to derive closed-form variational update equations. But the overall complexity can increase in a cubic time. Can we factorize $q$ into two parts, like $q_{ij}^{k} = c_{ik} z_{jk}$? It will certainly lead to a more restrictive approximation objective. Perhaps, the lower-bound induced by the factored auxiliary variables will be not as tight as before. Still, we can show that some sort of alternating regression algorithm can benefit from having two factored auxiliary variables. 
+What if we apply single-effect Poisson regression alternatively? Let's consider this parameterization of Poisson distribution: $\lambda_{ij} = \sum_{k} \beta_{ik} \theta_{jk}$ Previously, we introduced $q_{ij}^{k}$ (triplets for each gene $i$, cell $j$, and factor $k$) to derive closed-form variational update equations. But the overall complexity can increase in a cubic time. Can we factorize $q$ into two parts, like $q_{ij}^{k} = c_{ik} z_{jk}$? It will certainly lead to a more restrictive approximation objective. Perhaps, the lower-bound induced by the factored auxiliary variables will be not as tight as before. Still, we can show that some sort of alternating regression algorithm can benefit from having two factored auxiliary variables.
 
 Let us define latent variables, $\phi_{ik} \overset{\Delta}{=} \mathbb{E}\!\left[c_{ik}\right]$  and $\rho_{jk} \overset{\Delta}{=} \mathbb{E}\!\left[z_{jk}\right]$ under variational approximation:
 
-$$q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k} \phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k} \rho_{ik}^{z_{jk}}$$
-
-### Remark
-
+$$q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k} \phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k} \rho_{jk}^{z_{jk}}$$
 
 
 ### Regression 1: Approximation from the rows' perspective
 
-
 We want to estimate $\beta_{ik}$ given $\theta_{jk}$.
 
-$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right) 
+$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik} \theta_{jk}}{c_{ik}} 
+\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik} \theta_{jk}}{c_{ik}}
 - \sum_{i,j,k}\beta_{ik}\theta_{jk}$$
 
 
 
-Find the most correlated factor $k$ (softly). 
+Find the most correlated factor $k$ (softly).
 
-$$\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}} 
-+  \underbrace{\mathbb{E}\!\left[\ln \beta_{ik}\right]}_{\textsf{previous preference}} + \textsf{const.}$$
+$$\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
++  \underbrace{\mathbb{E}\!\left[\ln \beta_{ik}\right]}_{\textsf{memory}} + \textsf{const.}$$
 
-with $\sum_{k} \phi_{ik} = 1$, and 
+with $\sum_{k} \phi_{ik} = 1$, and
 $$\beta_{ik} \sim \operatorname{Gamma}\left(
 a_{0} + \phi_{ik} \sum_{j} Y_{ij}, \,
 b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
@@ -46,16 +42,16 @@ b_0 + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 
 ### Regression 2: Approximation from the columns' perspective
 
-$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right) 
+$$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{z_{jk}} 
+\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{z_{jk}}
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}$$
 
-$$\ln \rho_{jk} 
+$$\ln \rho_{jk}
 =
-\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln \beta_{ik}\right]}{\sum_{i} Y_{ij}}
-+ \mathbb{E}\!\left[\ln \theta_{jk}\right]
+\underbrace{\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln \beta_{ik}\right]}{\sum_{i} Y_{ij}}}_{\textsf{empirical correlation}}
++ \underbrace{\mathbb{E}\!\left[\ln \theta_{jk}\right]}_{\textsf{memory}}
 + \textsf{const.}$$
 
 where $\sum_{k} \rho_{jk} = 1$, and
@@ -78,6 +74,41 @@ As a result, we will maximize the following lower-bound:
 
 $$L
 \ge
-\sum_{j,k} \sum_{i} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{\phi_{ik} \rho_{jk}} 
-- \sum_{i,j,k} \beta_{ik} \theta_{jk}$$
+\sum_{i,j,k} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{\phi_{ik} \rho_{jk}}
+- \sum_{i,j,k} \beta_{ik} \theta_{jk}.$$
 
+
+## Example
+
+```{r}
+library(asapR)
+set.seed(1331)
+
+d <- 5000
+n <- 5000
+.rnorm <- function(d1,d2) matrix(rnorm(d1 * d2), d1, d2)
+
+uu <- .rnorm(d, 3)
+vv <- .rnorm(n, 3)
+
+Y <- apply(uu %*% t(vv), 2, scale) + .rnorm(d, n)
+Y[Y < 0] <- 0
+```
+
+```{r}
+out <- asap_fit_nmf_alternate(Y, 3, verbose=FALSE)
+```
+
+```{r fig.width=5, fig.height=3}
+plot(out$log.likelihood, log="x", type="b", ylab="log-likelihood")
+```
+
+```{r fig.width=5, fig.height=5}
+u.order <- order(apply(uu, 1, which.max))
+heatmap(out$beta[u.order, ], Rowv=NA)
+```
+
+```{r fig.width=5, fig.height=5}
+v.order <- order(apply(vv, 1, which.max))
+heatmap(out$theta[v.order, ], Rowv=NA)
+```
