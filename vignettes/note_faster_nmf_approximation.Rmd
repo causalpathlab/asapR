@@ -26,7 +26,7 @@ $$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 
 
 
-Find the most correlated factor $k$ (softly). Letting $\phi_{ik} \equiv \mathbb{E}\!\left[c_{ik}\right]$, 
+Find the most correlated factor $k$ (softly). 
 
 $$\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}} 
 +  \underbrace{\mathbb{E}\!\left[\ln \beta_{ik}\right]}_{\textsf{previous preference}} + \textsf{const.}$$
@@ -51,8 +51,6 @@ $$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 \ge
 \sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{z_{jk}} 
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}$$
-
-Letting $\rho_{jk} \equiv \mathbb{E}\!\left[z_{jk}\right]$
 
 $$\ln \rho_{jk} 
 =
