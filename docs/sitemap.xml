@@ -10,7 +10,10 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
-    <loc>/articles/motivation_ASAP.html</loc>
+    <loc>/articles/note_Poisson_regression.html</loc>
+  </url>
+  <url>
+    <loc>/articles/note_faster_nmf_approximation.html</loc>
   </url>
   <url>
     <loc>/articles/notes_Poisson_regression.html</loc>
@@ -26,6 +29,9 @@
   </url>
   <url>
     <loc>/reference/asap_fit_nmf.html</loc>
+  </url>
+  <url>
+    <loc>/reference/asap_fit_nmf_alternate.html</loc>
   </url>
   <url>
     <loc>/reference/asap_predict_mtx.html</loc>

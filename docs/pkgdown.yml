@@ -2,8 +2,7 @@ pandoc: '2.18'
 pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
-  motivation_ASAP: motivation_ASAP.html
   note_Poisson_regression: note_Poisson_regression.html
   note_faster_nmf_approximation: note_faster_nmf_approximation.html
-last_built: 2023-02-23T22:28Z
+last_built: 2023-02-23T22:43Z
 
