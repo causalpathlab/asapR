@@ -183,8 +183,8 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         Scalar llik = (phi_dk.cwiseProduct(beta_dk.log_mean()).transpose() *
                        Y_dn * rho_nk)
                           .sum();
-        llik += (rho_nk.cwiseProduct(theta_nk.log_mean()) * Y_dn.transpose() *
-                 phi_dk)
+        llik += (rho_nk.cwiseProduct(theta_nk.log_mean()).transpose() *
+                 Y_dn.transpose() * phi_dk)
                     .sum();
         llik -= (ones_d.transpose() * beta_dk.mean() *
                  theta_nk.mean().transpose() * ones_n)
@@ -196,8 +196,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
             tt > 0 ? abs(llik_trace.at(tt - 1) - llik) / abs(llik + EPS) : 0;
 
         if (verbose) {
-            TLOG("NMF by regressors [ " << tt << " ] " << llik << ", "
-                                         << diff);
+            TLOG("NMF by regressors [ " << tt << " ] " << llik << ", " << diff);
         } else {
             Rcpp::Rcerr << "+ " << std::flush;
             if (tt > 0 && tt % 10 == 0) {
