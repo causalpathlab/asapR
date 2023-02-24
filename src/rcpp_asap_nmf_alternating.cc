@@ -2,7 +2,7 @@
 
 //' A quick NMF estimation based on alternating Poisson regressions
 //'
-//' @param Y data matrix (gene x sample)
+//' @param Y_dn non-negative data matrix (gene x sample)
 //' @param maxK maximum number of factors
 //' @param max_iter number of variation Expectation Maximization steps
 //' @param burnin number of optimization steps w/o scaling
@@ -10,6 +10,18 @@
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
 //' @param rseed random seed
+//'
+//' @return a list that contains:
+//'  \itemize{
+//'   \item log.likelihood log-likelihood trace
+//'   \item beta dictionary (gene x factor)
+//'   \item log.beta log-dictionary (gene x factor)
+//'   \item theta loading (sample x factor)
+//'   \item log.theta log-loading (sample x factor)
+//'   \item log.phi auxiliary variables (gene x factor)
+//'   \item log.rho auxiliary variables (sample x factor)
+//' }
+//'
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -91,9 +103,12 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
             rho_nk.row(jj) = softmax.apply_row(logRho_nk.row(jj));
         }
         Rcpp::Rcerr << "+ " << std::flush;
+        if (tt > 0 && tt % 10 == 0) {
+            Rcpp::Rcerr << "\r" << std::flush;
+        }
     }
-    Rcpp::Rcerr << std::endl;
-    TLOG("Done");
+    Rcpp::Rcerr << "\r" << std::flush;
+    TLOG("Finished burn-in iterations");
 
     {
         // Column: update theta_k
@@ -176,11 +191,26 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                     .sum();
 
         llik_trace.emplace_back(llik);
+
+        const Scalar diff =
+            tt > 0 ? abs(llik_trace.at(tt - 1) - llik) / abs(llik + EPS) : 0;
+
         if (verbose) {
-            TLOG("SuSiE NMF [ " << tt << " ] " << llik);
+            TLOG("NMF by regressors [ " << tt << " ] " << llik << ", "
+                                         << diff);
         } else {
             Rcpp::Rcerr << "+ " << std::flush;
+            if (tt > 0 && tt % 10 == 0) {
+                Rcpp::Rcerr << "\r" << std::flush;
+            }
         }
+
+        if (tt > 0 && diff < EPS) {
+            Rcpp::Rcerr << "\r" << std::endl;
+            TLOG("Converged at " << tt << ", " << diff);
+            break;
+        }
+
         try {
             Rcpp::checkUserInterrupt();
         } catch (Rcpp::internal::InterruptedException e) {
@@ -188,8 +218,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
             break;
         }
     }
-
-    Rcpp::Rcerr << std::endl;
+    Rcpp::Rcerr << "\r" << std::endl;
     TLOG("Done");
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
