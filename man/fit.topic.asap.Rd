@@ -10,19 +10,15 @@ fit.topic.asap(
   pb.factors = 10,
   num.proj = 1,
   em.step = 100,
-  e.step = 5,
   max.pb.size = 1000,
   .burnin = 10,
   .thining = 3,
-  do.modNMF = FALSE,
-  .collapsing.level = 100,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
   verbose = TRUE,
   num.threads = 1,
   block.size = 100,
-  eval.llik = TRUE,
   .rand.seed = 42
 )
 }
@@ -35,17 +31,11 @@ fit.topic.asap(
 
 \item{em.step}{Monte Carlo EM steps (default: 100)}
 
-\item{e.step}{Num of E-step MCMC steps (default: 1)}
-
 \item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
 \item{.burnin}{burn-in period in the record keeping (default: 10)}
 
 \item{.thining}{thining for the record keeping (default: 3)}
-
-\item{do.modNMF}{do modular NMF to speed up the initial NMF}
-
-\item{.collapsing.level}{collapsed dimension (default: 3*k)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
@@ -59,9 +49,35 @@ fit.topic.asap(
 
 \item{block.size}{a block size for disk I/O (default: 100)}
 
-\item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
-
 \item{.rand.seed}{random seed (default: 42)}
+
+\item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
+}
+\value{
+a list that contains:
+\itemize{
+\item \code{beta.rescaled} rescaled dictionary (feature x factor)
+\item \code{theta.rescaled} rescaled loading (sample x factor)
+\item \code{beta} dictionary (feature x factor)
+\item \code{log.beta} log-dictionary (feature x factor)
+\item \code{theta} loading (sample x factor)
+\item \code{log.theta} log-loading (sample x factor)
+\item \code{Y} pseudobulk (PB) data (feature x pseudobulk samples)
+\item \code{nmf} non-negative matrix factorization results
+\itemize{
+\item \code{log.likelihood} log-likelihood trace
+\item \code{beta} dictionary of PB data
+\item \code{log.beta} log dictionary of PB data
+\item \code{theta} factor loadings of PB data
+\item \code{log.theta} log factor loadings of PB data
+\item \code{log.phi} auxiliary variable (feature x factor)
+\item \code{log.rho} auxiliary variable (sample x factor)
+\item \code{beta.rescaled} rescaled dictionary
+\item \code{theta.rescaled} rescaled factor loading
+\item \code{depth}
+}
+\item \code{corr} sample x factor correlation matrix
+}
 }
 \description{
 Fit a topic model by ASAP

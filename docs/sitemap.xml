@@ -10,13 +10,13 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/motivation_ASAP.html</loc>
+  </url>
+  <url>
     <loc>/articles/note_Poisson_regression.html</loc>
   </url>
   <url>
     <loc>/articles/note_faster_nmf_approximation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/notes_Poisson_regression.html</loc>
   </url>
   <url>
     <loc>/authors.html</loc>
@@ -44,9 +44,6 @@
   </url>
   <url>
     <loc>/reference/fileset.list.html</loc>
-  </url>
-  <url>
-    <loc>/reference/fit.asap.html</loc>
   </url>
   <url>
     <loc>/reference/fit.topic.asap.html</loc>

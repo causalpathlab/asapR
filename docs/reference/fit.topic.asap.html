@@ -26,15 +26,12 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/note_Poisson_regression.html">Scalable single-effect Poisson regression</a>
-    </li>
-    <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via single-effect regression</a>
     </li>
   </ul></li>
@@ -57,27 +54,23 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fit.topic.asap</span><span class="op">(</span></span>
-<span>  <span class="va">mtx.file</span>,</span>
-<span>  <span class="va">k</span>,</span>
-<span>  pb.factors <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  num.proj <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  em.step <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  e.step <span class="op">=</span> <span class="fl">5</span>,</span>
-<span>  max.pb.size <span class="op">=</span> <span class="fl">1000</span>,</span>
-<span>  .burnin <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  .thining <span class="op">=</span> <span class="fl">3</span>,</span>
-<span>  do.modNMF <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  .collapsing.level <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  num.threads <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  block.size <span class="op">=</span> <span class="fl">100</span>,</span>
-<span>  eval.llik <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  .rand.seed <span class="op">=</span> <span class="fl">42</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">fit.topic.asap</span><span class="op">(</span>
+  <span class="va">mtx.file</span>,
+  <span class="va">k</span>,
+  pb.factors <span class="op">=</span> <span class="fl">10</span>,
+  num.proj <span class="op">=</span> <span class="fl">1</span>,
+  em.step <span class="op">=</span> <span class="fl">100</span>,
+  max.pb.size <span class="op">=</span> <span class="fl">1000</span>,
+  .burnin <span class="op">=</span> <span class="fl">10</span>,
+  .thining <span class="op">=</span> <span class="fl">3</span>,
+  a0 <span class="op">=</span> <span class="fl">1</span>,
+  b0 <span class="op">=</span> <span class="fl">1</span>,
+  index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,
+  verbose <span class="op">=</span> <span class="cn">TRUE</span>,
+  num.threads <span class="op">=</span> <span class="fl">1</span>,
+  block.size <span class="op">=</span> <span class="fl">100</span>,
+  .rand.seed <span class="op">=</span> <span class="fl">42</span>
+<span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -98,10 +91,6 @@
 <dd><p>Monte Carlo EM steps (default: 100)</p></dd>
 
 
-<dt>e.step</dt>
-<dd><p>Num of E-step MCMC steps (default: 1)</p></dd>
-
-
 <dt>max.pb.size</dt>
 <dd><p>maximum pseudobulk size (default: 1000)</p></dd>
 
@@ -112,14 +101,6 @@
 
 <dt>.thining</dt>
 <dd><p>thining for the record keeping (default: 3)</p></dd>
-
-
-<dt>do.modNMF</dt>
-<dd><p>do modular NMF to speed up the initial NMF</p></dd>
-
-
-<dt>.collapsing.level</dt>
-<dd><p>collapsed dimension (default: 3*k)</p></dd>
 
 
 <dt>a0</dt>
@@ -146,14 +127,38 @@
 <dd><p>a block size for disk I/O (default: 100)</p></dd>
 
 
-<dt>eval.llik</dt>
-<dd><p>evaluate log-likelihood trace in PMF (default: TRUE)</p></dd>
-
-
 <dt>.rand.seed</dt>
 <dd><p>random seed (default: 42)</p></dd>
 
+
+<dt>eval.llik</dt>
+<dd><p>evaluate log-likelihood trace in PMF (default: TRUE)</p></dd>
+
 </dl></div>
+    <div id="value">
+    <h2>Value</h2>
+    
+
+<p>a list that contains:</p><ul><li><p><code>beta.rescaled</code> rescaled dictionary (feature x factor)</p></li>
+<li><p><code>theta.rescaled</code> rescaled loading (sample x factor)</p></li>
+<li><p><code>beta</code> dictionary (feature x factor)</p></li>
+<li><p><code>log.beta</code> log-dictionary (feature x factor)</p></li>
+<li><p><code>theta</code> loading (sample x factor)</p></li>
+<li><p><code>log.theta</code> log-loading (sample x factor)</p></li>
+<li><p><code>Y</code> pseudobulk (PB) data (feature x pseudobulk samples)</p></li>
+<li><p><code>nmf</code> non-negative matrix factorization results</p><ul><li><p><code>log.likelihood</code> log-likelihood trace</p></li>
+<li><p><code>beta</code> dictionary of PB data</p></li>
+<li><p><code>log.beta</code> log dictionary of PB data</p></li>
+<li><p><code>theta</code> factor loadings of PB data</p></li>
+<li><p><code>log.theta</code> log factor loadings of PB data</p></li>
+<li><p><code>log.phi</code> auxiliary variable (feature x factor)</p></li>
+<li><p><code>log.rho</code> auxiliary variable (sample x factor)</p></li>
+<li><p><code>beta.rescaled</code> rescaled dictionary</p></li>
+<li><p><code>theta.rescaled</code> rescaled factor loading</p></li>
+<li><p><code>depth</code></p></li>
+</ul></li>
+<li><p><code>corr</code> sample x factor correlation matrix</p></li>
+</ul></div>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -167,7 +172,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

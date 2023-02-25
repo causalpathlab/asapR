@@ -4,12 +4,9 @@
 #' @param k number of topics
 #' @param num.proj the number of pseudobulk projection steps
 #' @param em.step Monte Carlo EM steps (default: 100)
-#' @param e.step Num of E-step MCMC steps (default: 1)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .thining thining for the record keeping (default: 3)
-#' @param do.modNMF do modular NMF to speed up the initial NMF
-#' @param .collapsing.level collapsed dimension (default: 3*k)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -19,24 +16,45 @@
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
 #' @param .rand.seed random seed (default: 42)
 #'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item `beta.rescaled` rescaled dictionary (feature x factor)
+#'   \item `theta.rescaled` rescaled loading (sample x factor)
+#'   \item `beta` dictionary (feature x factor)
+#'   \item `log.beta` log-dictionary (feature x factor)
+#'   \item `theta` loading (sample x factor)
+#'   \item `log.theta` log-loading (sample x factor)
+#'   \item `Y` pseudobulk (PB) data (feature x pseudobulk samples)
+#'   \item `nmf` non-negative matrix factorization results
+#'   \itemize{
+#'     \item `log.likelihood` log-likelihood trace
+#'     \item `beta` dictionary of PB data 
+#'     \item `log.beta` log dictionary of PB data 
+#'     \item `theta` factor loadings of PB data 
+#'     \item `log.theta` log factor loadings of PB data 
+#'     \item `log.phi` auxiliary variable (feature x factor)
+#'     \item `log.rho` auxiliary variable (sample x factor)
+#'     \item `beta.rescaled` rescaled dictionary
+#'     \item `theta.rescaled` rescaled factor loading
+#'     \item `depth`         
+#'   }
+#'   \item `corr` sample x factor correlation matrix
+#' }
+#'
 fit.topic.asap <- function(mtx.file,
                            k,
                            pb.factors = 10,
                            num.proj = 1,
                            em.step = 100,
-                           e.step = 5,
                            max.pb.size = 1000,
                            .burnin = 10,
                            .thining = 3,
-                           do.modNMF = FALSE,
-                           .collapsing.level = 100,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
                            verbose = TRUE,
                            num.threads = 1,
                            block.size = 100,
-                           eval.llik = TRUE,
                            .rand.seed = 42){
 
     if(!file.exists(index.file)){
@@ -73,48 +91,26 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase II: Perform Poisson matrix factorization ...")
 
-    if(do.modNMF){
+    .nmf <- asap_fit_nmf_alternate(Y,
+                                   maxK = k,
+                                   max_iter = em.step,
+                                   burnin = .burnin,
+                                   verbose = verbose,
+                                   a0=a0,
+                                   b0=b0,
+                                   rseed = .rand.seed,
+                                   EPS=1e-4)
 
-        .nmf <- asap_fit_modular_nmf(Y, maxK = k,
-                                     maxL = .collapsing.level,
-                                     mcem = em.step,
-                                     burnin = .burnin,
-                                     latent_iter = e.step,
-                                     thining = .thining,
-                                     verbose = verbose,
-                                     eval_llik = eval.llik,
-                                     a0=a0,
-                                     b0=b0,
-                                     rseed = .rand.seed,
-                                     NUM_THREADS = num.threads)
-
-
-    } else {
-
-        .nmf <- asap_fit_nmf(Y,
-                             maxK = k,
-                             mcem = em.step,
-                             burnin = .burnin,
-                             latent_iter = e.step,
-                             thining = .thining,
-                             verbose = verbose,
-                             eval_llik = eval.llik,
-                             a0=a0,
-                             b0=b0,
-                             rseed = .rand.seed,
-                             NUM_THREADS = num.threads)
-    }
-
-    .multinom <- pmf2topic(.nmf$dict$mean, .nmf$column$mean)
-    .nmf$beta <- .multinom$beta
-    .nmf$prop <- .multinom$prop
+    .multinom <- pmf2topic(.nmf$beta, .nmf$theta)
+    .nmf$beta.rescaled <- .multinom$beta
+    .nmf$theta.rescaled <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
     message("Phase III: Calibrating the loading parameters of the original data")
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 memory_location = mtx.index,
-                                log_x = .nmf$log.dict$mean,
+                                log_x = .nmf$log.beta,
                                 a0 = a0, b0 = b0,
                                 max_iter = em.step,
                                 verbose = verbose,
@@ -125,8 +121,8 @@ fit.topic.asap <- function(mtx.file,
 
     .multinom <- pmf2topic(asap$beta, asap$theta)
 
-    asap$beta <- .multinom$beta
-    asap$prop <- .multinom$prop
+    asap$beta.rescaled <- .multinom$beta
+    asap$theta.rescaled <- .multinom$prop
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$Y <- Y

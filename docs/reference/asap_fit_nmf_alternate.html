@@ -26,15 +26,12 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/note_Poisson_regression.html">Scalable single-effect Poisson regression</a>
-    </li>
-    <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via single-effect regression</a>
     </li>
   </ul></li>
@@ -57,22 +54,26 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">asap_fit_nmf_alternate</span><span class="op">(</span></span>
-<span>  <span class="va">Y_dn</span>,</span>
-<span>  <span class="va">maxK</span>,</span>
-<span>  max_iter <span class="op">=</span> <span class="fl">100L</span>,</span>
-<span>  burnin <span class="op">=</span> <span class="fl">10L</span>,</span>
-<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  rseed <span class="op">=</span> <span class="fl">42L</span>,</span>
-<span>  EPS <span class="op">=</span> <span class="fl">1e-04</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">asap_fit_nmf_alternate</span><span class="op">(</span>
+  <span class="va">Y_dn</span>,
+  <span class="va">maxK</span>,
+  max_iter <span class="op">=</span> <span class="fl">100L</span>,
+  burnin <span class="op">=</span> <span class="fl">10L</span>,
+  verbose <span class="op">=</span> <span class="cn">TRUE</span>,
+  a0 <span class="op">=</span> <span class="fl">1</span>,
+  b0 <span class="op">=</span> <span class="fl">1</span>,
+  rseed <span class="op">=</span> <span class="fl">42L</span>,
+  EPS <span class="op">=</span> <span class="fl">1e-04</span>
+<span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
-    <dl><dt>maxK</dt>
+    <dl><dt>Y_dn</dt>
+<dd><p>non-negative data matrix (gene x sample)</p></dd>
+
+
+<dt>maxK</dt>
 <dd><p>maximum number of factors</p></dd>
 
 
@@ -99,11 +100,19 @@
 <dt>rseed</dt>
 <dd><p>random seed</p></dd>
 
-
-<dt>Y</dt>
-<dd><p>data matrix (gene x sample)</p></dd>
-
 </dl></div>
+    <div id="value">
+    <h2>Value</h2>
+    
+
+<p>a list that contains:</p><ul><li><p>log.likelihood log-likelihood trace</p></li>
+<li><p>beta dictionary (gene x factor)</p></li>
+<li><p>log.beta log-dictionary (gene x factor)</p></li>
+<li><p>theta loading (sample x factor)</p></li>
+<li><p>log.theta log-loading (sample x factor)</p></li>
+<li><p>log.phi auxiliary variables (gene x factor)</p></li>
+<li><p>log.rho auxiliary variables (sample x factor)</p></li>
+</ul></div>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -117,7 +126,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

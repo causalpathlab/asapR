@@ -1,8 +1,7 @@
-pandoc: '2.18'
-pkgdown: 2.0.7
+pandoc: '2.5'
+pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
-  note_Poisson_regression: note_Poisson_regression.html
   note_faster_nmf_approximation: note_faster_nmf_approximation.html
-last_built: 2023-02-23T22:43Z
+last_built: 2023-02-25T01:28Z
 
