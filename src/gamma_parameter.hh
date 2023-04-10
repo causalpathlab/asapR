@@ -104,12 +104,12 @@ struct gamma_param_t {
     struct estimate_log_op_t {
         const Scalar operator()(const Scalar &a, const Scalar &b) const
         {
-            return fasterdigamma(a) - fasterlog(b);
+            return fastdigamma(a) - fastlog(b);
         }
     };
 
     struct log_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterlog(x); }
+        const Scalar operator()(const Scalar &x) const { return fastlog(x); }
     };
 
     const Index nrows, ncols;

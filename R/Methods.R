@@ -108,9 +108,12 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase III: Calibrating the loading parameters of the original data")
 
+    log.x <- apply(.nmf$log_x, 2, scale)
+    log.x[is.na(log.x)] <- 0
+
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 memory_location = mtx.index,
-                                log_x = .nmf$log.beta,
+                                log_x = log.x,
                                 a0 = a0, b0 = b0,
                                 max_iter = em.step,
                                 verbose = verbose,
@@ -207,12 +210,12 @@ fit.topic.full <- function(mtx.file,
 #'
 #' @return a list of (beta, prop, depth), where the beta is a re-scaled dictionary matrix, each row of the prop matrix corresponds to a mixing proportion per column, and the depth parameter gauges a sequencing depth for each column
 #'
-pmf2topic <- function(.beta, .theta) {
+pmf2topic <- function(.beta, .theta, eps=1e-8) {
 
-    uu <- apply(.beta, 2, sum)
+    uu <- pmax(apply(.beta, 2, sum), eps)
     beta <- sweep(.beta, 2, uu, `/`)
     prop <- sweep(.theta, 2, uu, `*`)
-    zz <- apply(t(prop), 2, sum)
+    zz <- pmax(apply(t(prop), 2, sum), eps)
     prop <- sweep(prop, 1, zz, `/`)
 
     list(beta = beta, prop = prop, depth = zz)

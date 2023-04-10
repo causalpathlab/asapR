@@ -233,18 +233,18 @@ struct poisson_nmf_t {
     PARAM topic_loading;
 
     struct log_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterlog(x); }
+        const Scalar operator()(const Scalar &x) const { return std::log(x); }
     } log_op;
 
     struct log1p_op_t {
         const Scalar operator()(const Scalar &x) const
         {
-            return fasterlog(1. + x);
+            return std::log(1. + x);
         }
     } log1p_op;
 
     struct exp_op_t {
-        const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+        const Scalar operator()(const Scalar &x) const { return std::exp(x); }
     } exp_op;
 };
 

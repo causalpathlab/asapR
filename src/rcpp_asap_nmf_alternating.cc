@@ -4,7 +4,8 @@
 //'
 //' @param Y_dn non-negative data matrix (gene x sample)
 //' @param maxK maximum number of factors
-//' @param max_iter number of variation Expectation Maximization steps
+//' @param max_iter max number of optimization steps
+//' @param min_iter min number of optimization steps
 //' @param burnin number of optimization steps w/o scaling
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0)
@@ -28,12 +29,16 @@ Rcpp::List
 asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                        const std::size_t maxK,
                        const std::size_t max_iter = 100,
-                       const std::size_t burnin = 10,
+                       const std::size_t min_iter = 5,
+                       const std::size_t burnin = 100,
                        const bool verbose = true,
-                       const double a0 = 1.,
-                       const double b0 = 1.,
+                       const double a0 = 1e-4,
+                       const double b0 = 1e-4,
                        const std::size_t rseed = 42,
-                       const double EPS = 1e-4)
+                       const double EPS = 1e-6,
+                       const double rate_m = 1,
+                       const double rate_v = 1,
+                       const bool init_stoch = true)
 {
 
     const Index D = Y_dn.rows();
@@ -50,13 +55,15 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     gamma_t beta_dk(D, K, a0, b0, rng);  // dictionary
     gamma_t theta_nk(N, K, a0, b0, rng); // scaling for all the factor loading
 
+    Mat logBeta_dk(D, K);              // row topic
     Mat logPhi_dk(D, K), phi_dk(D, K); // row to topic latent assignment
+    Mat logTheta_nk(N, K);             // column loading
     Mat logRho_nk(N, K), rho_nk(N, K); // column to topic latent assignment
 
     using norm_dist_t = boost::random::normal_distribution<Scalar>;
     norm_dist_t norm_dist(0., 1.);
-    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
-    auto exp_op = [](const Scalar x) -> Scalar { return fasterexp(x); };
+
+    // auto exp_op = [](const Scalar x) -> Scalar { return fastexp(x); };
     auto at_least_one = [](const Scalar x) -> Scalar {
         return (x < 1.) ? 1. : x;
     };
@@ -74,6 +81,8 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     // Initialization //
     ////////////////////
 
+    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
+
     logPhi_dk = Mat::NullaryExpr(D, K, rnorm);
     for (Index ii = 0; ii < D; ++ii) {
         phi_dk.row(ii) = softmax.apply_row(logPhi_dk.row(ii));
@@ -84,46 +93,104 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         rho_nk.row(jj) = softmax.apply_row(logRho_nk.row(jj));
     }
 
-    Mat X_nk(N, K), X_dk(D, K);
+    Mat temp_nk(N, K), temp_dk(D, K);
+    stdizer_t<Mat> std_ln_phi_dk(logPhi_dk, rate_m, rate_v);
+    stdizer_t<Mat> std_ln_rho_nk(logRho_nk, rate_m, rate_v);
+
+    std_ln_rho_nk.colwise(EPS);
+    std_ln_phi_dk.colwise(EPS);
+
+    std::vector<Scalar> llik_trace;
+    llik_trace.reserve(max_iter + burnin);
+
+    auto calc_log_lik = [&]() {
+        Scalar llik = (phi_dk.cwiseProduct(beta_dk.log_mean()).transpose() *
+                       Y_dn * rho_nk)
+                          .sum();
+
+        llik += (rho_nk.cwiseProduct(theta_nk.log_mean()).transpose() *
+                 Y_dn.transpose() * phi_dk)
+                    .sum();
+
+        llik -= (ones_d.transpose() * beta_dk.mean() *
+                 theta_nk.mean().transpose() * ones_n)
+                    .sum();
+        return llik;
+    };
+
+    auto update_theta = [&]() {
+        temp_nk.setZero();
+        temp_nk.array().rowwise() += beta_dk.mean().colwise().sum().array();
+        theta_nk.update(Y_dn.transpose() * phi_dk, temp_nk);
+        theta_nk.calibrate();
+    };
+
+    auto update_beta = [&]() {
+        temp_dk.setZero();
+        temp_dk.array().rowwise() += theta_nk.mean().colwise().sum().array();
+        beta_dk.update(Y_dn * rho_nk, temp_dk);
+        beta_dk.calibrate();
+    };
+
+    rowvec_sampler_t<Mat, RNG> sampler(rng, K);
 
     TLOG("Initialization of auxiliary variables");
     for (Index tt = 0; tt < burnin; ++tt) {
-        X_nk = standardize(logRho_nk, EPS);
-        logPhi_dk = Y_dn * X_nk;
+        logPhi_dk = Y_dn * std_ln_rho_nk.colwise(EPS);
         logPhi_dk.array().colwise() /= Y_d1.array();
 
-        X_dk = standardize(logPhi_dk, EPS);
-        logRho_nk = Y_dn.transpose() * X_dk;
-        logRho_nk.array().colwise() /= Y_n1.array();
         for (Index ii = 0; ii < D; ++ii) {
             phi_dk.row(ii) = softmax.apply_row(logPhi_dk.row(ii));
+            if (init_stoch) {
+                const Index k = sampler(phi_dk.row(ii));
+                phi_dk.row(ii).setZero();
+                phi_dk(ii, k) = 1.;
+            }
         }
+
+        update_theta();
+
+        logRho_nk = Y_dn.transpose() * std_ln_phi_dk.colwise(EPS);
+        logRho_nk.array().colwise() /= Y_n1.array();
 
         for (Index jj = 0; jj < N; ++jj) {
             rho_nk.row(jj) = softmax.apply_row(logRho_nk.row(jj));
+            if (init_stoch) {
+                const Index k = sampler(rho_nk.row(jj));
+                rho_nk.row(jj).setZero();
+                rho_nk(jj, k) = 1.;
+            }
         }
-        Rcpp::Rcerr << "+ " << std::flush;
-        if (tt > 0 && tt % 10 == 0) {
-            Rcpp::Rcerr << "\r" << std::flush;
+
+        update_beta();
+
+        // evaluate log-likelihood
+        Scalar llik = calc_log_lik();
+        llik_trace.emplace_back(llik);
+        if (verbose) {
+            TLOG("Burn-in the regressors [ " << tt << " ] " << llik);
+        } else {
+            Rcpp::Rcerr << "+ " << std::flush;
+            if (tt > 0 && tt % 10 == 0) {
+                Rcpp::Rcerr << "\r" << std::flush;
+            }
+        }
+
+        try {
+            Rcpp::checkUserInterrupt();
+        } catch (Rcpp::internal::InterruptedException e) {
+            WLOG("Interruption by the user at t=" << tt);
+            break;
         }
     }
     Rcpp::Rcerr << "\r" << std::flush;
     TLOG("Finished burn-in iterations");
 
-    {
-        // Column: update theta_k
-        theta_nk.update(Y_dn.transpose() * phi_dk,                //
-                        ones_n * beta_dk.mean().colwise().sum()); //
-        theta_nk.calibrate();
+    logBeta_dk = beta_dk.log_mean();
+    logTheta_nk = theta_nk.log_mean();
 
-        // Update row topic factors
-        beta_dk.update(Y_dn * rho_nk,                             //
-                       ones_d * theta_nk.mean().colwise().sum()); //
-        beta_dk.calibrate();
-    }
-
-    std::vector<Scalar> llik_trace;
-    llik_trace.reserve(max_iter);
+    stdizer_t<Mat> std_ln_beta_dk(logBeta_dk, rate_m, rate_v);
+    stdizer_t<Mat> std_ln_theta_nk(logTheta_nk, rate_m, rate_v);
 
     RowVec tempK(K);
 
@@ -133,67 +200,48 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         // Estimation of auxiliary variables (i,k)  //
         //////////////////////////////////////////////
 
-        X_nk = standardize(theta_nk.log_mean(), EPS);
-        logPhi_dk = Y_dn * X_nk;
+        logPhi_dk = Y_dn * std_ln_theta_nk.colwise(EPS);
         logPhi_dk.array().colwise() /= Y_d1.array();
-        logPhi_dk += beta_dk.log_mean();
+        logPhi_dk += logBeta_dk;
+
+        std_ln_phi_dk.colwise(EPS);
 
         for (Index ii = 0; ii < D; ++ii) {
             tempK = logPhi_dk.row(ii);
             logPhi_dk.row(ii) = softmax.log_row(tempK);
         }
-        phi_dk = logPhi_dk.unaryExpr(exp_op);
+        phi_dk = logPhi_dk.array().exp();
 
-        // Update column topic factors, theta(j, k)
-        theta_nk.update(rho_nk.cwiseProduct(Y_dn.transpose() * phi_dk), //
-                        ones_n * beta_dk.mean().colwise().sum());       //
-        theta_nk.calibrate();
-
-        // Update row topic factors
-        beta_dk.update((phi_dk.array().colwise() * Y_d.array()).matrix(), //
-                       ones_d * theta_nk.mean().colwise().sum());         //
-        beta_dk.calibrate();
+        update_beta();
+        logBeta_dk = beta_dk.log_mean();
 
         //////////////////////////////////////////////
         // Estimation of auxiliary variables (j,k)  //
         //////////////////////////////////////////////
 
-        X_dk = standardize(beta_dk.log_mean(), EPS);
-        logRho_nk = Y_dn.transpose() * X_dk;
+        logRho_nk = Y_dn.transpose() * std_ln_beta_dk.colwise(EPS);
         logRho_nk.array().colwise() /= Y_n1.array();
-        logRho_nk += theta_nk.log_mean();
+        logRho_nk += logTheta_nk;
+
+        std_ln_rho_nk.colwise(EPS);
 
         for (Index jj = 0; jj < N; ++jj) {
             tempK = logRho_nk.row(jj);
             logRho_nk.row(jj) = softmax.log_row(tempK);
         }
-        rho_nk = logRho_nk.unaryExpr(exp_op);
+        rho_nk = logRho_nk.array().exp();
 
-        // Update row topic factors
-        beta_dk.update(phi_dk.cwiseProduct(Y_dn * rho_nk),        //
-                       ones_d * theta_nk.mean().colwise().sum()); //
-        beta_dk.calibrate();
+        update_theta();
+        logTheta_nk = theta_nk.log_mean();
 
-        // Update column topic factors
-        theta_nk.update((rho_nk.array().colwise() * Y_n.array()).matrix(), //
-                        ones_n * beta_dk.mean().colwise().sum());          //
-        theta_nk.calibrate();
+        Scalar llik = calc_log_lik(); // evaluate log-likelihood
 
-        // evaluate log-likelihood
-        Scalar llik = (phi_dk.cwiseProduct(beta_dk.log_mean()).transpose() *
-                       Y_dn * rho_nk)
-                          .sum();
-        llik += (rho_nk.cwiseProduct(theta_nk.log_mean()).transpose() *
-                 Y_dn.transpose() * phi_dk)
-                    .sum();
-        llik -= (ones_d.transpose() * beta_dk.mean() *
-                 theta_nk.mean().transpose() * ones_n)
-                    .sum();
+        const Scalar diff = llik_trace.size() > 0 ?
+            std::abs(llik - llik_trace.at(llik_trace.size() - 1)) /
+                std::abs(llik + EPS) :
+            llik;
 
         llik_trace.emplace_back(llik);
-
-        const Scalar diff =
-            tt > 0 ? abs(llik_trace.at(tt - 1) - llik) / abs(llik + EPS) : 0;
 
         if (verbose) {
             TLOG("NMF by regressors [ " << tt << " ] " << llik << ", " << diff);
@@ -204,7 +252,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
             }
         }
 
-        if (tt > 0 && diff < EPS) {
+        if (tt > min_iter && diff < EPS) {
             Rcpp::Rcerr << "\r" << std::endl;
             TLOG("Converged at " << tt << ", " << diff);
             break;
@@ -213,18 +261,25 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         try {
             Rcpp::checkUserInterrupt();
         } catch (Rcpp::internal::InterruptedException e) {
-            WLOG("Interruption by a user at t=" << tt);
+            WLOG("Interruption by the user at t=" << tt);
             break;
         }
     }
     Rcpp::Rcerr << "\r" << std::endl;
     TLOG("Done");
 
+    Mat log_x = beta_dk.log_mean();
+    stdizer_t<Mat> std_ln_x(log_x, 1, 1);
+    std_ln_x.colwise(EPS);
+
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["beta"] = beta_dk.mean(),
                               Rcpp::_["log.beta"] = beta_dk.log_mean(),
+                              Rcpp::_["log_x"] = log_x,
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["log.phi"] = logPhi_dk,
-                              Rcpp::_["log.rho"] = logRho_nk);
+                              Rcpp::_["log.rho"] = logRho_nk,
+                              Rcpp::_["phi"] = phi_dk,
+                              Rcpp::_["rho"] = rho_nk);
 }

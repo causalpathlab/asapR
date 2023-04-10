@@ -45,7 +45,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #'
 #' @param Y_dn non-negative data matrix (gene x sample)
 #' @param maxK maximum number of factors
-#' @param max_iter number of variation Expectation Maximization steps
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
 #' @param burnin number of optimization steps w/o scaling
 #' @param verbose verbosity
 #' @param a0 gamma(a0, b0)
@@ -64,8 +65,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1., b0 = 1., rseed = 42L, EPS = 1e-4) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS)
+asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, min_iter = 5L, burnin = 100L, verbose = TRUE, a0 = 1e-4, b0 = 1e-4, rseed = 42L, EPS = 1e-6, rate_m = 1, rate_v = 1, init_stoch = TRUE) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, min_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, init_stoch)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data

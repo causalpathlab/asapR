@@ -5,7 +5,7 @@
 \title{Convert Poisson Matrix Factorization to Multinomial Topic model.
 The same idea was first coined by \code{fastTopics} paper.}
 \usage{
-pmf2topic(.beta, .theta)
+pmf2topic(.beta, .theta, eps = 1e-08)
 }
 \arguments{
 \item{.beta}{D x K dictionary matrix}

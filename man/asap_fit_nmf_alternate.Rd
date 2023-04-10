@@ -8,12 +8,16 @@ asap_fit_nmf_alternate(
   Y_dn,
   maxK,
   max_iter = 100L,
-  burnin = 10L,
+  min_iter = 5L,
+  burnin = 100L,
   verbose = TRUE,
-  a0 = 1,
-  b0 = 1,
+  a0 = 1e-04,
+  b0 = 1e-04,
   rseed = 42L,
-  EPS = 1e-04
+  EPS = 1e-06,
+  rate_m = 1,
+  rate_v = 1,
+  init_stoch = TRUE
 )
 }
 \arguments{
@@ -21,7 +25,9 @@ asap_fit_nmf_alternate(
 
 \item{maxK}{maximum number of factors}
 
-\item{max_iter}{number of variation Expectation Maximization steps}
+\item{max_iter}{max number of optimization steps}
+
+\item{min_iter}{min number of optimization steps}
 
 \item{burnin}{number of optimization steps w/o scaling}
 

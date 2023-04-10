@@ -60,16 +60,16 @@ struct softmax_op_t {
         {
             Scalar v;
             if (log_a < log_b) {
-                v = log_b + fasterlog(1. + fasterexp(log_a - log_b));
+                v = log_b + fastlog(1. + fastexp(log_a - log_b));
             } else {
-                v = log_a + fasterlog(1. + fasterexp(log_b - log_a));
+                v = log_a + fastlog(1. + fastexp(log_b - log_a));
             }
             return v;
         }
     } log_sum_exp;
 
     struct exp_op_t {
-        const Scalar operator()(const Scalar x) const { return fasterexp(x); }
+        const Scalar operator()(const Scalar x) const { return fastexp(x); }
     } exp_op;
 };
 
@@ -565,12 +565,16 @@ standardize(const Eigen::MatrixBase<Derived> &Xraw,
     const RowVec x_mean = X.colwise().sum().cwiseQuotient(num_obs);
     const RowVec x2_mean =
         X.cwiseProduct(X).colwise().sum().cwiseQuotient(num_obs);
-    const RowVec x_sd = (x2_mean - x_mean.cwiseProduct(x_mean)).cwiseSqrt();
+    const RowVec x_sd = (x2_mean - x_mean.cwiseProduct(x_mean))
+                            .array()
+                            .max(EPS)
+                            .matrix()
+                            .cwiseSqrt();
 
     // standardize
     for (Index j = 0; j < X.cols(); ++j) {
         const Scalar mu = x_mean(j);
-        const Scalar sd = std::max(x_sd(j), EPS);
+        const Scalar sd = x_sd(j);
         auto std_op = [&mu, &sd](const Scalar &x) -> Scalar {
             const Scalar ret = static_cast<Scalar>((x - mu) / sd);
             return ret;
@@ -582,6 +586,92 @@ standardize(const Eigen::MatrixBase<Derived> &Xraw,
 
     return X;
 }
+
+template <typename T>
+struct stdizer_t {
+    using Scalar = typename T::Scalar;
+    using Index = typename T::Index;
+    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<T>::type;
+
+    explicit stdizer_t(T &data_, const Scalar r_m, const Scalar r_v)
+        : X(data_)
+        , D1(X.rows())
+        , D2(X.cols())
+        , rate_m(r_m)
+        , rate_v(r_v)
+        , rowMean(D2)
+        , rowSqMean(D2)
+        , rowMu(D2)
+        , rowSd(D2)
+        , rowNobs(D2)
+        , temp(D2)
+        , obs_val()
+        , is_obs_val()
+    {
+        rowMean.setZero();
+        rowMu.setZero();
+        rowSqMean.setZero();
+        rowSd.setOnes();
+    }
+
+private:
+    T &X;
+
+public:
+    const Index D1, D2;
+    const Scalar rate_m, rate_v;
+
+    const T &colwise(const Scalar eps = 1e-8)
+    {
+        rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
+        rowNobs.array() += eps;
+
+        rowMean = X.unaryExpr(obs_val).colwise().sum().cwiseQuotient(rowNobs);
+
+        rowSqMean = (X.cwiseProduct(X))
+                        .unaryExpr(obs_val)
+                        .colwise()
+                        .sum()
+                        .cwiseQuotient(rowNobs);
+
+        if (rate_m > 0) {
+            rowMu *= (1. - rate_m);
+            rowMu += rate_m * rowMean;
+        }
+
+        if (rate_v > 0) {
+            temp = rowSqMean - rowMean.cwiseProduct(rowMean);
+            temp.array() += eps;
+            if (temp.minCoeff() < 0.) {
+                temp.array() -= temp.minCoeff();
+            }
+            rowSd *= (1. - rate_v);
+            rowSd += rate_v * temp.cwiseSqrt();
+        }
+
+        X.array().rowwise() -= rowMu.array();
+        X.array().rowwise() /= (rowSd.array() + eps);
+        return X;
+    }
+
+private:
+    RowVec rowMean, rowSqMean, rowMu, rowSd, rowNobs, temp;
+
+    struct obs_val_t {
+        const Scalar operator()(const Scalar &x) const
+        {
+            return std::isfinite(x) ? x : 0.;
+        }
+    } obs_val;
+
+    struct is_obs_val_t {
+        const Scalar operator()(const Scalar &x) const
+        {
+            return std::isfinite(x) ? 1. : 0.;
+        }
+    } is_obs_val;
+};
 
 template <typename Derived>
 void

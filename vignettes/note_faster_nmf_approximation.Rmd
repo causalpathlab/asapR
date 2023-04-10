@@ -21,7 +21,6 @@ $$\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k}\beta_{ik}\theta_{jk}$$
 
 
-
 Find the most correlated factor $k$ (softly).
 
 $$\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
@@ -82,9 +81,9 @@ $$L
 
 ```{r}
 library(asapR)
-set.seed(1331)
 
-d <- 5000
+set.seed(1331)
+d <- 500
 n <- 5000
 .rnorm <- function(d1,d2) matrix(rnorm(d1 * d2), d1, d2)
 
@@ -96,11 +95,7 @@ Y[Y < 0] <- 0
 ```
 
 ```{r}
-out <- asap_fit_nmf_alternate(Y, 3, verbose=FALSE)
-```
-
-```{r fig.width=5, fig.height=3}
-plot(out$log.likelihood, log="x", type="b", ylab="log-likelihood")
+out <- asap_fit_nmf_alternate(Y, 5)
 ```
 
 ```{r fig.width=5, fig.height=5}
@@ -112,3 +107,8 @@ heatmap(out$beta[u.order, ], Rowv=NA)
 v.order <- order(apply(vv, 1, which.max))
 heatmap(out$theta[v.order, ], Rowv=NA)
 ```
+
+```{r fig.width=5, fig.height=3}
+plot(out$log.likelihood, log="x", type="b", ylab="log-likelihood")
+```
+

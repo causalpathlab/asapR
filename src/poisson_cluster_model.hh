@@ -58,10 +58,10 @@ struct poisson_component_t {
                    .rowwise()
                    .sum() +
             ((((X.rowwise() + Freq_stat).array() + a0) *
-              (-fasterlog(b0 + N_stat + 1.)))
+              (-fastlog(b0 + N_stat + 1.)))
                  .matrix()
                  .rowwise() +
-             ((Freq_stat.array() + a0) * fasterlog(N_stat + b0)).matrix())
+             ((Freq_stat.array() + a0) * fastlog(N_stat + b0)).matrix())
                 .rowwise()
                 .sum();
     }
@@ -74,10 +74,10 @@ struct poisson_component_t {
                                  .sum();
 
         const Scalar term2 =
-            ((xx + Freq_stat).array() + a0).sum() * fasterlog(b0 + N_stat + 1.);
+            ((xx + Freq_stat).array() + a0).sum() * fastlog(b0 + N_stat + 1.);
 
         const Scalar term3 =
-            (Freq_stat.array() + a0).sum() * fasterlog(N_stat + b0);
+            (Freq_stat.array() + a0).sum() * fastlog(N_stat + b0);
 
         return term1 - term2 + term3;
     }
@@ -93,7 +93,7 @@ struct poisson_component_t {
     RowVec posterior_log_mean() const
     {
         return (Freq_stat.unaryExpr(digamma_op).array() -
-                fasterlog(N_stat + b0))
+                fastlog(N_stat + b0))
             .matrix();
     }
 
@@ -108,7 +108,7 @@ private:
         }
         const Scalar operator()(const Scalar &xx) const
         {
-            return fasterlgamma(a0 + xx);
+            return fastlgamma(a0 + xx);
         }
         const Scalar a0;
     };
@@ -122,7 +122,7 @@ private:
         }
         const Scalar operator()(const Scalar &xx) const
         {
-            return fasterdigamma(a0 + xx);
+            return fastdigamma(a0 + xx);
         }
         const Scalar a0;
     };
