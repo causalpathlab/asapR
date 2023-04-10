@@ -6,11 +6,12 @@
 //' @param maxK maximum number of factors
 //' @param max_iter max number of optimization steps
 //' @param min_iter min number of optimization steps
-//' @param burnin number of optimization steps w/o scaling
+//' @param burnin number of initiation steps
 //' @param verbose verbosity
-//' @param a0 gamma(a0, b0)
-//' @param b0 gamma(a0, b0)
-//' @param rseed random seed
+//' @param a0 gamma(a0, b0) default: a0 = 1
+//' @param b0 gamma(a0, b0) default: b0 = 1
+//' @param rseed random seed (default: 1337)
+//' @param init_stoch initialize latent vars. by stoch.
 //'
 //' @return a list that contains:
 //'  \itemize{
@@ -32,9 +33,9 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                        const std::size_t min_iter = 5,
                        const std::size_t burnin = 100,
                        const bool verbose = true,
-                       const double a0 = 1e-4,
-                       const double b0 = 1e-4,
-                       const std::size_t rseed = 42,
+                       const double a0 = 1,
+                       const double b0 = 1,
+                       const std::size_t rseed = 1337,
                        const double EPS = 1e-6,
                        const double rate_m = 1,
                        const double rate_v = 1,
@@ -204,8 +205,6 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += logBeta_dk;
 
-        std_ln_phi_dk.colwise(EPS);
-
         for (Index ii = 0; ii < D; ++ii) {
             tempK = logPhi_dk.row(ii);
             logPhi_dk.row(ii) = softmax.log_row(tempK);
@@ -222,8 +221,6 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         logRho_nk = Y_dn.transpose() * std_ln_beta_dk.colwise(EPS);
         logRho_nk.array().colwise() /= Y_n1.array();
         logRho_nk += logTheta_nk;
-
-        std_ln_rho_nk.colwise(EPS);
 
         for (Index jj = 0; jj < N; ++jj) {
             tempK = logRho_nk.row(jj);

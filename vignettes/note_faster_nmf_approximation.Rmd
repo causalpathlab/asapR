@@ -83,19 +83,16 @@ $$L
 library(asapR)
 
 set.seed(1331)
-d <- 500
+d <- 5000
 n <- 5000
 .rnorm <- function(d1,d2) matrix(rnorm(d1 * d2), d1, d2)
 
 uu <- .rnorm(d, 3)
 vv <- .rnorm(n, 3)
-
 Y <- apply(uu %*% t(vv), 2, scale) + .rnorm(d, n)
 Y[Y < 0] <- 0
-```
 
-```{r}
-out <- asap_fit_nmf_alternate(Y, 5)
+out <- asap_fit_nmf_alternate(Y, 3, a0 = 1, b0 = 1, rseed=1337)
 ```
 
 ```{r fig.width=5, fig.height=5}
