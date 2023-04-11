@@ -851,6 +851,24 @@ struct is_positive_op {
 };
 
 template <typename T>
+struct exp_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const { return fasterexp(x); }
+};
+
+template <typename T>
+struct log1p_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const { return fasterlog(1. + x); }
+};
+
+template <typename T>
+struct at_least_one_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const { return (x < 1.) ? 1. : x; }
+};
+
+template <typename T>
 struct clamp_op {
     using Scalar = typename T::Scalar;
     explicit clamp_op(const Scalar _lb, const Scalar _ub)

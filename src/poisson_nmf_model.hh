@@ -52,7 +52,7 @@ struct poisson_nmf_t {
 
         RandomizedSVD<T> svd(K, lu_iter); //
         const Mat yy = standardize(Y.unaryExpr(log1p_op));
-        svd.compute(Y);
+        svd.compute(yy);
 
         Mat row_a = standardize(svd.matrixU()).unaryExpr(exp_op) /
             static_cast<Scalar>(D);
