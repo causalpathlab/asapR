@@ -82,10 +82,10 @@ asap_regression_mtx(const std::string mtx_file,
         gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // n x K
         Mat logZ(Y.cols(), K), Z(Y.cols(), K);       // n x K
         Mat R = (Y.transpose() * log_X).array().colwise() / Ysum.array();
-        //          n x D        D x K                      n x 1
 
-        ColVec onesN(Y.cols()); // n x 1
-        onesN.setOnes();        //
+        ColVec onesN(Y.cols());  // n x 1
+        onesN.setOnes();         //
+        Mat x_nk = onesN * Xsum; // n x K
 
         for (std::size_t t = 0; t < max_iter; ++t) {
 
@@ -94,10 +94,7 @@ asap_regression_mtx(const std::string mtx_file,
                 Z.row(i) = softmax.apply_row(logZ.row(i));
             }
 
-            for (Index k = 0; k < K; ++k) {
-                const Scalar xk = Xsum(k);
-                theta_b.update_col(Z.col(k).cwiseProduct(Ysum), onesN * xk, k);
-            }
+            theta_b.update((Z.array().colwise() * Ysum.array()).matrix(), x_nk);
             theta_b.calibrate();
         }
 

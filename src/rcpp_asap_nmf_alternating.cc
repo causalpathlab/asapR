@@ -161,7 +161,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         // Estimation of auxiliary variables (i,k)  //
         //////////////////////////////////////////////
 
-        logPhi_dk = Y_dn * theta_nk.log_mean(); // std_ln_theta_nk.colwise(EPS);
+        logPhi_dk = Y_dn * theta_nk.log_mean();
         logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += beta_dk.log_mean();
 
@@ -270,11 +270,13 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     TLOG("Done");
 
     Mat log_x = standardize(beta_dk.log_mean());
+    Mat R = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["beta"] = beta_dk.mean(),
                               Rcpp::_["log.beta"] = beta_dk.log_mean(),
                               Rcpp::_["log_x"] = log_x,
+                              Rcpp::_["corr"] = R,
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["log.phi"] = logPhi_dk,

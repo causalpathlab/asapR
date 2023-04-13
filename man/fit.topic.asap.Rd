@@ -7,19 +7,23 @@
 fit.topic.asap(
   mtx.file,
   k,
+  Y.ref = NULL,
   pb.factors = 10,
   num.proj = 1,
   em.step = 100,
   max.pb.size = 1000,
-  .burnin = 10,
-  .thining = 3,
+  .burnin = 50,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
   verbose = TRUE,
   num.threads = 1,
   block.size = 100,
-  .rand.seed = 42
+  .rand.seed = 42,
+  .eps = 1e-06,
+  rate.m = 1,
+  rate.v = 1,
+  svd.init = TRUE
 )
 }
 \arguments{
@@ -27,15 +31,15 @@ fit.topic.asap(
 
 \item{k}{number of topics}
 
-\item{num.proj}{the number of pseudobulk projection steps}
+\item{Y.ref}{reference bulk data}
+
+\item{num.proj}{the number of pseudobulk projection steps (default: 1)}
 
 \item{em.step}{Monte Carlo EM steps (default: 100)}
 
 \item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
 \item{.burnin}{burn-in period in the record keeping (default: 10)}
-
-\item{.thining}{thining for the record keeping (default: 3)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
@@ -50,6 +54,8 @@ fit.topic.asap(
 \item{block.size}{a block size for disk I/O (default: 100)}
 
 \item{.rand.seed}{random seed (default: 42)}
+
+\item{.thining}{thining for the record keeping (default: 3)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

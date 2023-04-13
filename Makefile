@@ -9,7 +9,6 @@ all: $(PKG)_$(VER).tar.gz
 clean:
 	rm -f src/*.o src/*.so
 	rm -f $(PKG)_$(VER).tar.gz
-	rm -f man/*.Rd
 
 $(PKG)_$(VER).tar.gz: $(SRC) $(HDR) .Rbuildignore
 	rm -f src/*.so $@

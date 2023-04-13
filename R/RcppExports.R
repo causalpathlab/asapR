@@ -47,11 +47,11 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' @param maxK maximum number of factors
 #' @param max_iter max number of optimization steps
 #' @param min_iter min number of optimization steps
-#' @param burnin number of optimization steps w/o scaling
+#' @param burnin number of initiation steps
 #' @param verbose verbosity
-#' @param a0 gamma(a0, b0)
-#' @param b0 gamma(a0, b0)
-#' @param rseed random seed
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param rseed random seed (default: 1337)
 #'
 #' @return a list that contains:
 #'  \itemize{
@@ -65,8 +65,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, min_iter = 5L, burnin = 100L, verbose = TRUE, a0 = 1e-4, b0 = 1e-4, rseed = 42L, EPS = 1e-6, rate_m = 1, rate_v = 1, init_stoch = TRUE) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, min_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, init_stoch)
+asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data

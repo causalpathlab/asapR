@@ -2,7 +2,8 @@
 #'
 #' @param mtx.file data matrix file in a matrix market format
 #' @param k number of topics
-#' @param num.proj the number of pseudobulk projection steps
+#' @param Y.ref reference bulk data
+#' @param num.proj the number of pseudobulk projection steps (default: 1)
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
@@ -43,19 +44,23 @@
 #'
 fit.topic.asap <- function(mtx.file,
                            k,
+                           Y.ref = NULL,
                            pb.factors = 10,
                            num.proj = 1,
                            em.step = 100,
                            max.pb.size = 1000,
-                           .burnin = 10,
-                           .thining = 3,
+                           .burnin = 50,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
                            verbose = TRUE,
                            num.threads = 1,
                            block.size = 100,
-                           .rand.seed = 42){
+                           .rand.seed = 42,
+                           .eps = 1e-6,
+                           rate.m = 1,
+                           rate.v = 1,
+                           svd.init = TRUE){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -91,25 +96,34 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase II: Perform Poisson matrix factorization ...")
 
+    if(!is.null(Y.ref)){
+        if(nrow(Y) != nrow(Y.ref)) {
+            message("nrow(Y.ref) != nrow(Y)")
+        }
+        Y <- cbind(Y, Y.ref)
+    }
+
     .nmf <- asap_fit_nmf_alternate(Y,
                                    maxK = k,
                                    max_iter = em.step,
                                    burnin = .burnin,
                                    verbose = verbose,
-                                   a0=a0,
-                                   b0=b0,
+                                   a0 = a0,
+                                   b0 = b0,
                                    rseed = .rand.seed,
-                                   EPS=1e-4)
+                                   EPS = .eps,
+                                   rate_m = rate.m,
+                                   rate_v = rate.v,
+                                   svd_init = svd.init)
 
     .multinom <- pmf2topic(.nmf$beta, .nmf$theta)
     .nmf$beta.rescaled <- .multinom$beta
     .nmf$theta.rescaled <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
-    message("Phase III: Calibrating the loading parameters of the original data")
+    message("Phase III: Calibrating the topic loading of the original data")
 
-    log.x <- apply(.nmf$log_x, 2, scale)
-    log.x[is.na(log.x)] <- 0
+    log.x <- .nmf$log_x
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 memory_location = mtx.index,
