@@ -60,7 +60,8 @@ fit.topic.asap <- function(mtx.file,
                            .eps = 1e-6,
                            rate.m = 1,
                            rate.v = 1,
-                           svd.init = TRUE){
+                           svd.init = TRUE,
+                           log1p.pb = TRUE){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -84,7 +85,8 @@ fit.topic.asap <- function(mtx.file,
                                      rseed = .rand.seed + r,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
-                                     BLOCK_SIZE = block.size)
+                                     BLOCK_SIZE = block.size,
+                                     do_log1p = log1p.pb)
         Y <- cbind(Y, .pb$PB)
 
         message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))

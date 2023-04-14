@@ -6,6 +6,7 @@
 #include "mmutil_util.hh"
 #include "mmutil_index.hh"
 #include "mmutil_io.hh"
+#include "mmutil_stat.hh"
 
 using namespace mmutil::io;
 using namespace mmutil::bgzf;

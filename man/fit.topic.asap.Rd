@@ -23,7 +23,8 @@ fit.topic.asap(
   .eps = 1e-06,
   rate.m = 1,
   rate.v = 1,
-  svd.init = TRUE
+  svd.init = TRUE,
+  log1p.pb = TRUE
 )
 }
 \arguments{

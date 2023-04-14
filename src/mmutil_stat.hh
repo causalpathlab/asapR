@@ -17,7 +17,8 @@ struct row_stat_collector_t {
     using index_t = Index;
     using scalar_t = Scalar;
 
-    explicit row_stat_collector_t()
+    explicit row_stat_collector_t(const bool _take_log1p = false)
+        : take_log1p(_take_log1p)
     {
         max_row = 0;
         max_col = 0;
@@ -26,11 +27,16 @@ struct row_stat_collector_t {
 
     void eval_after_header(const index_t r, const index_t c, const index_t e)
     {
-        std::tie(max_row, max_col, max_elem) = std::make_tuple(r, c, e);
-
 #ifdef DEBUG
         TLOG("Start reading a list of triplets");
 #endif
+
+        set_size(r, c, e);
+    }
+
+    void set_size(const index_t r, const index_t c, const index_t e)
+    {
+        std::tie(max_row, max_col, max_elem) = std::make_tuple(r, c, e);
 
         Row_S1.resize(max_row);
         Row_S1.setZero();
@@ -43,10 +49,18 @@ struct row_stat_collector_t {
     void eval(const index_t row, const index_t col, const scalar_t weight)
     {
         if (row < max_row && col < max_col) {
-            Row_S1(row) += weight;
-            Row_S2(row) += (weight * weight);
-            if (std::abs(weight) > 1e-8)
-                Row_N(row)++;
+            if (take_log1p) {
+                const scalar_t x = std::log1p(weight);
+                Row_S1(row) += x;
+                Row_S2(row) += x * x;
+                if (std::abs(weight) > 1e-8)
+                    Row_N(row)++;
+            } else {
+                Row_S1(row) += weight;
+                Row_S2(row) += (weight * weight);
+                if (std::abs(weight) > 1e-8)
+                    Row_N(row)++;
+            }
         }
     }
 
@@ -56,6 +70,8 @@ struct row_stat_collector_t {
         TLOG("Finished reading a list of triplets");
 #endif
     }
+
+    const bool take_log1p;
 
     Index max_row;
     Index max_col;
@@ -225,7 +241,9 @@ struct histogram_collector_t {
         }
     }
 
-    void eval_end_of_file() { }
+    void eval_end_of_file()
+    {
+    }
 
     Index max_row;
     Index max_col;

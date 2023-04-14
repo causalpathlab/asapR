@@ -26,13 +26,13 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via single-effect regression</a>
+      <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -54,23 +54,28 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">fit.topic.asap</span><span class="op">(</span>
-  <span class="va">mtx.file</span>,
-  <span class="va">k</span>,
-  pb.factors <span class="op">=</span> <span class="fl">10</span>,
-  num.proj <span class="op">=</span> <span class="fl">1</span>,
-  em.step <span class="op">=</span> <span class="fl">100</span>,
-  max.pb.size <span class="op">=</span> <span class="fl">1000</span>,
-  .burnin <span class="op">=</span> <span class="fl">10</span>,
-  .thining <span class="op">=</span> <span class="fl">3</span>,
-  a0 <span class="op">=</span> <span class="fl">1</span>,
-  b0 <span class="op">=</span> <span class="fl">1</span>,
-  index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,
-  verbose <span class="op">=</span> <span class="cn">TRUE</span>,
-  num.threads <span class="op">=</span> <span class="fl">1</span>,
-  block.size <span class="op">=</span> <span class="fl">100</span>,
-  .rand.seed <span class="op">=</span> <span class="fl">42</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">fit.topic.asap</span><span class="op">(</span></span>
+<span>  <span class="va">mtx.file</span>,</span>
+<span>  <span class="va">k</span>,</span>
+<span>  Y.ref <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  pb.factors <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  num.proj <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  em.step <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  max.pb.size <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  .burnin <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  num.threads <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  block.size <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  .rand.seed <span class="op">=</span> <span class="fl">42</span>,</span>
+<span>  .eps <span class="op">=</span> <span class="fl">1e-06</span>,</span>
+<span>  rate.m <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  rate.v <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  svd.init <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  log1p.pb <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -83,8 +88,12 @@
 <dd><p>number of topics</p></dd>
 
 
+<dt>Y.ref</dt>
+<dd><p>reference bulk data</p></dd>
+
+
 <dt>num.proj</dt>
-<dd><p>the number of pseudobulk projection steps</p></dd>
+<dd><p>the number of pseudobulk projection steps (default: 1)</p></dd>
 
 
 <dt>em.step</dt>
@@ -97,10 +106,6 @@
 
 <dt>.burnin</dt>
 <dd><p>burn-in period in the record keeping (default: 10)</p></dd>
-
-
-<dt>.thining</dt>
-<dd><p>thining for the record keeping (default: 3)</p></dd>
 
 
 <dt>a0</dt>
@@ -129,6 +134,10 @@
 
 <dt>.rand.seed</dt>
 <dd><p>random seed (default: 42)</p></dd>
+
+
+<dt>.thining</dt>
+<dd><p>thining for the record keeping (default: 3)</p></dd>
 
 
 <dt>eval.llik</dt>
@@ -172,7 +181,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

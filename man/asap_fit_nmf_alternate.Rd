@@ -10,6 +10,7 @@ asap_fit_nmf_alternate(
   max_iter = 100L,
   burnin = 10L,
   verbose = TRUE,
+  discretize = TRUE,
   a0 = 1,
   b0 = 1,
   rseed = 1337L,

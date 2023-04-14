@@ -11,7 +11,9 @@ asap_random_bulk_data(
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  BLOCK_SIZE = 100L,
+  do_log1p = TRUE,
+  do_row_std = TRUE
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ asap_random_bulk_data(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{do_log1p}{log(x + 1) transformation (default: TRUE)}
+
+\item{do_row_std}{rowwise standardization (default: TRUE)}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

@@ -129,7 +129,19 @@ write.sparse <- function(out.mtx, out.rows, out.cols, output){
         close(con)
     }
 
+    ## remove empty columns
+    ones <- matrix(1, nrow=ncol(out.mtx), ncol=1)
+    nz.cols <- (out.mtx > 0) %*% ones
+    remove <- which(nz.cols[,1] < 1)
+    if(length(remove) > 0){
+        message("Excluding ", length(remove), " columns")
+        out.mtx <- out.mtx[, - remove, drop=FALSE]
+        out.cols <- out.cols[-remove]
+    }
+
+    message("Writing MTX ...")
     mmutil_write_mtx(out.mtx, out.mtx.file)
+    message("Done")
     .write.vec(out.cols, out.cols.file)
     .write.vec(out.rows, out.rows.file)
 

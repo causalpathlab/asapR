@@ -9,6 +9,8 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_log1p log(x + 1) transformation (default: TRUE)
+//' @param do_row_std rowwise standardization (default: TRUE)
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -18,7 +20,9 @@ asap_random_bulk_data(const std::string mtx_file,
                       const std::size_t rseed = 42,
                       const bool verbose = false,
                       const std::size_t NUM_THREADS = 1,
-                      const std::size_t BLOCK_SIZE = 100)
+                      const std::size_t BLOCK_SIZE = 100,
+                      const bool do_log1p = true,
+                      const bool do_row_std = true)
 {
     CHK_RETL(convert_bgzip(mtx_file));
     mm_info_reader_t info;
@@ -52,6 +56,60 @@ asap_random_bulk_data(const std::string mtx_file,
     Mat Q(K, N);
     Q.setZero();
 
+    log1p_op<Mat> log1p;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    row_stat_collector_t collector(do_log1p);
+
+    ColVec mu(D), sig(D);
+
+    mu.setZero();
+    sig.setOnes();
+
+    if (do_row_std) {
+
+        ColVec s1(D), s2(D);
+        s1.setZero();
+        s2.setZero();
+
+        if (verbose)
+            TLOG("Collecting row-wise statistics...");
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+        for (Index lb = 0; lb < N; lb += block_size) {
+
+            const Index ub = std::min(N, block_size + lb);
+
+            ///////////////////////////////////////
+            // memory location = 0 means the end //
+            ///////////////////////////////////////
+
+            const Index lb_mem = memory_location[lb];
+            const Index ub_mem = ub < N ? memory_location[ub] : 0;
+
+            row_stat_collector_t collector(do_log1p);
+            collector.set_size(info.max_row, info.max_col, info.max_elem);
+
+            CHECK(visit_bgzf_block(mtx_file, lb_mem, ub_mem, collector));
+
+            s1 += collector.Row_S1;
+            s2 += collector.Row_S2;
+        }
+
+        const Scalar eps = 1e-8;
+        safe_sqrt_op<Mat> safe_sqrt;
+        const Scalar nn = static_cast<Scalar>(N);
+
+        mu = s1 / nn;
+        sig = (s2 / nn - mu.cwiseProduct(mu)).unaryExpr(safe_sqrt);
+        sig.array() += eps;
+    }
+
+    if (verbose)
+        TLOG("Collecting random projection data");
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
@@ -67,10 +125,22 @@ asap_random_bulk_data(const std::string mtx_file,
         const Index lb_mem = memory_location[lb];
         const Index ub_mem = ub < N ? memory_location[ub] : 0;
 
-        const SpMat xx =
-            read_eigen_sparse_subset_col(mtx_file, lb, ub, lb_mem, ub_mem);
+        Mat xx;
+        if (do_log1p) {
+            xx = read_eigen_sparse_subset_col(mtx_file, lb, ub, lb_mem, ub_mem)
+                     .unaryExpr(log1p);
+        } else {
+            xx = read_eigen_sparse_subset_col(mtx_file, lb, ub, lb_mem, ub_mem);
+        }
 
-        const Mat temp = R * xx;
+        Mat temp;
+        if (do_row_std) {
+            temp = R *
+                ((xx.array().colwise() - mu.array()) / sig.array()).matrix();
+        } else {
+            temp = R * xx;
+        }
+
         for (Index i = 0; i < temp.cols(); ++i) {
             const Index j = i + lb;
             Q.col(j) += temp.col(i);

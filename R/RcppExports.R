@@ -65,8 +65,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
+asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, discretize = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, discretize, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data
@@ -100,9 +100,11 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_resca
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_log1p log(x + 1) transformation (default: TRUE)
+#' @param do_row_std rowwise standardization (default: TRUE)
 #'
-asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE)
+asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = TRUE, do_row_std = TRUE) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_row_std)
 }
 
 #' Poisson regression to estimate factor loading

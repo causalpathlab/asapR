@@ -863,6 +863,15 @@ struct log1p_op {
 };
 
 template <typename T>
+struct safe_sqrt_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const
+    {
+        return x <= 0. ? 0. : std::sqrt(x);
+    }
+};
+
+template <typename T>
 struct at_least_one_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const { return (x < 1.) ? 1. : x; }

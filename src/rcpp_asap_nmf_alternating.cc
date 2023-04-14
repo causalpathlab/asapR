@@ -31,6 +31,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                        const std::size_t max_iter = 100,
                        const std::size_t burnin = 10,
                        const bool verbose = true,
+                       const bool discretize = true,
                        const double a0 = 1,
                        const double b0 = 1,
                        const std::size_t rseed = 1337,
@@ -127,6 +128,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     llik_trace.reserve(max_iter + burnin);
 
     stdizer_t<Mat> std_ln_rho_nk(logRho_nk, rate_m, rate_v);
+    stdizer_t<Mat> std_ln_phi_dk(logPhi_dk, rate_m, rate_v);
 
     ////////////////////////////////
     // log-likelihood computation //
@@ -165,6 +167,10 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += beta_dk.log_mean();
 
+        if (tt <= burnin) {
+            std_ln_phi_dk.colwise(EPS);
+        }
+
         for (Index ii = 0; ii < D; ++ii) {
             tempK = logPhi_dk.row(ii);
             logPhi_dk.row(ii) = softmax.log_row(tempK);
@@ -177,7 +183,16 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                 phi_dk(ii, k) = 1.;
             }
         } else {
-            phi_dk = logPhi_dk.unaryExpr(exp);
+            if (discretize) {
+                phi_dk.setZero();
+                for (Index ii = 0; ii < D; ++ii) {
+                    Index k;
+                    logPhi_dk.row(ii).maxCoeff(&k);
+                    phi_dk(ii, k) = 1.;
+                }
+            } else {
+                phi_dk = logPhi_dk.unaryExpr(exp);
+            }
         }
 
         ///////////////////////
