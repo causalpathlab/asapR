@@ -9,8 +9,8 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_log1p log(x + 1) transformation (default: TRUE)
-//' @param do_row_std rowwise standardization (default: TRUE)
+//' @param do_log1p log(x + 1) transformation (default: FALSE)
+//' @param do_row_std rowwise standardization (default: FALSE)
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -21,8 +21,8 @@ asap_random_bulk_data(const std::string mtx_file,
                       const bool verbose = false,
                       const std::size_t NUM_THREADS = 1,
                       const std::size_t BLOCK_SIZE = 100,
-                      const bool do_log1p = true,
-                      const bool do_row_std = true)
+                      const bool do_log1p = false,
+                      const bool do_row_std = false)
 {
     CHK_RETL(convert_bgzip(mtx_file));
     mm_info_reader_t info;
