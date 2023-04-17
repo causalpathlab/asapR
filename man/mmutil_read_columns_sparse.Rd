@@ -8,9 +8,7 @@ mmutil_read_columns_sparse(
   mtx_file,
   memory_location,
   r_column_index,
-  verbose = FALSE,
-  NUM_THREADS = 1L,
-  MIN_SIZE = 10L
+  verbose = FALSE
 )
 }
 \arguments{

@@ -12,8 +12,9 @@ asap_random_bulk_data(
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
-  do_log1p = TRUE,
-  do_row_std = TRUE
+  do_normalize = FALSE,
+  do_log1p = FALSE,
+  do_row_std = FALSE
 )
 }
 \arguments{
@@ -31,9 +32,11 @@ asap_random_bulk_data(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
-\item{do_log1p}{log(x + 1) transformation (default: TRUE)}
+\item{do_normalize}{normalize each column after random projection}
 
-\item{do_row_std}{rowwise standardization (default: TRUE)}
+\item{do_log1p}{log(x + 1) transformation (default: FALSE)}
+
+\item{do_row_std}{rowwise standardization (default: FALSE)}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

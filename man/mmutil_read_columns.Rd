@@ -4,14 +4,7 @@
 \alias{mmutil_read_columns}
 \title{Read a subset of columns from the data matrix}
 \usage{
-mmutil_read_columns(
-  mtx_file,
-  memory_location,
-  r_column_index,
-  verbose = FALSE,
-  NUM_THREADS = 1L,
-  MIN_SIZE = 10L
-)
+mmutil_read_columns(mtx_file, memory_location, r_column_index, verbose = FALSE)
 }
 \arguments{
 \item{mtx_file}{data file}
@@ -31,13 +24,13 @@ Read a subset of columns from the data matrix
 rr <- rgamma(100, 1, 1) # one hundred cells
 mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
 data.hdr <- "test_sim"
-.files <- mmutilR::mmutil_simulate_poisson(mm, rr, data.hdr)
+.files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
 data.file <- .files$mtx
 idx.file <- .files$idx
-mtx.idx <- mmutilR::mmutil_read_index(idx.file)
+mtx.idx <- asapR::mmutil_read_index(idx.file)
 Y <- as.matrix(Matrix::readMM(data.file))
 col.pos <- c(1,13,77) # 1-based
-yy <- mmutilR::mmutil_read_columns(
+yy <- asapR::mmutil_read_columns(
                  data.file, mtx.idx, col.pos)
 all(Y[, col.pos, drop = FALSE] == yy)
 print(head(Y[, col.pos, drop = FALSE]))

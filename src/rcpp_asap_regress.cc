@@ -2,54 +2,224 @@
 
 //' Poisson regression to estimate factor loading
 //'
+//' @param Y D x N data matrix
+//' @param log_x D x K log dictionary/design matrix
+//' @param a0 gamma(a0, b0)
+//' @param b0 gamma(a0, b0)
+//' @param verbose verbosity
+//' @param do_stdize do the standardization of log_x
+//'
+// [[Rcpp::export]]
+Rcpp::List
+asap_regression(const Eigen::MatrixXf Y_dn,
+                const Eigen::MatrixXf log_x,
+                const double a0 = 1.,
+                const double b0 = 1.,
+                const std::size_t max_iter = 10,
+                const bool verbose = false,
+                const bool do_stdize_x = false,
+                const bool std_topic_latent = false)
+{
+
+    exp_op<Mat> exp;
+    at_least_one_op<Mat> at_least_one;
+    softmax_op_t<Mat> softmax;
+
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    const Scalar EPS = 1e-8;
+
+    const Index D = Y_dn.rows();
+    const Index N = Y_dn.cols();
+    const Index K = log_x.cols(); // number of topics
+
+    const Mat log_X = do_stdize_x ? standardize(log_x) : log_x;
+    const RowVec Xsum = log_X.unaryExpr(exp).colwise().sum();
+
+    using RNG = dqrng::xoshiro256plus;
+    using gamma_t = gamma_param_t<Mat, RNG>;
+    RNG rng;
+
+    Mat logRho_nk(Y_dn.cols(), K), rho_nk(Y_dn.cols(), K);
+    Mat logPhi_dk(Y_dn.rows(), K), phi_dk(Y_dn.rows(), K);
+    stdizer_t<Mat> std_ln_phi_dk(logPhi_dk, 1, 1);
+    stdizer_t<Mat> std_ln_rho_nk(logRho_nk, 1, 1);
+
+    gamma_t theta_nk(Y_dn.cols(), K, a0, b0, rng); // N x K
+
+    const ColVec Y_n = Y_dn.colwise().sum().transpose();
+    const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);
+    const ColVec Y_d = Y_dn.rowwise().sum();
+    const ColVec Y_d1 = Y_d.unaryExpr(at_least_one);
+
+    const Mat R_nk =
+        (Y_dn.transpose() * log_X).array().colwise() / Y_n1.array();
+    const Mat x_nk = ColVec::Ones(Y_dn.cols()) * Xsum;
+
+    RowVec tempK(K);
+
+    for (std::size_t t = 0; t < max_iter; ++t) {
+
+        ///////////////////////////////////
+        // recalibrate topic definitions //
+        ///////////////////////////////////
+
+        if (std_topic_latent) {
+
+            logPhi_dk = Y_dn * theta_nk.log_mean();
+            logPhi_dk.array().colwise() /= Y_d1.array();
+            logPhi_dk += log_X;
+
+            std_ln_phi_dk.colwise(EPS);
+            phi_dk = logPhi_dk.unaryExpr(exp);
+
+            theta_nk.update(rho_nk.cwiseProduct(Y_dn.transpose() * phi_dk),
+                            x_nk);
+            theta_nk.calibrate();
+        }
+
+        logRho_nk = R_nk + theta_nk.log_mean();
+
+        for (Index jj = 0; jj < Y_dn.cols(); ++jj) {
+            tempK = logRho_nk.row(jj);
+            logRho_nk.row(jj) = softmax.log_row(tempK);
+        }
+        rho_nk = logRho_nk.unaryExpr(exp);
+
+        theta_nk.update((rho_nk.array().colwise() * Y_n.array()).matrix(),
+                        x_nk);
+        theta_nk.calibrate();
+    }
+
+    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp),
+                              Rcpp::_["theta"] = theta_nk.mean(),
+                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
+                              Rcpp::_["corr"] = R_nk,
+                              Rcpp::_["latent"] = rho_nk,
+                              Rcpp::_["log.latent"] = logRho_nk);
+}
+
+//' Poisson regression to estimate factor loading
+//'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param memory_location column indexing for the mtx
 //' @param log_x D x K log dictionary/design matrix
+//' @param r_x_row_names (default: NULL)
+//' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_stdize do the standardization of log_x
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_regression_mtx(const std::string mtx_file,
-                    const Rcpp::NumericVector &memory_location,
-                    const Eigen::MatrixXf log_x,
-                    const double a0 = 1.,
-                    const double b0 = 1.,
-                    const std::size_t max_iter = 10,
-                    const bool verbose = false,
-                    const std::size_t NUM_THREADS = 1,
-                    const std::size_t BLOCK_SIZE = 100)
+asap_regression_mtx(
+    const std::string mtx_file,
+    const Rcpp::NumericVector &memory_location,
+    const Eigen::MatrixXf log_x,
+    const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names = R_NilValue,
+    const double a0 = 1.,
+    const double b0 = 1.,
+    const std::size_t max_iter = 10,
+    const bool verbose = false,
+    const std::size_t NUM_THREADS = 1,
+    const std::size_t BLOCK_SIZE = 100,
+    const bool do_stdize_x = false,
+    const bool std_topic_latent = false)
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    CHK_RETL(convert_bgzip(mtx_file));
+    const Scalar EPS = 1e-8;
+
+    std::vector<Index> x_row_idx;
+    std::vector<Index> mtx_row_idx;
+    bool take_row_subset = false;
+    if (r_x_row_names.isNotNull() && r_mtx_row_names.isNotNull()) {
+
+        const Rcpp::StringVector x_row_names(r_x_row_names);
+        const Rcpp::StringVector mtx_row_names(r_mtx_row_names);
+
+        std::unordered_map<Rcpp::String, Index> mtx_row_pos;
+        {
+            Index mi = 0;
+            for (auto r : mtx_row_names) {
+                mtx_row_pos[r] = mi++;
+            }
+        }
+        Index xi = 0;
+        for (auto r : x_row_names) {
+            if (mtx_row_pos.count(r) > 0) {
+                Index mi = mtx_row_pos[r];
+                mtx_row_idx.emplace_back(mi);
+                x_row_idx.emplace_back(xi);
+            }
+            ++xi;
+        }
+        if (verbose) {
+            TLOG(xi << " rows matched between X and MTX");
+        }
+        ASSERT_RETL(xi > 0,
+                    " At least one common name should be present "
+                        << " in both x_row_names and mtx_row_names");
+        take_row_subset = true;
+    }
+
+    CHK_RETL_(convert_bgzip(mtx_file),
+              "mtx file " << mtx_file << " was not bgzipped.");
+
     mm_info_reader_t info;
     CHK_RETL_(peek_bgzf_header(mtx_file, info),
               "Failed to read the size of this mtx file:" << mtx_file);
 
-    const Index D = info.max_row; // dimensionality
-    const Index N = info.max_col; // number of cells
-    const Index K = log_x.cols(); // number of topics
-    const Index block_size = BLOCK_SIZE;
-    const Scalar TOL = 1e-20;
-
-    auto exp_op = [](const Scalar &_x) -> Scalar { return fasterexp(_x); };
-
-    ASSERT_RETL(log_x.rows() == D, "incompatible log X: " << mtx_file);
+    const Index D = info.max_row;        // dimensionality
+    const Index N = info.max_col;        // number of cells
+    const Index K = log_x.cols();        // number of topics
+    const Index block_size = BLOCK_SIZE; // memory block size
 
     if (verbose) {
         TLOG("Start recalibrating column-wise loading parameters...");
         TLOG("Theta: " << N << " x " << K);
-        Rcpp::Rcerr << "Calibrating total = " << N << std::flush;
     }
 
-    const Mat log_X = standardize(log_x);
-    const RowVec Xsum = log_X.unaryExpr(exp_op).colwise().sum();
+    exp_op<Mat> exp;
+    at_least_one_op<Mat> at_least_one;
+    Mat log_X;
+
+    /////////////////////////////
+    // preprocess log_X matrix //
+    /////////////////////////////
+    eigen_triplet_reader_remapped_rows_cols_t::index_map_t mtx_row_loc;
+
+    {
+        if (!take_row_subset) {
+            ASSERT_RETL(log_x.rows() == D,
+                        "The log-X matrix contains "
+                            << " different numbers of rows: " << mtx_file);
+            log_X = do_stdize_x ? standardize(log_x) : log_x;
+        } else {
+            const Index d = x_row_idx.size();
+            Mat temp(d, log_x.cols());
+            for (Index r = 0; r < d; ++r) {
+                temp.row(r) = log_x.row(x_row_idx.at(r));
+            }
+            log_X = do_stdize_x ? standardize(temp) : temp;
+            for (Index r = 0; r < d; ++r) {
+                mtx_row_loc[mtx_row_idx.at(r)] = r;
+            }
+        }
+    }
+
+    if (verbose) {
+        TLOG("log.X: " << log_X.rows() << " x " << log_X.cols());
+    }
+
+    RowVec Xsum = log_X.unaryExpr(exp).colwise().sum();
 
     Mat R_tot(N, K);
     Mat Z_tot(N, K);
@@ -59,57 +229,108 @@ asap_regression_mtx(const std::string mtx_file,
 
     Index Nprocessed = 0;
 
+    if (verbose) {
+        Rcpp::Rcerr << "Calibrating total = " << N << std::flush;
+    }
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
+        Index ub = std::min(N, block_size + lb);
+        Index col_lb_mem = memory_location[lb];
+        Index col_ub_mem = ub < N ? memory_location[ub] : 0; // 0 = the end
 
-        const Index ub = std::min(N, block_size + lb);
+        Mat Y_dn;
 
-        const Index l = memory_location[lb];
-        const Index u = ub < N ? memory_location[ub] : 0; // 0 = the end
-        const SpMat y = read_eigen_sparse_subset_col(mtx_file, lb, ub, l, u);
+        if (take_row_subset) {
+            SpMat y = read_eigen_sparse_subset_row_col(mtx_file,
+                                                       mtx_row_loc,
+                                                       lb,
+                                                       ub,
+                                                       col_lb_mem,
+                                                       col_ub_mem);
+            Y_dn = Mat(y);
 
-        Mat Y = Mat(y);
+        } else {
+            SpMat y = read_eigen_sparse_subset_col(mtx_file,
+                                                   lb,
+                                                   ub,
+                                                   col_lb_mem,
+                                                   col_ub_mem);
+            Y_dn = Mat(y);
+        }
 
         using RNG = dqrng::xoshiro256plus;
         using gamma_t = gamma_param_t<Mat, RNG>;
         RNG rng;
         softmax_op_t<Mat> softmax;
 
-        ColVec Ysum = Y.colwise().sum().transpose(); // n x 1
-        gamma_t theta_b(Y.cols(), K, a0, b0, rng);   // n x K
-        Mat logZ(Y.cols(), K), Z(Y.cols(), K);       // n x K
-        Mat R = (Y.transpose() * log_X).array().colwise() / Ysum.array();
+        const ColVec Y_n = Y_dn.colwise().sum().transpose(); // n x 1
+        const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1
+        const ColVec Y_d = Y_dn.rowwise().sum();             // d x 1
+        const ColVec Y_d1 = Y_d.unaryExpr(at_least_one);     // d x 1
+        gamma_t theta_b(Y_dn.cols(), K, a0, b0, rng);        // n x K
 
-        ColVec onesN(Y.cols());  // n x 1
-        onesN.setOnes();         //
-        Mat x_nk = onesN * Xsum; // n x K
+        Mat logRho_nk(Y_dn.cols(), K), rho_nk(Y_dn.cols(), K);
+        Mat logPhi_dk(Y_dn.rows(), K), phi_dk(Y_dn.rows(), K);
+
+        Mat R_nk = (Y_dn.transpose() * log_X).array().colwise() / Y_n1.array();
+
+        ColVec onesN(Y_dn.cols()); // n x 1
+        onesN.setOnes();           //
+        Mat x_nk = onesN * Xsum;   // n x K
+
+        RowVec tempK(K);
+
+        stdizer_t<Mat> std_ln_phi_dk(logPhi_dk, 1, 1);
+        stdizer_t<Mat> std_ln_rho_nk(logRho_nk, 1, 1);
 
         for (std::size_t t = 0; t < max_iter; ++t) {
 
-            logZ = theta_b.log_mean() + R;
-            for (Index i = 0; i < Y.cols(); ++i) {
-                Z.row(i) = softmax.apply_row(logZ.row(i));
+            ///////////////////////////////////
+            // recalibrate topic definitions //
+            ///////////////////////////////////
+
+            if (std_topic_latent) {
+                logPhi_dk = Y_dn * theta_b.log_mean();
+                logPhi_dk.array().colwise() /= Y_d1.array();
+                logPhi_dk += log_X;
+
+                std_ln_phi_dk.colwise(EPS);
+                phi_dk = logPhi_dk.unaryExpr(exp);
+
+                theta_b.update(rho_nk.cwiseProduct(Y_dn.transpose() * phi_dk),
+                               x_nk);
+                theta_b.calibrate();
             }
 
-            theta_b.update((Z.array().colwise() * Ysum.array()).matrix(), x_nk);
+            logRho_nk = R_nk + theta_b.log_mean();
+
+            for (Index jj = 0; jj < Y_dn.cols(); ++jj) {
+                tempK = logRho_nk.row(jj);
+                logRho_nk.row(jj) = softmax.log_row(tempK);
+            }
+            rho_nk = logRho_nk.unaryExpr(exp);
+
+            theta_b.update((rho_nk.array().colwise() * Y_n.array()).matrix(),
+                           x_nk);
             theta_b.calibrate();
         }
 
         for (Index i = 0; i < (ub - lb); ++i) {
             const Index j = i + lb;
-            Z_tot.row(j) = Z.row(i);
-            logZ_tot.row(j) = logZ.row(i);
-            R_tot.row(j) = R.row(i);
+            Z_tot.row(j) = rho_nk.row(i);
+            logZ_tot.row(j) = logRho_nk.row(i);
+            R_tot.row(j) = R_nk.row(i);
             theta_tot.row(j) = theta_b.mean().row(i);
             log_theta_tot.row(j) = theta_b.log_mean().row(i);
         }
 
-        Nprocessed += Y.cols();
+        Nprocessed += Y_dn.cols();
         if (verbose) {
-            Rcpp::Rcerr << "\rprocessed: " << Nprocessed << std::flush;
+            Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
         } else {
             Rcpp::Rcerr << "+ " << std::flush;
         }
@@ -118,7 +339,7 @@ asap_regression_mtx(const std::string mtx_file,
     Rcpp::Rcerr << std::endl;
     TLOG("Done");
 
-    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp_op),
+    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp),
                               Rcpp::_["theta"] = theta_tot,
                               Rcpp::_["corr"] = R_tot,
                               Rcpp::_["latent"] = Z_tot,

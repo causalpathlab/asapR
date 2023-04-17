@@ -9,6 +9,7 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_normalize normalize each column after random projection
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_row_std rowwise standardization (default: FALSE)
 //'
@@ -21,6 +22,7 @@ asap_random_bulk_data(const std::string mtx_file,
                       const bool verbose = false,
                       const std::size_t NUM_THREADS = 1,
                       const std::size_t BLOCK_SIZE = 100,
+                      const bool do_normalize = false,
                       const bool do_log1p = false,
                       const bool do_row_std = false)
 {
@@ -156,10 +158,10 @@ asap_random_bulk_data(const std::string mtx_file,
 
     const std::size_t lu_iter = 5;      // this should be good
     RandomizedSVD<Mat> svd(K, lu_iter); //
-    if (verbose)
-        svd.set_verbose();
+    // if (verbose) svd.set_verbose();
 
-    normalize_columns(Q);
+    if (do_normalize)
+        normalize_columns(Q);
     svd.compute(Q);
     Mat random_dict = standardize(svd.matrixV()); // N x K
 
@@ -212,7 +214,9 @@ asap_random_bulk_data(const std::string mtx_file,
                    _pos_op);
 
     Mat PB(D, S);
+    Mat Qpb(K, S);
     PB.setZero();
+    Qpb.setZero();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -237,15 +241,24 @@ asap_random_bulk_data(const std::string mtx_file,
             const Index j = i + lb;
             const Index k = positions.at(j);
             PB.col(k) += x.col(i);
+            Qpb.col(k) += Q.col(j);
         }
     }
+
+    if (do_normalize)
+        normalize_columns(Qpb);
 
     if (verbose)
         TLOG("Finished populating the PB matrix: " << PB.rows() << " x "
                                                    << PB.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = PB,
+                              Rcpp::_["Q"] = Q,
+                              Rcpp::_["Q.pb"] = Qpb,
                               Rcpp::_["rand.dict"] = random_dict,
+                              Rcpp::_["svd.u"] = svd.matrixU(),
+                              Rcpp::_["svd.d"] = svd.singularValues(),
+                              Rcpp::_["svd.v"] = svd.matrixV(),
                               Rcpp::_["positions"] = positions,
                               Rcpp::_["rand.proj"] = R);
 }

@@ -31,7 +31,6 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                        const std::size_t max_iter = 100,
                        const std::size_t burnin = 10,
                        const bool verbose = true,
-                       const bool discretize = true,
                        const double a0 = 1,
                        const double b0 = 1,
                        const std::size_t rseed = 1337,
@@ -167,10 +166,6 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
         logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += beta_dk.log_mean();
 
-        if (tt <= burnin) {
-            std_ln_phi_dk.colwise(EPS);
-        }
-
         for (Index ii = 0; ii < D; ++ii) {
             tempK = logPhi_dk.row(ii);
             logPhi_dk.row(ii) = softmax.log_row(tempK);
@@ -183,16 +178,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
                 phi_dk(ii, k) = 1.;
             }
         } else {
-            if (discretize) {
-                phi_dk.setZero();
-                for (Index ii = 0; ii < D; ++ii) {
-                    Index k;
-                    logPhi_dk.row(ii).maxCoeff(&k);
-                    phi_dk(ii, k) = 1.;
-                }
-            } else {
-                phi_dk = logPhi_dk.unaryExpr(exp);
-            }
+            phi_dk = logPhi_dk.unaryExpr(exp);
         }
 
         ///////////////////////
@@ -285,13 +271,13 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
     TLOG("Done");
 
     Mat log_x = standardize(beta_dk.log_mean());
-    Mat R = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
+    Mat R_nk = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
                               Rcpp::_["beta"] = beta_dk.mean(),
                               Rcpp::_["log.beta"] = beta_dk.log_mean(),
                               Rcpp::_["log_x"] = log_x,
-                              Rcpp::_["corr"] = R,
+                              Rcpp::_["corr"] = R_nk,
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["log.phi"] = logPhi_dk,

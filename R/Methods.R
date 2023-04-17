@@ -7,7 +7,9 @@
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param .burnin burn-in period in the record keeping (default: 10)
-#' @param .thining thining for the record keeping (default: 3)
+#' @param .reg.steps number of steps in regression analysis (default: 10)
+#' @param .reg.stdize standardize X in regression (default: TRUE)
+#' @param .reg.stdize.latent standardize latent states in regression (default: FALSE)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -29,15 +31,15 @@
 #'   \item `nmf` non-negative matrix factorization results
 #'   \itemize{
 #'     \item `log.likelihood` log-likelihood trace
-#'     \item `beta` dictionary of PB data 
-#'     \item `log.beta` log dictionary of PB data 
-#'     \item `theta` factor loadings of PB data 
-#'     \item `log.theta` log factor loadings of PB data 
+#'     \item `beta` dictionary of PB data
+#'     \item `log.beta` log dictionary of PB data
+#'     \item `theta` factor loadings of PB data
+#'     \item `log.theta` log factor loadings of PB data
 #'     \item `log.phi` auxiliary variable (feature x factor)
 #'     \item `log.rho` auxiliary variable (sample x factor)
 #'     \item `beta.rescaled` rescaled dictionary
 #'     \item `theta.rescaled` rescaled factor loading
-#'     \item `depth`         
+#'     \item `depth`
 #'   }
 #'   \item `corr` sample x factor correlation matrix
 #' }
@@ -49,7 +51,10 @@ fit.topic.asap <- function(mtx.file,
                            num.proj = 1,
                            em.step = 100,
                            max.pb.size = 1000,
-                           .burnin = 50,
+                           .burnin = 10,
+                           .reg.steps = 10,
+                           .reg.stdize = TRUE,
+                           .reg.stdize.latent = FALSE,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
@@ -98,13 +103,6 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase II: Perform Poisson matrix factorization ...")
 
-    if(!is.null(Y.ref)){
-        if(nrow(Y) != nrow(Y.ref)) {
-            message("nrow(Y.ref) != nrow(Y)")
-        }
-        Y <- cbind(Y, Y.ref)
-    }
-
     .nmf <- asap_fit_nmf_alternate(Y,
                                    maxK = k,
                                    max_iter = em.step,
@@ -125,16 +123,34 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase III: Calibrating the topic loading of the original data")
 
-    log.x <- .nmf$log_x
+    log.x <- .nmf$log.beta
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 memory_location = mtx.index,
                                 log_x = log.x,
                                 a0 = a0, b0 = b0,
-                                max_iter = em.step,
+                                max_iter = .reg.steps,
                                 verbose = verbose,
                                 NUM_THREADS = num.threads,
-                                BLOCK_SIZE = block.size)
+                                BLOCK_SIZE = block.size,
+                                do_stdize_x = .reg.stdize,
+                                std_topic_latent = .reg.stdize.latent)
+
+    if(!is.null(Y.ref)){
+        if(nrow(Y) != nrow(Y.ref)) {
+            message("nrow(Y.ref) != nrow(Y)")
+        } else {
+            ref <- asap_regression(Y_dn = Y.ref,
+                                   log_x = log.x,
+                                   a0 = a0, b0 = b0,
+                                   max_iter = .reg.steps,
+                                   verbose = verbose,
+                                   do_stdize_x = .reg.stdize,
+                                   std_topic_latent = .reg.stdize.latent)
+        }
+    } else {
+        ref <- NULL
+    }
 
     message("normalizing the estimated model parameters")
 
@@ -145,6 +161,7 @@ fit.topic.asap <- function(mtx.file,
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$Y <- Y
+    asap$ref <- ref
     return(asap)
 }
 

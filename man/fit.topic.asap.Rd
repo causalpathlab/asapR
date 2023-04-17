@@ -12,7 +12,10 @@ fit.topic.asap(
   num.proj = 1,
   em.step = 100,
   max.pb.size = 1000,
-  .burnin = 50,
+  .burnin = 10,
+  .reg.steps = 10,
+  .reg.stdize = TRUE,
+  .reg.stdize.latent = FALSE,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -42,6 +45,12 @@ fit.topic.asap(
 
 \item{.burnin}{burn-in period in the record keeping (default: 10)}
 
+\item{.reg.steps}{number of steps in regression analysis (default: 10)}
+
+\item{.reg.stdize}{standardize X in regression (default: TRUE)}
+
+\item{.reg.stdize.latent}{standardize latent states in regression (default: FALSE)}
+
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
 \item{b0}{Gamma(a0, b0) prior (default: 1)}
@@ -55,8 +64,6 @@ fit.topic.asap(
 \item{block.size}{a block size for disk I/O (default: 100)}
 
 \item{.rand.seed}{random seed (default: 42)}
-
-\item{.thining}{thining for the record keeping (default: 3)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

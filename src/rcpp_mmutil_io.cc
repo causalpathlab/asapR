@@ -14,6 +14,7 @@ using namespace mmutil::io;
 using namespace mmutil::bgzf;
 
 using triplet_reader_t = eigen_triplet_reader_remapped_cols_t;
+using triplet_subrow_reader_t = eigen_triplet_reader_remapped_rows_cols_t;
 using Index = triplet_reader_t::index_t;
 
 //' Just read the header information
@@ -99,6 +100,20 @@ int _mmutil_read_columns_triplets(const std::string mtx_file,
                                   Index &max_col,
                                   const bool verbose);
 
+/////////////////////////////////////
+// Reading random rows and columns //
+/////////////////////////////////////
+template <typename VEC1, typename VEC2, typename VEC3>
+int
+_mmutil_read_rows_columns_triplets(const std::string mtx_file,
+                                   const VEC1 &memory_location,
+                                   const VEC2 &r_row_index,
+                                   const VEC3 &r_column_index,
+                                   triplet_subrow_reader_t::TripletVec &Tvec,
+                                   Index &max_row,
+                                   Index &max_col,
+                                   const bool verbose);
+
 //' Read a subset of columns from the data matrix
 //' @param mtx_file data file
 //' @param memory_location column -> memory location
@@ -111,75 +126,21 @@ Rcpp::List
 mmutil_read_columns_sparse(const std::string mtx_file,
                            const Rcpp::NumericVector &memory_location,
                            const Rcpp::NumericVector &r_column_index,
-                           const bool verbose = false,
-                           const std::size_t NUM_THREADS = 1,
-                           const std::size_t MIN_SIZE = 10)
+                           const bool verbose = false)
 {
     Index max_row = 0, max_col = 0;
     triplet_reader_t::TripletVec Tvec;
 
     const std::size_t N = r_column_index.size();
-    const std::size_t B =
-        N / std::max(NUM_THREADS, static_cast<std::size_t>(1));
 
-    if (NUM_THREADS < 2 || B <= MIN_SIZE) {
-        CHK_RETL_(_mmutil_read_columns_triplets(mtx_file,
-                                                memory_location,
-                                                r_column_index,
-                                                Tvec,
-                                                max_row,
-                                                max_col,
-                                                verbose),
-                  "Failed to read the triplets");
-    } else {
-
-        using triplet_t = triplet_reader_t::Triplet;
-
-        mm_info_reader_t info;
-        CHK_RETL_(peek_bgzf_header(mtx_file, info),
-                  "Failed to read the mtx file:" << mtx_file);
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for ordered schedule(dynamic)
-#endif
-        for (std::size_t lb = 0; lb < N; lb += B) {
-            std::size_t ub = std::min(lb + B, N);
-            Index _max_row, _max_col;
-            triplet_reader_t::TripletVec _tvec;
-            std::vector<Index> subcols;
-            subcols.reserve(ub - lb);
-            for (std::size_t b = lb; b < ub; ++b) {
-                const auto r = r_column_index[b];
-                if (r >= 1 && r <= info.max_col)
-                    subcols.emplace_back(r);
-            }
-
-            _mmutil_read_columns_triplets(mtx_file,
-                                          memory_location,
-                                          subcols,
-                                          _tvec,
-                                          _max_row,
-                                          _max_col,
-                                          verbose);
-#pragma omp ordered
-            {
-                for (auto tt : _tvec) {
-                    Tvec.emplace_back(
-                        triplet_t(tt.row(), tt.col() + lb, tt.value()));
-                }
-                if (_max_row > max_row)
-                    max_row = _max_row;
-
-                max_col += _max_col;
-                if (_tvec.size() < 1) {
-                    WLOG("Found " << (ub - lb - _max_col)
-                                  << " empty columns in a block: [" << (lb + 1)
-                                  << ", " << ub << "]");
-                }
-            } // END of ordered
-        }
-    }
+    CHK_RETL_(_mmutil_read_columns_triplets(mtx_file,
+                                            memory_location,
+                                            r_column_index,
+                                            Tvec,
+                                            max_row,
+                                            max_col,
+                                            verbose),
+              "Failed to read the triplets");
 
     /////////////////////////////////////////
     // populate items in the return matrix //
@@ -193,10 +154,6 @@ mmutil_read_columns_sparse(const std::string mtx_file,
     Rcpp::IntegerVector col_index(nout, NA_INTEGER);
     Rcpp::NumericVector val_vec(nout, NA_REAL);
 
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
     for (std::size_t i = 0; i < nout; ++i) {
         row_index[i] = Tvec.at(i).row() + 1; // convert to 1-based
         col_index[i] = Tvec.at(i).col() + 1; // convert to 1-based
@@ -223,13 +180,13 @@ mmutil_read_columns_sparse(const std::string mtx_file,
 //' rr <- rgamma(100, 1, 1) # one hundred cells
 //' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
 //' data.hdr <- "test_sim"
-//' .files <- mmutilR::mmutil_simulate_poisson(mm, rr, data.hdr)
+//' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
 //' data.file <- .files$mtx
 //' idx.file <- .files$idx
-//' mtx.idx <- mmutilR::mmutil_read_index(idx.file)
+//' mtx.idx <- asapR::mmutil_read_index(idx.file)
 //' Y <- as.matrix(Matrix::readMM(data.file))
 //' col.pos <- c(1,13,77) # 1-based
-//' yy <- mmutilR::mmutil_read_columns(
+//' yy <- asapR::mmutil_read_columns(
 //'                  data.file, mtx.idx, col.pos)
 //' all(Y[, col.pos, drop = FALSE] == yy)
 //' print(head(Y[, col.pos, drop = FALSE]))
@@ -241,75 +198,89 @@ Rcpp::NumericMatrix
 mmutil_read_columns(const std::string mtx_file,
                     const Rcpp::NumericVector &memory_location,
                     const Rcpp::NumericVector &r_column_index,
-                    const bool verbose = false,
-                    const std::size_t NUM_THREADS = 1,
-                    const std::size_t MIN_SIZE = 10)
+                    const bool verbose = false)
 {
 
     Index max_row = 0, max_col = 0;
     triplet_reader_t::TripletVec Tvec;
 
     const std::size_t N = r_column_index.size();
-    const std::size_t B =
-        N / std::max(NUM_THREADS, static_cast<std::size_t>(1));
 
-    if (NUM_THREADS < 2 || B <= MIN_SIZE) {
-        CHK_RETM_(_mmutil_read_columns_triplets(mtx_file,
-                                                memory_location,
-                                                r_column_index,
-                                                Tvec,
-                                                max_row,
-                                                max_col,
-                                                verbose),
-                  "Failed to read the triplets");
-    } else {
+    CHK_RETM_(_mmutil_read_columns_triplets(mtx_file,
+                                            memory_location,
+                                            r_column_index,
+                                            Tvec,
+                                            max_row,
+                                            max_col,
+                                            verbose),
+              "Failed to read the triplets");
 
-        mm_info_reader_t info;
-        CHK_RETM_(peek_bgzf_header(mtx_file, info),
-                  "Failed to read the mtx file:" << mtx_file);
-
-        using triplet_t = triplet_reader_t::Triplet;
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for ordered schedule(dynamic)
-#endif
-        for (std::size_t lb = 0; lb < N; lb += B) {
-            std::size_t ub = std::min(lb + B, N);
-            Index _max_row, _max_col;
-            triplet_reader_t::TripletVec _tvec;
-            std::vector<Index> subcols;
-            subcols.reserve(ub - lb);
-            for (std::size_t b = lb; b < ub; ++b) {
-                const auto r = r_column_index[b];
-                if (r >= 1 && r <= info.max_col)
-                    subcols.emplace_back(r);
-            }
-
-            _mmutil_read_columns_triplets(mtx_file,
-                                          memory_location,
-                                          subcols,
-                                          _tvec,
-                                          _max_row,
-                                          _max_col,
-                                          verbose);
-#pragma omp ordered
-            {
-                for (auto tt : _tvec) {
-                    Tvec.emplace_back(
-                        triplet_t(tt.row(), tt.col() + lb, tt.value()));
-                }
-                if (_max_row > max_row)
-                    max_row = _max_row;
-                max_col += _max_col;
-                if (_tvec.size() < 1) {
-                    WLOG("Found " << (ub - lb - _max_col)
-                                  << " empty columns in a block: [" << (lb + 1)
-                                  << ", " << ub << "]");
-                }
-            } // END of ordered
-        }
+    if (N > max_col) {
+        WLOG("Found " << (N - max_col) << " empty columns");
     }
+
+    SpMat X(max_row, N);
+    X.setZero();
+    X.reserve(Tvec.size());
+    X.setFromTriplets(Tvec.begin(), Tvec.end());
+
+    SEXP xx = Rcpp::wrap(Mat(X));
+    Rcpp::NumericMatrix ret(xx);
+    return ret;
+}
+
+//' Read a subset of rows and columns from the data matrix
+//' @param mtx_file data file
+//' @param memory_location column -> memory location
+//' @param r_row_index row indexes to retrieve (1-based)
+//' @param r_column_index column indexes to retrieve (1-based)
+//' @param verbose verbosity
+//'
+//' @return a dense sub-matrix
+//'
+//' @examples
+//'
+//' rr <- rgamma(100, 1, 1) # one hundred cells
+//' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
+//' data.hdr <- "test_sim"
+//' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
+//' data.file <- .files$mtx
+//' idx.file <- .files$idx
+//' mtx.idx <- asapR::mmutil_read_index(idx.file)
+//' Y <- as.matrix(Matrix::readMM(data.file))
+//' col.pos <- c(1,13,77) # 1-based
+//' row.pos <- 1:10
+//' yy <- asapR::mmutil_read_rows_columns(
+//'                  data.file, mtx.idx, row.pos, col.pos)
+//' all(Y[, col.pos, drop = FALSE] == yy)
+//' print(head(Y[, col.pos, drop = FALSE]))
+//' print(head(yy))
+//' print(tail(yy))
+//' unlink(list.files(pattern = data.hdr))
+//'
+// [[Rcpp::export]]
+Rcpp::NumericMatrix
+mmutil_read_rows_columns(const std::string mtx_file,
+                         const Rcpp::NumericVector &memory_location,
+                         const Rcpp::NumericVector &r_row_index,
+                         const Rcpp::NumericVector &r_column_index,
+                         const bool verbose = false)
+{
+
+    Index max_row = 0, max_col = 0;
+    triplet_reader_t::TripletVec Tvec;
+
+    const std::size_t N = r_column_index.size();
+
+    CHK_RETM_(_mmutil_read_rows_columns_triplets(mtx_file,
+                                                 memory_location,
+                                                 r_row_index,
+                                                 r_column_index,
+                                                 Tvec,
+                                                 max_row,
+                                                 max_col,
+                                                 verbose),
+              "Failed to read the triplets");
 
     if (N > max_col) {
         WLOG("Found " << (N - max_col) << " empty columns");
@@ -407,6 +378,95 @@ _mmutil_read_columns_triplets(const std::string mtx_file,
 
     if (verbose)
         TLOG("Successfully read " << blocks.size() << " block(s)");
+
+    return EXIT_SUCCESS;
+}
+
+template <typename VEC1, typename VEC2, typename VEC3>
+int
+_mmutil_read_rows_columns_triplets(const std::string mtx_file,
+                                   const VEC1 &memory_location,
+                                   const VEC2 &r_row_index,
+                                   const VEC3 &r_column_index,
+                                   triplet_subrow_reader_t::TripletVec &Tvec,
+                                   Index &max_row,
+                                   Index &max_col,
+                                   const bool verbose)
+{
+
+    mm_info_reader_t info;
+    CHK_RET_(peek_bgzf_header(mtx_file, info),
+             "Failed to read the mtx file:" << mtx_file);
+
+    ///////////////////////////////////////////////
+    // We normally expect 1-based columns from R //
+    ///////////////////////////////////////////////
+
+    // convert 1-based to 0-based
+    std::vector<Index> column_index;
+    column_index.reserve(r_column_index.size());
+    for (auto k : r_column_index) {
+        if (k >= 1 && k <= info.max_col) {
+            column_index.emplace_back(k - 1);
+        }
+    }
+
+    max_col = 0;
+
+    if (column_index.size() < 0)
+        return EXIT_FAILURE;
+
+    /////////////////////
+    // check the files //
+    /////////////////////
+
+    max_row = info.max_row;
+    CHK_RET(convert_bgzip(mtx_file));
+
+    if (verbose)
+        TLOG("info: " << info.max_row << " x " << info.max_col << " ("
+                      << info.max_elem << " elements)");
+
+    triplet_subrow_reader_t::index_map_t column_index_order;
+    for (auto k : column_index) {
+        const Index kk = static_cast<const Index>(k);
+        if (column_index_order.count(kk) < 1)
+            column_index_order[kk] = max_col++;
+    }
+
+    triplet_subrow_reader_t::index_map_t row_loc_map;
+    for (auto k : r_row_index) {
+        if (k >= 1 && k <= info.max_row) {
+            const Index r = k - 1; // one-based
+            row_loc_map[r] = r;    // to zero-based
+        }
+    }
+
+    Tvec.clear();
+
+    const auto blocks = find_consecutive_blocks(memory_location, column_index);
+
+    for (auto block : blocks) {
+
+        triplet_subrow_reader_t::index_map_t col_loc_map;
+        for (Index j = block.lb; j < block.ub; ++j) {
+
+            /////////////////////////////////////////////////
+            // Sometimes...				   //
+            // we may encounter discontinuous_index vector //
+            // So, we need to check again                  //
+            /////////////////////////////////////////////////
+
+            if (column_index_order.count(j) > 0) {
+                col_loc_map[j] = column_index_order[j];
+            }
+        }
+
+        triplet_subrow_reader_t reader(Tvec, row_loc_map, col_loc_map);
+
+        CHK_RET_(visit_bgzf_block(mtx_file, block.lb_mem, block.ub_mem, reader),
+                 "Failed on [" << block.lb << ", " << block.ub << ")");
+    }
 
     return EXIT_SUCCESS;
 }

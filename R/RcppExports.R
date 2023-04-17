@@ -65,8 +65,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, discretize = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, discretize, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
+asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data
@@ -100,11 +100,25 @@ asap_predict_mtx <- function(mtx_file, memory_location, beta_dict, do_beta_resca
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_log1p log(x + 1) transformation (default: TRUE)
-#' @param do_row_std rowwise standardization (default: TRUE)
+#' @param do_normalize normalize each column after random projection
+#' @param do_log1p log(x + 1) transformation (default: FALSE)
+#' @param do_row_std rowwise standardization (default: FALSE)
 #'
-asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = TRUE, do_row_std = TRUE) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_row_std)
+asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std)
+}
+
+#' Poisson regression to estimate factor loading
+#'
+#' @param Y D x N data matrix
+#' @param log_x D x K log dictionary/design matrix
+#' @param a0 gamma(a0, b0)
+#' @param b0 gamma(a0, b0)
+#' @param verbose verbosity
+#' @param do_stdize do the standardization of log_x
+#'
+asap_regression <- function(Y_dn, log_x, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_dn, log_x, a0, b0, max_iter, verbose, do_stdize_x, std_topic_latent)
 }
 
 #' Poisson regression to estimate factor loading
@@ -112,14 +126,17 @@ asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed 
 #' @param mtx_file matrix-market-formatted data file (bgzip)
 #' @param memory_location column indexing for the mtx
 #' @param log_x D x K log dictionary/design matrix
+#' @param r_x_row_names (default: NULL)
+#' @param r_mtx_row_names (default: NULL)
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_stdize do the standardization of log_x
 #'
-asap_regression_mtx <- function(mtx_file, memory_location, log_x, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
+asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x, std_topic_latent)
 }
 
 #' Clustering the rows of a count data matrix
@@ -198,8 +215,8 @@ mmutil_write_mtx <- function(X, mtx_file) {
 #'
 #' @return lists of rows, columns, values
 #'
-mmutil_read_columns_sparse <- function(mtx_file, memory_location, r_column_index, verbose = FALSE, NUM_THREADS = 1L, MIN_SIZE = 10L) {
-    .Call('_asapR_mmutil_read_columns_sparse', PACKAGE = 'asapR', mtx_file, memory_location, r_column_index, verbose, NUM_THREADS, MIN_SIZE)
+mmutil_read_columns_sparse <- function(mtx_file, memory_location, r_column_index, verbose = FALSE) {
+    .Call('_asapR_mmutil_read_columns_sparse', PACKAGE = 'asapR', mtx_file, memory_location, r_column_index, verbose)
 }
 
 #' Read a subset of columns from the data matrix
@@ -214,21 +231,54 @@ mmutil_read_columns_sparse <- function(mtx_file, memory_location, r_column_index
 #' rr <- rgamma(100, 1, 1) # one hundred cells
 #' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
 #' data.hdr <- "test_sim"
-#' .files <- mmutilR::mmutil_simulate_poisson(mm, rr, data.hdr)
+#' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
 #' data.file <- .files$mtx
 #' idx.file <- .files$idx
-#' mtx.idx <- mmutilR::mmutil_read_index(idx.file)
+#' mtx.idx <- asapR::mmutil_read_index(idx.file)
 #' Y <- as.matrix(Matrix::readMM(data.file))
 #' col.pos <- c(1,13,77) # 1-based
-#' yy <- mmutilR::mmutil_read_columns(
+#' yy <- asapR::mmutil_read_columns(
 #'                  data.file, mtx.idx, col.pos)
 #' all(Y[, col.pos, drop = FALSE] == yy)
 #' print(head(Y[, col.pos, drop = FALSE]))
 #' print(head(yy))
 #' unlink(list.files(pattern = data.hdr))
 #'
-mmutil_read_columns <- function(mtx_file, memory_location, r_column_index, verbose = FALSE, NUM_THREADS = 1L, MIN_SIZE = 10L) {
-    .Call('_asapR_mmutil_read_columns', PACKAGE = 'asapR', mtx_file, memory_location, r_column_index, verbose, NUM_THREADS, MIN_SIZE)
+mmutil_read_columns <- function(mtx_file, memory_location, r_column_index, verbose = FALSE) {
+    .Call('_asapR_mmutil_read_columns', PACKAGE = 'asapR', mtx_file, memory_location, r_column_index, verbose)
+}
+
+#' Read a subset of rows and columns from the data matrix
+#' @param mtx_file data file
+#' @param memory_location column -> memory location
+#' @param r_row_index row indexes to retrieve (1-based)
+#' @param r_column_index column indexes to retrieve (1-based)
+#' @param verbose verbosity
+#'
+#' @return a dense sub-matrix
+#'
+#' @examples
+#'
+#' rr <- rgamma(100, 1, 1) # one hundred cells
+#' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
+#' data.hdr <- "test_sim"
+#' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
+#' data.file <- .files$mtx
+#' idx.file <- .files$idx
+#' mtx.idx <- asapR::mmutil_read_index(idx.file)
+#' Y <- as.matrix(Matrix::readMM(data.file))
+#' col.pos <- c(1,13,77) # 1-based
+#' row.pos <- 1:10
+#' yy <- asapR::mmutil_read_rows_columns(
+#'                  data.file, mtx.idx, row.pos, col.pos)
+#' all(Y[, col.pos, drop = FALSE] == yy)
+#' print(head(Y[, col.pos, drop = FALSE]))
+#' print(head(yy))
+#' print(tail(yy))
+#' unlink(list.files(pattern = data.hdr))
+#'
+mmutil_read_rows_columns <- function(mtx_file, memory_location, r_row_index, r_column_index, verbose = FALSE) {
+    .Call('_asapR_mmutil_read_rows_columns', PACKAGE = 'asapR', mtx_file, memory_location, r_row_index, r_column_index, verbose)
 }
 
 #' Simulate sparse counting data with a mixture of Poisson parameters

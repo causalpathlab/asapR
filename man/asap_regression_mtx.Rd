@@ -8,12 +8,16 @@ asap_regression_mtx(
   mtx_file,
   memory_location,
   log_x,
+  r_x_row_names = NULL,
+  r_mtx_row_names = NULL,
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
   verbose = FALSE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  BLOCK_SIZE = 100L,
+  do_stdize_x = FALSE,
+  std_topic_latent = FALSE
 )
 }
 \arguments{
@@ -22,6 +26,10 @@ asap_regression_mtx(
 \item{memory_location}{column indexing for the mtx}
 
 \item{log_x}{D x K log dictionary/design matrix}
+
+\item{r_x_row_names}{(default: NULL)}
+
+\item{r_mtx_row_names}{(default: NULL)}
 
 \item{a0}{gamma(a0, b0)}
 
@@ -32,6 +40,8 @@ asap_regression_mtx(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{do_stdize}{do the standardization of log_x}
 }
 \description{
 Poisson regression to estimate factor loading
