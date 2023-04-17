@@ -81,7 +81,8 @@ fit.topic.asap <- function(mtx.file,
     message("Phase I: Create random pseudo-bulk data")
 
     Y <- NULL
-    .pb.out <- NULL
+    rand.proj <- NULL
+    rand.positions <- NULL
 
     for(r in 1:num.proj){
         .pb <- asap_random_bulk_data(mtx_file = mtx.file,
@@ -93,6 +94,8 @@ fit.topic.asap <- function(mtx.file,
                                      BLOCK_SIZE = block.size,
                                      do_log1p = log1p.pb)
         Y <- cbind(Y, .pb$PB)
+        rand.proj <- cbind(rand.proj, .pb$rand.proj)
+        rand.positions <- c(rand.positions, .pb$positions)
 
         message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))
     }
@@ -161,6 +164,8 @@ fit.topic.asap <- function(mtx.file,
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$Y <- Y
+    asap$rand.proj <- rand.proj
+    asap$rand.positions <- rand.positions
     asap$ref <- ref
     return(asap)
 }
