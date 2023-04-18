@@ -5,13 +5,14 @@
 \title{A quick NMF estimation based on alternating Poisson regressions}
 \usage{
 asap_fit_nmf_alternate(
-  Y_dn,
+  Y_,
   maxK,
   max_iter = 100L,
   burnin = 10L,
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
+  do_log1p = TRUE,
   rseed = 1337L,
   EPS = 1e-06,
   rate_m = 1,
@@ -20,8 +21,6 @@ asap_fit_nmf_alternate(
 )
 }
 \arguments{
-\item{Y_dn}{non-negative data matrix (gene x sample)}
-
 \item{maxK}{maximum number of factors}
 
 \item{max_iter}{max number of optimization steps}
@@ -34,7 +33,11 @@ asap_fit_nmf_alternate(
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
 
+\item{do_log1p}{do log(1+y) transformation}
+
 \item{rseed}{random seed (default: 1337)}
+
+\item{Y_dn}{non-negative data matrix (gene x sample)}
 
 \item{min_iter}{min number of optimization steps}
 }

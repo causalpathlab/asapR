@@ -9,8 +9,7 @@ read.mtx.dense(
   sub.cols = NULL,
   memory.idx = NULL,
   memory.idx.file = paste0(mtx.file, ".index"),
-  verbose = FALSE,
-  num.threads = 1
+  verbose = FALSE
 )
 }
 \arguments{

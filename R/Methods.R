@@ -17,6 +17,8 @@
 #' @param num.threads number of threads (default: 1)
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
+#' @param svd.init (default: TRUE)
+#' @param do.log1p (default: TRUE)
 #' @param .rand.seed random seed (default: 42)
 #'
 #' @return a list that contains:
@@ -66,7 +68,7 @@ fit.topic.asap <- function(mtx.file,
                            rate.m = 1,
                            rate.v = 1,
                            svd.init = TRUE,
-                           log1p.pb = TRUE){
+                           do.log1p = TRUE){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -92,7 +94,7 @@ fit.topic.asap <- function(mtx.file,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     do_log1p = log1p.pb)
+                                     do_log1p = do.log1p)
         Y <- cbind(Y, .pb$PB)
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
@@ -113,6 +115,7 @@ fit.topic.asap <- function(mtx.file,
                                    verbose = verbose,
                                    a0 = a0,
                                    b0 = b0,
+                                   do_log1p = do.log1p,
                                    rseed = .rand.seed,
                                    EPS = .eps,
                                    rate_m = rate.m,
@@ -133,6 +136,7 @@ fit.topic.asap <- function(mtx.file,
                                 log_x = log.x,
                                 a0 = a0, b0 = b0,
                                 max_iter = .reg.steps,
+                                do_log1p = do.log1p,
                                 verbose = verbose,
                                 NUM_THREADS = num.threads,
                                 BLOCK_SIZE = block.size,
@@ -165,7 +169,7 @@ fit.topic.asap <- function(mtx.file,
     asap$nmf <- .nmf
     asap$Y <- Y
     asap$rand.proj <- rand.proj
-    asap$rand.positions <- rand.positions
+    asap$rand.positions <- (rand.positions + 1) # fix 0-based to 1-based
     asap$ref <- ref
     return(asap)
 }

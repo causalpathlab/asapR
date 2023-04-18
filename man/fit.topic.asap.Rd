@@ -27,7 +27,7 @@ fit.topic.asap(
   rate.m = 1,
   rate.v = 1,
   svd.init = TRUE,
-  log1p.pb = TRUE
+  do.log1p = TRUE
 )
 }
 \arguments{
@@ -64,6 +64,10 @@ fit.topic.asap(
 \item{block.size}{a block size for disk I/O (default: 100)}
 
 \item{.rand.seed}{random seed (default: 42)}
+
+\item{svd.init}{(default: TRUE)}
+
+\item{do.log1p}{(default: TRUE)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

@@ -6,16 +6,19 @@
 //' @param log_x D x K log dictionary/design matrix
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
-//' @param verbose verbosity
+//' @param do_log1p do log(1+y) transformation
+//' @param verbose verbosity (default: false)
 //' @param do_stdize do the standardization of log_x
+//' @param std_topic_latent standardization of latent variables
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_regression(const Eigen::MatrixXf Y_dn,
+asap_regression(const Eigen::MatrixXf Y_,
                 const Eigen::MatrixXf log_x,
                 const double a0 = 1.,
                 const double b0 = 1.,
                 const std::size_t max_iter = 10,
+                const bool do_log1p = true,
                 const bool verbose = false,
                 const bool do_stdize_x = false,
                 const bool std_topic_latent = false)
@@ -24,11 +27,14 @@ asap_regression(const Eigen::MatrixXf Y_dn,
     exp_op<Mat> exp;
     at_least_one_op<Mat> at_least_one;
     softmax_op_t<Mat> softmax;
+    log1p_op<Mat> log1p;
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     const Scalar EPS = 1e-8;
+
+    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
     const Index D = Y_dn.rows();
     const Index N = Y_dn.cols();
@@ -109,10 +115,12 @@ asap_regression(const Eigen::MatrixXf Y_dn,
 //' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
+//' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_stdize do the standardization of log_x
+//' @param std_topic_latent standardization of latent variables
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -125,6 +133,7 @@ asap_regression_mtx(
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
+    const bool do_log1p = true,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
@@ -189,6 +198,9 @@ asap_regression_mtx(
 
     exp_op<Mat> exp;
     at_least_one_op<Mat> at_least_one;
+    softmax_op_t<Mat> softmax;
+    log1p_op<Mat> log1p;
+
     Mat log_X;
 
     /////////////////////////////
@@ -242,30 +254,23 @@ asap_regression_mtx(
         Index col_lb_mem = memory_location[lb];
         Index col_ub_mem = ub < N ? memory_location[ub] : 0; // 0 = the end
 
-        Mat Y_dn;
+        const SpMat y = take_row_subset ?
+            (read_eigen_sparse_subset_row_col(mtx_file,
+                                              mtx_row_loc,
+                                              lb,
+                                              ub,
+                                              col_lb_mem,
+                                              col_ub_mem)) :
+            (read_eigen_sparse_subset_col(mtx_file,
+                                          lb,
+                                          ub,
+                                          col_lb_mem,
+                                          col_ub_mem));
 
-        if (take_row_subset) {
-            SpMat y = read_eigen_sparse_subset_row_col(mtx_file,
-                                                       mtx_row_loc,
-                                                       lb,
-                                                       ub,
-                                                       col_lb_mem,
-                                                       col_ub_mem);
-            Y_dn = Mat(y);
-
-        } else {
-            SpMat y = read_eigen_sparse_subset_col(mtx_file,
-                                                   lb,
-                                                   ub,
-                                                   col_lb_mem,
-                                                   col_ub_mem);
-            Y_dn = Mat(y);
-        }
-
+        const Mat Y_dn = do_log1p ? Mat(y).unaryExpr(log1p) : Mat(y);
         using RNG = dqrng::xoshiro256plus;
         using gamma_t = gamma_param_t<Mat, RNG>;
         RNG rng;
-        softmax_op_t<Mat> softmax;
 
         const ColVec Y_n = Y_dn.colwise().sum().transpose(); // n x 1
         const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1

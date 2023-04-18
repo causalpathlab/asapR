@@ -13,6 +13,7 @@ asap_regression_mtx(
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
+  do_log1p = TRUE,
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
@@ -35,11 +36,15 @@ asap_regression_mtx(
 
 \item{b0}{gamma(a0, b0)}
 
+\item{do_log1p}{do log(1+y) transformation}
+
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{std_topic_latent}{standardization of latent variables}
 
 \item{do_stdize}{do the standardization of log_x}
 }

@@ -51,6 +51,7 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' @param verbose verbosity
 #' @param a0 gamma(a0, b0) default: a0 = 1
 #' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_log1p do log(1+y) transformation
 #' @param rseed random seed (default: 1337)
 #'
 #' @return a list that contains:
@@ -65,8 +66,8 @@ asap_fit_nmf <- function(Y, maxK, mcem = 100L, burnin = 10L, latent_iter = 10L, 
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_dn, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_dn, maxK, max_iter, burnin, verbose, a0, b0, rseed, EPS, rate_m, rate_v, svd_init)
+asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = TRUE, rseed = 1337L, EPS = 1e-6, rate_m = 1, rate_v = 1, svd_init = TRUE) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, rate_m, rate_v, svd_init)
 }
 
 #' Predict NMF loading -- this may be slow for high-dim data
@@ -114,11 +115,13 @@ asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed 
 #' @param log_x D x K log dictionary/design matrix
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
-#' @param verbose verbosity
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity (default: false)
 #' @param do_stdize do the standardization of log_x
+#' @param std_topic_latent standardization of latent variables
 #'
-asap_regression <- function(Y_dn, log_x, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
-    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_dn, log_x, a0, b0, max_iter, verbose, do_stdize_x, std_topic_latent)
+asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = TRUE, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, a0, b0, max_iter, do_log1p, verbose, do_stdize_x, std_topic_latent)
 }
 
 #' Poisson regression to estimate factor loading
@@ -130,13 +133,15 @@ asap_regression <- function(Y_dn, log_x, a0 = 1., b0 = 1., max_iter = 10L, verbo
 #' @param r_mtx_row_names (default: NULL)
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
+#' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_stdize do the standardization of log_x
+#' @param std_topic_latent standardization of latent variables
 #'
-asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE, std_topic_latent = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x, std_topic_latent)
+asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = TRUE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x, std_topic_latent)
 }
 
 #' Clustering the rows of a count data matrix

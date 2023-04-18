@@ -10,6 +10,7 @@
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
+//' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //'
 //' @return a list that contains:
@@ -26,19 +27,26 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
+asap_fit_nmf_alternate(const Eigen::MatrixXf Y_,
                        const std::size_t maxK,
                        const std::size_t max_iter = 100,
                        const std::size_t burnin = 10,
                        const bool verbose = true,
                        const double a0 = 1,
                        const double b0 = 1,
+                       const bool do_log1p = true,
                        const std::size_t rseed = 1337,
                        const double EPS = 1e-6,
                        const double rate_m = 1,
                        const double rate_v = 1,
                        const bool svd_init = true)
 {
+
+    exp_op<Mat> exp;
+    log1p_op<Mat> log1p;
+    at_least_one_op<Mat> at_least_one;
+
+    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
     const Index D = Y_dn.rows();
     const Index N = Y_dn.cols();
@@ -56,10 +64,6 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_dn,
 
     Mat logPhi_dk(D, K), phi_dk(D, K); // row to topic latent assignment
     Mat logRho_nk(N, K), rho_nk(N, K); // column to topic latent assignment
-
-    exp_op<Mat> exp;
-    log1p_op<Mat> log1p;
-    at_least_one_op<Mat> at_least_one;
 
     const ColVec Y_n = Y_dn.colwise().sum().transpose();
     const ColVec Y_d = Y_dn.transpose().colwise().sum();
