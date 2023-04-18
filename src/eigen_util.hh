@@ -896,8 +896,6 @@ struct clamp_op {
     }
     const Scalar lb;
     const Scalar ub;
-    static constexpr Scalar one_val = 1.0;
-    static constexpr Scalar zero_val = 0.0;
 };
 
 template <typename T>

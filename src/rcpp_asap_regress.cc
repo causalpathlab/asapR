@@ -119,6 +119,7 @@ asap_regression(const Eigen::MatrixXf Y_,
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param max_depth maximum depth per column
 //' @param do_stdize do the standardization of log_x
 //' @param std_topic_latent standardization of latent variables
 //'
@@ -137,6 +138,7 @@ asap_regression_mtx(
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
+    const double max_depth = 1e4,
     const bool do_stdize_x = false,
     const bool std_topic_latent = false)
 {
@@ -267,7 +269,21 @@ asap_regression_mtx(
                                           col_lb_mem,
                                           col_ub_mem));
 
-        const Mat Y_dn = do_log1p ? Mat(y).unaryExpr(log1p) : Mat(y);
+        //////////////////////
+        // normalize matrix //
+        //////////////////////
+
+        const Mat yy = Mat(y);
+        const Mat ynorm =
+            ((yy.array().rowwise() / yy.colwise().sum().array()) * max_depth)
+                .matrix();
+
+        ///////////////////////////////////////
+        // do log1p transformation if needed //
+        ///////////////////////////////////////
+
+        const Mat Y_dn = do_log1p ? ynorm.unaryExpr(log1p) : ynorm;
+
         using RNG = dqrng::xoshiro256plus;
         using gamma_t = gamma_param_t<Mat, RNG>;
         RNG rng;

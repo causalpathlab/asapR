@@ -17,6 +17,7 @@ asap_regression_mtx(
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
+  max_depth = 10000,
   do_stdize_x = FALSE,
   std_topic_latent = FALSE
 )
@@ -43,6 +44,8 @@ asap_regression_mtx(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{max_depth}{maximum depth per column}
 
 \item{std_topic_latent}{standardization of latent variables}
 

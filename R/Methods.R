@@ -2,7 +2,6 @@
 #'
 #' @param mtx.file data matrix file in a matrix market format
 #' @param k number of topics
-#' @param Y.ref reference bulk data
 #' @param num.proj the number of pseudobulk projection steps (default: 1)
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
@@ -19,6 +18,7 @@
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
 #' @param svd.init (default: TRUE)
 #' @param do.log1p (default: TRUE)
+#' @param max.depth (default: 1e4)
 #' @param .rand.seed random seed (default: 42)
 #'
 #' @return a list that contains:
@@ -48,7 +48,6 @@
 #'
 fit.topic.asap <- function(mtx.file,
                            k,
-                           Y.ref = NULL,
                            pb.factors = 10,
                            num.proj = 1,
                            em.step = 100,
@@ -68,7 +67,8 @@ fit.topic.asap <- function(mtx.file,
                            rate.m = 1,
                            rate.v = 1,
                            svd.init = TRUE,
-                           do.log1p = TRUE){
+                           do.log1p = TRUE,
+                           max.depth = 1e4){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -94,6 +94,7 @@ fit.topic.asap <- function(mtx.file,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
+                                     max_depth = max.depth,
                                      do_log1p = do.log1p)
         Y <- cbind(Y, .pb$PB)
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
@@ -143,22 +144,6 @@ fit.topic.asap <- function(mtx.file,
                                 do_stdize_x = .reg.stdize,
                                 std_topic_latent = .reg.stdize.latent)
 
-    if(!is.null(Y.ref)){
-        if(nrow(Y) != nrow(Y.ref)) {
-            message("nrow(Y.ref) != nrow(Y)")
-        } else {
-            ref <- asap_regression(Y_dn = Y.ref,
-                                   log_x = log.x,
-                                   a0 = a0, b0 = b0,
-                                   max_iter = .reg.steps,
-                                   verbose = verbose,
-                                   do_stdize_x = .reg.stdize,
-                                   std_topic_latent = .reg.stdize.latent)
-        }
-    } else {
-        ref <- NULL
-    }
-
     message("normalizing the estimated model parameters")
 
     .multinom <- pmf2topic(asap$beta, asap$theta)
@@ -170,7 +155,6 @@ fit.topic.asap <- function(mtx.file,
     asap$Y <- Y
     asap$rand.proj <- rand.proj
     asap$rand.positions <- (rand.positions + 1) # fix 0-based to 1-based
-    asap$ref <- ref
     return(asap)
 }
 

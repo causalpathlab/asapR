@@ -34,7 +34,6 @@ using namespace mmutil::bgzf;
 
 #include "dirichlet_prior.hh"
 #include "poisson_nmf_model.hh"
-#include "poisson_modular_nmf_model.hh"
 #include "poisson_cluster_model.hh"
 #include "gamma_parameter.hh"
 #include "latent_matrix.hh"

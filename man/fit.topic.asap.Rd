@@ -7,7 +7,6 @@
 fit.topic.asap(
   mtx.file,
   k,
-  Y.ref = NULL,
   pb.factors = 10,
   num.proj = 1,
   em.step = 100,
@@ -27,15 +26,14 @@ fit.topic.asap(
   rate.m = 1,
   rate.v = 1,
   svd.init = TRUE,
-  do.log1p = TRUE
+  do.log1p = TRUE,
+  max.depth = 10000
 )
 }
 \arguments{
 \item{mtx.file}{data matrix file in a matrix market format}
 
 \item{k}{number of topics}
-
-\item{Y.ref}{reference bulk data}
 
 \item{num.proj}{the number of pseudobulk projection steps (default: 1)}
 
@@ -68,6 +66,8 @@ fit.topic.asap(
 \item{svd.init}{(default: TRUE)}
 
 \item{do.log1p}{(default: TRUE)}
+
+\item{max.depth}{(default: 1e4)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }
