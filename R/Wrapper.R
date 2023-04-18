@@ -12,8 +12,7 @@ read.mtx.sparse <- function(mtx.file,
                             sub.cols = NULL,
                             memory.idx = NULL,
                             memory.idx.file = paste0(mtx.file,".index"),
-                            verbose = FALSE,
-                            num.threads = 1) {
+                            verbose = FALSE) {
 
     if(is.null(memory.idx)) {
         if(!file.exists(memory.idx.file))
@@ -33,8 +32,7 @@ read.mtx.sparse <- function(mtx.file,
         mmutil_read_columns_sparse(mtx.file,
                                    memory.idx,
                                    sub.cols,
-                                   verbose,
-                                   NUM_THREADS = num.threads)
+                                   verbose)
 
     Matrix::sparseMatrix(i=.in$row, j=.in$col, x=.in$val,
                          dims = c(.in$max.row, .in$max.col))
@@ -54,8 +52,7 @@ read.mtx.dense <- function(mtx.file,
                            sub.cols = NULL,
                            memory.idx = NULL,
                            memory.idx.file = paste0(mtx.file,".index"),
-                           verbose = FALSE,
-                           num.threads = 1) {
+                           verbose = FALSE) {
 
     if(is.null(memory.idx)) {
         if(!file.exists(memory.idx.file))
@@ -74,8 +71,7 @@ read.mtx.dense <- function(mtx.file,
     mmutil_read_columns(mtx.file,
                         memory.idx,
                         sub.cols,
-                        verbose,
-                        NUM_THREADS = num.threads)
+                        verbose)
 }
 
 #' Read a vector of string names
