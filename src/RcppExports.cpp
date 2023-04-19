@@ -98,8 +98,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_regression_mtx
-Rcpp::List asap_regression_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf log_x, const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const double max_depth, const bool do_stdize_x, const bool std_topic_latent);
-RcppExport SEXP _asapR_asap_regression_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP log_xSEXP, SEXP r_x_row_namesSEXP, SEXP r_mtx_row_namesSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP max_depthSEXP, SEXP do_stdize_xSEXP, SEXP std_topic_latentSEXP) {
+Rcpp::List asap_regression_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf log_x, const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const double max_depth, const bool do_stdize_x, const bool std_topic_latent);
+RcppExport SEXP _asapR_asap_regression_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP log_xSEXP, SEXP r_x_row_namesSEXP, SEXP r_mtx_row_namesSEXP, SEXP r_taboo_namesSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP max_depthSEXP, SEXP do_stdize_xSEXP, SEXP std_topic_latentSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -108,6 +108,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type log_x(log_xSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_x_row_names(r_x_row_namesSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_mtx_row_names(r_mtx_row_namesSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_taboo_names(r_taboo_namesSEXP);
     Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
     Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
@@ -118,7 +119,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type max_depth(max_depthSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_stdize_x(do_stdize_xSEXP);
     Rcpp::traits::input_parameter< const bool >::type std_topic_latent(std_topic_latentSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_regression_mtx(mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent));
+    rcpp_result_gen = Rcpp::wrap(asap_regression_mtx(mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -280,7 +281,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_nmf_alternate", (DL_FUNC) &_asapR_asap_fit_nmf_alternate, 13},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 10},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 9},
-    {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 15},
+    {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 16},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
     {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},

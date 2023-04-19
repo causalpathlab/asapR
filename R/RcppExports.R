@@ -77,7 +77,7 @@ asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed 
 #' @param do_stdize do the standardization of log_x
 #' @param std_topic_latent standardization of latent variables
 #'
-asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = TRUE, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
     .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, a0, b0, max_iter, do_log1p, verbose, do_stdize_x, std_topic_latent)
 }
 
@@ -98,8 +98,8 @@ asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1
 #' @param do_stdize do the standardization of log_x
 #' @param std_topic_latent standardization of latent variables
 #'
-asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = TRUE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, max_depth = 1e4, do_stdize_x = FALSE, std_topic_latent = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent)
+asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, max_depth = 1e4, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent)
 }
 
 #' Clustering the rows of a count data matrix

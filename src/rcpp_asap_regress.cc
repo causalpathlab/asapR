@@ -18,7 +18,7 @@ asap_regression(const Eigen::MatrixXf Y_,
                 const double a0 = 1.,
                 const double b0 = 1.,
                 const std::size_t max_iter = 10,
-                const bool do_log1p = true,
+                const bool do_log1p = false,
                 const bool verbose = false,
                 const bool do_stdize_x = false,
                 const bool std_topic_latent = false)
@@ -131,10 +131,11 @@ asap_regression_mtx(
     const Eigen::MatrixXf log_x,
     const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names = R_NilValue,
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
-    const bool do_log1p = true,
+    const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
@@ -151,6 +152,15 @@ asap_regression_mtx(
     std::vector<Index> x_row_idx;
     std::vector<Index> mtx_row_idx;
     bool take_row_subset = false;
+
+    std::unordered_map<Rcpp::String, Index> taboo;
+    if (r_taboo_names.isNotNull()) {
+        const Rcpp::StringVector taboo_names(r_taboo_names);
+        for (auto r : taboo_names) {
+            taboo[r] = 1;
+        }
+    }
+
     if (r_x_row_names.isNotNull() && r_mtx_row_names.isNotNull()) {
 
         const Rcpp::StringVector x_row_names(r_x_row_names);
@@ -165,7 +175,7 @@ asap_regression_mtx(
         }
         Index xi = 0;
         for (auto r : x_row_names) {
-            if (mtx_row_pos.count(r) > 0) {
+            if (mtx_row_pos.count(r) > 0 && taboo.count(r) == 0) {
                 Index mi = mtx_row_pos[r];
                 mtx_row_idx.emplace_back(mi);
                 x_row_idx.emplace_back(xi);
@@ -173,9 +183,9 @@ asap_regression_mtx(
             ++xi;
         }
         if (verbose) {
-            TLOG(xi << " rows matched between X and MTX");
+            TLOG(x_row_idx.size() << " rows matched between X and MTX");
         }
-        ASSERT_RETL(xi > 0,
+        ASSERT_RETL(x_row_idx.size() > 0,
                     " At least one common name should be present "
                         << " in both x_row_names and mtx_row_names");
         take_row_subset = true;
@@ -354,6 +364,8 @@ asap_regression_mtx(
             Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
         } else {
             Rcpp::Rcerr << "+ " << std::flush;
+            if (Nprocessed % 1000 == 0)
+                Rcpp::Rcerr << "\r" << std::flush;
         }
     }
 

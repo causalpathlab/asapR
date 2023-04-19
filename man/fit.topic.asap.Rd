@@ -26,7 +26,7 @@ fit.topic.asap(
   rate.m = 1,
   rate.v = 1,
   svd.init = TRUE,
-  do.log1p = TRUE,
+  do.log1p = FALSE,
   max.depth = 10000
 )
 }
@@ -65,7 +65,7 @@ fit.topic.asap(
 
 \item{svd.init}{(default: TRUE)}
 
-\item{do.log1p}{(default: TRUE)}
+\item{do.log1p}{(default: FALSE)}
 
 \item{max.depth}{(default: 1e4)}
 

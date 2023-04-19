@@ -43,6 +43,9 @@
     <loc>/reference/asap_random_bulk_data.html</loc>
   </url>
   <url>
+    <loc>/reference/asap_regression.html</loc>
+  </url>
+  <url>
     <loc>/reference/asap_regression_mtx.html</loc>
   </url>
   <url>
@@ -77,6 +80,9 @@
   </url>
   <url>
     <loc>/reference/mmutil_read_index.html</loc>
+  </url>
+  <url>
+    <loc>/reference/mmutil_read_rows_columns.html</loc>
   </url>
   <url>
     <loc>/reference/mmutil_simulate_poisson.html</loc>

@@ -17,7 +17,7 @@
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
 #' @param svd.init (default: TRUE)
-#' @param do.log1p (default: TRUE)
+#' @param do.log1p (default: FALSE)
 #' @param max.depth (default: 1e4)
 #' @param .rand.seed random seed (default: 42)
 #'
@@ -67,7 +67,7 @@ fit.topic.asap <- function(mtx.file,
                            rate.m = 1,
                            rate.v = 1,
                            svd.init = TRUE,
-                           do.log1p = TRUE,
+                           do.log1p = FALSE,
                            max.depth = 1e4){
 
     if(!file.exists(index.file)){
@@ -90,11 +90,10 @@ fit.topic.asap <- function(mtx.file,
         .pb <- asap_random_bulk_data(mtx_file = mtx.file,
                                      memory_location = mtx.index,
                                      num_factors = pb.factors,
-                                     rseed = .rand.seed + r,
+                                     rseed = .rand.seed + (r - 1),
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     max_depth = max.depth,
                                      do_log1p = do.log1p)
         Y <- cbind(Y, .pb$PB)
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
@@ -141,6 +140,7 @@ fit.topic.asap <- function(mtx.file,
                                 verbose = verbose,
                                 NUM_THREADS = num.threads,
                                 BLOCK_SIZE = block.size,
+                                max_depth = max.depth,
                                 do_stdize_x = .reg.stdize,
                                 std_topic_latent = .reg.stdize.latent)
 
