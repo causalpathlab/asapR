@@ -7,17 +7,19 @@
 #ifndef MMUTIL_STAT_HH_
 #define MMUTIL_STAT_HH_
 
-//////////////////////////////////////////////////////
-// e.g.,					    //
-//   row_stat_collector_t collector;		    //
+namespace mmutil { namespace stat {
+
+//////////////////////////////////////////////
+// e.g.,				    //
+//   row_collector_t collector;		    //
 //   visit_matrix_market_file(filename, collector); //
 //////////////////////////////////////////////////////
 
-struct row_stat_collector_t {
+struct row_collector_t {
     using index_t = Index;
     using scalar_t = Scalar;
 
-    explicit row_stat_collector_t(const bool _take_log1p = false)
+    explicit row_collector_t(const bool _take_log1p = false)
         : take_log1p(_take_log1p)
     {
         max_row = 0;
@@ -81,11 +83,11 @@ struct row_stat_collector_t {
     IntVec Row_N;
 };
 
-struct col_stat_collector_t {
+struct col_collector_t {
     using index_t = Index;
     using scalar_t = Scalar;
 
-    explicit col_stat_collector_t()
+    explicit col_collector_t()
     {
         max_row = 0;
         max_col = 0;
@@ -142,11 +144,11 @@ struct col_stat_collector_t {
     IntVec Col_N;
 };
 
-struct row_col_stat_collector_t {
+struct row_col_collector_t {
     using index_t = Index;
     using scalar_t = Scalar;
 
-    explicit row_col_stat_collector_t()
+    explicit row_col_collector_t()
     {
         max_row = 0;
         max_col = 0;
@@ -241,14 +243,14 @@ struct histogram_collector_t {
         }
     }
 
-    void eval_end_of_file()
-    {
-    }
+    void eval_end_of_file() { }
 
     Index max_row;
     Index max_col;
     Index max_elem;
     std::unordered_map<Index, Index> freq_map;
 };
+
+}} // namespace mmutil::stat
 
 #endif
