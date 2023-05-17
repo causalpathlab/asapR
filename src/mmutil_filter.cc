@@ -15,7 +15,7 @@ filter_col_by_nnz(const Index column_threshold,  //
     CHK_RET_(read_vector_file(column_file, column_names),
              "couldn't read the column file");
 
-    col_stat_collector_t collector;
+    mmutil::stat::col_collector_t collector;
     visit_matrix_market_file(mtx_file, collector);
 
     const IntVec &nnz_col = collector.Col_N;

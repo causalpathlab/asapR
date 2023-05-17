@@ -27,7 +27,8 @@ fit.topic.asap(
   rate.v = 1,
   svd.init = TRUE,
   do.log1p = FALSE,
-  max.depth = 10000
+  max.depth = 10000,
+  covar = NULL
 )
 }
 \arguments{
@@ -68,6 +69,8 @@ fit.topic.asap(
 \item{do.log1p}{(default: FALSE)}
 
 \item{max.depth}{(default: 1e4)}
+
+\item{covar}{covariates (default: NULL)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

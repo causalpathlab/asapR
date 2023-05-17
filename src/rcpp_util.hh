@@ -1,13 +1,12 @@
-#ifndef RCPPEIG_UTIL_HH_
-#define RCPPEIG_UTIL_HH_
+// [[Rcpp::plugins(cpp14)]]
+#include <Rcpp.h>
+
+#include <vector>
+
+#ifndef RCPP_UTIL_HH_
+#define RCPP_UTIL_HH_
 
 namespace rcpp { namespace util {
-
-std::tuple<Index, Index, Scalar>
-parse_triplet(const std::tuple<Index, Index, Scalar> &tt);
-
-std::tuple<Index, Index, Scalar>
-parse_triplet(const Eigen::Triplet<Scalar> &tt);
 
 std::vector<std::string> copy(const Rcpp::StringVector &r_vec);
 

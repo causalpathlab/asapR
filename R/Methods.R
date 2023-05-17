@@ -5,6 +5,7 @@
 #' @param num.proj the number of pseudobulk projection steps (default: 1)
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
+#' @param covar covariates (default: NULL)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .reg.steps number of steps in regression analysis (default: 10)
 #' @param .reg.stdize standardize X in regression (default: TRUE)
@@ -68,7 +69,8 @@ fit.topic.asap <- function(mtx.file,
                            rate.v = 1,
                            svd.init = TRUE,
                            do.log1p = FALSE,
-                           max.depth = 1e4){
+                           max.depth = 1e4,
+                           covar = NULL){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
@@ -94,7 +96,10 @@ fit.topic.asap <- function(mtx.file,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     do_log1p = do.log1p)
+                                     do_normalize = FALSE,
+                                     do_log1p = do.log1p,
+                                     do_row_std = FALSE,
+                                     r_covar = covar)
         Y <- cbind(Y, .pb$PB)
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
@@ -134,6 +139,9 @@ fit.topic.asap <- function(mtx.file,
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 memory_location = mtx.index,
                                 log_x = log.x,
+                                r_x_row_names = NULL,
+                                r_mtx_row_names = NULL,
+                                r_taboo_names = NULL,
                                 a0 = a0, b0 = b0,
                                 max_iter = .reg.steps,
                                 do_log1p = do.log1p,

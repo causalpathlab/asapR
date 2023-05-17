@@ -283,7 +283,7 @@ asap_regression_mtx(
         // normalize matrix //
         //////////////////////
 
-        const Mat yy = Mat(y);
+        const Mat yy = Mat(y); // D x n
         const Mat ynorm =
             ((yy.array().rowwise() / yy.colwise().sum().array()) * max_depth)
                 .matrix();

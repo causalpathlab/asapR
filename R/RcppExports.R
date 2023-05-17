@@ -54,6 +54,8 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param mtx_file matrix-market-formatted data file (bgzip)
 #' @param memory_location column indexing for the mtx
 #' @param num_factors a desired number of random factors
+#' @param r_covar covariates (default: NULL)
+#' @param r_batch batch information (default: NULL)
 #' @param rseed random seed
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -61,9 +63,12 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param do_normalize normalize each column after random projection
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_row_std rowwise standardization (default: FALSE)
+#' @param KNN_CELL k-NN matching between cells (default: 10)
+#' @param KNN_BILINK num. of bidirectional links (default: 10)
+#' @param KNN_NNLIST num. of nearest neighbor lists (default: 10)
 #'
-asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std)
+asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, KNN_BILINK = 10L, KNN_NNLIST = 10L) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL, KNN_BILINK, KNN_NNLIST)
 }
 
 #' Poisson regression to estimate factor loading

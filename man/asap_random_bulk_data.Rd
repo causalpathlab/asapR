@@ -8,6 +8,8 @@ asap_random_bulk_data(
   mtx_file,
   memory_location,
   num_factors,
+  r_covar = NULL,
+  r_batch = NULL,
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -23,6 +25,10 @@ asap_random_bulk_data(
 \item{memory_location}{column indexing for the mtx}
 
 \item{num_factors}{a desired number of random factors}
+
+\item{r_covar}{covariates (default: NULL)}
+
+\item{r_batch}{batch information (default: NULL)}
 
 \item{rseed}{random seed}
 

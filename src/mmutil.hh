@@ -34,6 +34,8 @@
 #include "util.hh"
 #include "check.hh"
 
+#include "rcpp_util.hh"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,19 +61,5 @@ using Vec = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
 using IntMat = typename Eigen::
     Matrix<std::ptrdiff_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
 using IntVec = typename Eigen::Matrix<std::ptrdiff_t, Eigen::Dynamic, 1>;
-
-/////////////////////////////
-// simple helper functions //
-/////////////////////////////
-
-std::tuple<Index, Index, Scalar>
-parse_triplet(const std::tuple<Index, Index, Scalar> &tt);
-
-std::tuple<Index, Index, Scalar>
-parse_triplet(const Eigen::Triplet<Scalar> &tt);
-
-std::vector<std::string> copy(const Rcpp::StringVector &r_vec);
-
-void copy(const Rcpp::StringVector &r_vec, std::vector<std::string> &vec);
 
 #endif
