@@ -9,7 +9,7 @@ data_loader_t::read_counterfactual(const data_loader_t::idx_vec_t &cells_j)
 
     const float *mass = Q_kn.data();
     const Index n_j = cells_j.size();
-    Mat y = read(cells_j);
+    // Mat y = read(cells_j);
     Mat y0(D, n_j);
     y0.setZero();
 

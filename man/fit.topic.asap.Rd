@@ -28,7 +28,8 @@ fit.topic.asap(
   svd.init = TRUE,
   do.log1p = FALSE,
   max.depth = 10000,
-  covar = NULL
+  covar = NULL,
+  batch = NULL
 )
 }
 \arguments{
@@ -70,7 +71,9 @@ fit.topic.asap(
 
 \item{max.depth}{(default: 1e4)}
 
-\item{covar}{covariates (default: NULL)}
+\item{covar}{sample x var covariate matrix (default: NULL)}
+
+\item{batch}{batch information for each sample (default: NULL)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

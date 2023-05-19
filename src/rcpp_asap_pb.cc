@@ -15,6 +15,7 @@
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
+//' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -31,7 +32,8 @@ asap_random_bulk_data(
     const bool do_normalize = false,
     const bool do_log1p = false,
     const bool do_row_std = false,
-    const std::size_t KNN_CELL = 10)
+    const std::size_t KNN_CELL = 10,
+    const std::size_t BATCH_ADJ_ITER = 100)
 {
 
     log1p_op<Mat> log1p;
@@ -58,6 +60,8 @@ asap_random_bulk_data(
     const Mat X = r_covar.isNotNull() ?
         Rcpp::as<Mat>(Rcpp::NumericMatrix(r_covar)) :
         Mat::Ones(N, 1);
+
+    const Scalar eps = 1e-8;
 
     ASSERT_RETL(X.rows() == N, "incompatible covariate matrix");
 
@@ -126,7 +130,6 @@ asap_random_bulk_data(
             s2 += collector.Row_S2;
         }
 
-        const Scalar eps = 1e-8;
         safe_sqrt_op<Mat> safe_sqrt;
         const Scalar nn = static_cast<Scalar>(N);
 
@@ -183,7 +186,7 @@ asap_random_bulk_data(
         svd_x.compute(X);
         const ColVec d = svd_x.singularValues();
         Mat u = svd_x.matrixU();
-        const Scalar eps = 1e-8;
+
         for (Index k = 0; k < r; ++k) {
             if (d(k) < eps)
                 u.col(k).setZero();
@@ -333,15 +336,12 @@ asap_random_bulk_data(
         // Step b. Iterative updates //
         ///////////////////////////////
 
-        const Scalar tol = 1e-8;
-        const Index max_iter = 100; // should be enough
-
-        for (Index t = 0; t < max_iter; ++t) {
+        for (std::size_t t = 0; t < BATCH_ADJ_ITER; ++t) {
             mu_ds = (ybar_ds + zbar_ds).array() /
                 ((delta_db * prob_bs).array() + 1.);
 
             delta_denom_db = mu_ds * n_bs.transpose();
-            delta_db = delta_num_db.array() / (delta_denom_db.array() + tol);
+            delta_db = delta_num_db.array() / (delta_denom_db.array() + eps);
         }
 
     } else {

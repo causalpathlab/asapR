@@ -6,7 +6,7 @@
 \usage{
 asap_random_bulk_data(
   mtx_file,
-  memory_location,
+  mtx_idx_file,
   num_factors,
   r_covar = NULL,
   r_batch = NULL,
@@ -16,13 +16,16 @@ asap_random_bulk_data(
   BLOCK_SIZE = 100L,
   do_normalize = FALSE,
   do_log1p = FALSE,
-  do_row_std = FALSE
+  do_row_std = FALSE,
+  KNN_CELL = 10L,
+  KNN_BILINK = 10L,
+  KNN_NNLIST = 10L
 )
 }
 \arguments{
 \item{mtx_file}{matrix-market-formatted data file (bgzip)}
 
-\item{memory_location}{column indexing for the mtx}
+\item{mtx_idx_file}{matrix-market colum index file}
 
 \item{num_factors}{a desired number of random factors}
 
@@ -43,6 +46,12 @@ asap_random_bulk_data(
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
 \item{do_row_std}{rowwise standardization (default: FALSE)}
+
+\item{KNN_CELL}{k-NN matching between cells (default: 10)}
+
+\item{KNN_BILINK}{num. of bidirectional links (default: 10)}
+
+\item{KNN_NNLIST}{num. of nearest neighbor lists (default: 10)}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

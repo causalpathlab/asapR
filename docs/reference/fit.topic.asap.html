@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
+    </li>
+    <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
   </ul></li>
@@ -77,7 +80,9 @@
   rate.v <span class="op">=</span> <span class="fl">1</span>,
   svd.init <span class="op">=</span> <span class="cn">TRUE</span>,
   do.log1p <span class="op">=</span> <span class="cn">FALSE</span>,
-  max.depth <span class="op">=</span> <span class="fl">10000</span>
+  max.depth <span class="op">=</span> <span class="fl">10000</span>,
+  covar <span class="op">=</span> <span class="cn">NULL</span>,
+  batch <span class="op">=</span> <span class="cn">NULL</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -157,6 +162,14 @@
 
 <dt>max.depth</dt>
 <dd><p>(default: 1e4)</p></dd>
+
+
+<dt>covar</dt>
+<dd><p>sample x var covariate matrix (default: NULL)</p></dd>
+
+
+<dt>batch</dt>
+<dd><p>batch information for each sample (default: NULL)</p></dd>
 
 
 <dt>eval.llik</dt>

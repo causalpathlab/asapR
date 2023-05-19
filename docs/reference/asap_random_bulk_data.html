@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
+    </li>
+    <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
   </ul></li>
@@ -56,15 +59,20 @@
     <div id="ref-usage">
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">asap_random_bulk_data</span><span class="op">(</span>
   <span class="va">mtx_file</span>,
-  <span class="va">memory_location</span>,
+  <span class="va">mtx_idx_file</span>,
   <span class="va">num_factors</span>,
+  r_covar <span class="op">=</span> <span class="cn">NULL</span>,
+  r_batch <span class="op">=</span> <span class="cn">NULL</span>,
   rseed <span class="op">=</span> <span class="fl">42L</span>,
   verbose <span class="op">=</span> <span class="cn">FALSE</span>,
   NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
   BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,
   do_normalize <span class="op">=</span> <span class="cn">FALSE</span>,
   do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
-  do_row_std <span class="op">=</span> <span class="cn">FALSE</span>
+  do_row_std <span class="op">=</span> <span class="cn">FALSE</span>,
+  KNN_CELL <span class="op">=</span> <span class="fl">10L</span>,
+  KNN_BILINK <span class="op">=</span> <span class="fl">10L</span>,
+  KNN_NNLIST <span class="op">=</span> <span class="fl">10L</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -74,12 +82,20 @@
 <dd><p>matrix-market-formatted data file (bgzip)</p></dd>
 
 
-<dt>memory_location</dt>
-<dd><p>column indexing for the mtx</p></dd>
+<dt>mtx_idx_file</dt>
+<dd><p>matrix-market colum index file</p></dd>
 
 
 <dt>num_factors</dt>
 <dd><p>a desired number of random factors</p></dd>
+
+
+<dt>r_covar</dt>
+<dd><p>covariates (default: NULL)</p></dd>
+
+
+<dt>r_batch</dt>
+<dd><p>batch information (default: NULL)</p></dd>
 
 
 <dt>rseed</dt>
@@ -108,6 +124,18 @@
 
 <dt>do_row_std</dt>
 <dd><p>rowwise standardization (default: FALSE)</p></dd>
+
+
+<dt>KNN_CELL</dt>
+<dd><p>k-NN matching between cells (default: 10)</p></dd>
+
+
+<dt>KNN_BILINK</dt>
+<dd><p>num. of bidirectional links (default: 10)</p></dd>
+
+
+<dt>KNN_NNLIST</dt>
+<dd><p>num. of nearest neighbor lists (default: 10)</p></dd>
 
 </dl></div>
 

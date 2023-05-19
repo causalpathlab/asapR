@@ -12,7 +12,7 @@ mmutil_check_index(mtx_file, index_tab)
 \item{index_tab}{index tab (a vector of memory locations)}
 }
 \value{
-EXIT_SUCCESS or EXIT_FAILURE
+TRUE or FALSE
 }
 \description{
 Check if the index tab is valid

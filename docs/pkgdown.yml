@@ -2,6 +2,7 @@ pandoc: '2.5'
 pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
+  note_batch_correction: note_batch_correction.html
   note_faster_nmf_approximation: note_faster_nmf_approximation.html
-last_built: 2023-04-19T00:43Z
+last_built: 2023-05-19T19:42Z
 
