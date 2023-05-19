@@ -59,8 +59,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_random_bulk_data
-Rcpp::List asap_random_bulk_data(const std::string mtx_file, const std::string mtx_idx_file, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar, const Rcpp::Nullable<Rcpp::StringVector> r_batch, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool do_normalize, const bool do_log1p, const bool do_row_std, const std::size_t KNN_CELL);
-RcppExport SEXP _asapR_asap_random_bulk_data(SEXP mtx_fileSEXP, SEXP mtx_idx_fileSEXP, SEXP num_factorsSEXP, SEXP r_covarSEXP, SEXP r_batchSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP do_normalizeSEXP, SEXP do_log1pSEXP, SEXP do_row_stdSEXP, SEXP KNN_CELLSEXP) {
+Rcpp::List asap_random_bulk_data(const std::string mtx_file, const std::string mtx_idx_file, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar, const Rcpp::Nullable<Rcpp::StringVector> r_batch, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool do_normalize, const bool do_log1p, const bool do_row_std, const std::size_t KNN_CELL, const std::size_t BATCH_ADJ_ITER);
+RcppExport SEXP _asapR_asap_random_bulk_data(SEXP mtx_fileSEXP, SEXP mtx_idx_fileSEXP, SEXP num_factorsSEXP, SEXP r_covarSEXP, SEXP r_batchSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP do_normalizeSEXP, SEXP do_log1pSEXP, SEXP do_row_stdSEXP, SEXP KNN_CELLSEXP, SEXP BATCH_ADJ_ITERSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -77,7 +77,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_row_std(do_row_stdSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type KNN_CELL(KNN_CELLSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data(mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL));
+    Rcpp::traits::input_parameter< const std::size_t >::type BATCH_ADJ_ITER(BATCH_ADJ_ITERSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data(mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL, BATCH_ADJ_ITER));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -284,7 +285,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_fit_nmf_alternate", (DL_FUNC) &_asapR_asap_fit_nmf_alternate, 13},
-    {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 13},
+    {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 14},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 9},
     {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 18},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},

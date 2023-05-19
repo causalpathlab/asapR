@@ -18,8 +18,7 @@ asap_random_bulk_data(
   do_log1p = FALSE,
   do_row_std = FALSE,
   KNN_CELL = 10L,
-  KNN_BILINK = 10L,
-  KNN_NNLIST = 10L
+  BATCH_ADJ_ITER = 100L
 )
 }
 \arguments{
@@ -49,9 +48,7 @@ asap_random_bulk_data(
 
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
 
-\item{KNN_BILINK}{num. of bidirectional links (default: 10)}
-
-\item{KNN_NNLIST}{num. of nearest neighbor lists (default: 10)}
+\item{BATCH_ADJ_ITER}{batch Adjustment steps (default: 100)}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

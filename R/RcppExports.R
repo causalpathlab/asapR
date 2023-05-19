@@ -64,9 +64,10 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_row_std rowwise standardization (default: FALSE)
 #' @param KNN_CELL k-NN matching between cells (default: 10)
+#' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 #'
-asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL)
+asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL, BATCH_ADJ_ITER)
 }
 
 #' Poisson regression to estimate factor loading

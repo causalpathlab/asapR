@@ -8,6 +8,8 @@ asap_regression_mtx(
   mtx_file,
   mtx_idx_file,
   log_x,
+  r_batch_effect = NULL,
+  r_batch_membership = NULL,
   r_x_row_names = NULL,
   r_mtx_row_names = NULL,
   r_taboo_names = NULL,
@@ -24,11 +26,15 @@ asap_regression_mtx(
 )
 }
 \arguments{
-\item{mtx_file}{matrix-market-formatted data file (bgzip)}
+\item{mtx_file}{matrix-market-formatted data file (D x N, bgzip)}
 
 \item{mtx_idx_file}{matrix-market colum index file}
 
 \item{log_x}{D x K log dictionary/design matrix}
+
+\item{r_batch_effect}{D x B batch effect matrix}
+
+\item{r_batch_membership}{N integer vector for 0-based batch membership}
 
 \item{r_x_row_names}{(default: NULL)}
 
