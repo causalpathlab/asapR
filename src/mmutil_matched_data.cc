@@ -7,11 +7,13 @@ data_loader_t::read_counterfactual(const data_loader_t::idx_vec_t &cells_j)
 {
     const std::size_t rank = Q_kn.rows();
 
-    float *mass = Q_kn.data();
+    const float *mass = Q_kn.data();
     const Index n_j = cells_j.size();
     Mat y = read(cells_j);
     Mat y0(D, n_j);
     y0.setZero();
+
+    std::vector<Scalar> query(rank);
 
     for (Index jth = 0; jth < n_j; ++jth) {    // For each cell j
         const Index _cell_j = cells_j.at(jth); //
@@ -22,9 +24,14 @@ data_loader_t::read_counterfactual(const data_loader_t::idx_vec_t &cells_j)
         idx_vec_t counterfactual_neigh;
         num_vec_t dist_neigh, weights_neigh;
 
+        idx_vec_t neighbor_index;
+        num_vec_t neighbor_dist;
+
         ///////////////////////////////////////////////
         // Search neighbours in the other conditions //
         ///////////////////////////////////////////////
+
+        Eigen::Map<Mat>(query.data(), rank, 1) = Q_kn.col(_cell_j);
 
         for (Index ti = 0; ti < Nexposure; ++ti) {
 
@@ -32,39 +39,40 @@ data_loader_t::read_counterfactual(const data_loader_t::idx_vec_t &cells_j)
                 continue; //
 
             const idx_vec_t &cells_i = exposure_index_set.at(ti);
-            KnnAlg &alg_ti = *knn_lookup_exposure[ti].get();
             const std::size_t n_i = cells_i.size();
-            const std::size_t nquery = std::min(knn, n_i);
+            const std::size_t nsearch = std::min(knn, n_i);
 
-            auto pq = alg_ti.searchKnn((void *)(mass + rank * _cell_j), nquery);
+            annoy_index_t &index = *annoy_indexes[ti].get();
 
-            while (!pq.empty()) {
-                float d = 0;                         // distance
-                std::size_t k;                       // local index
-                std::tie(d, k) = pq.top();           //
-                const Index _cell_i = cells_i.at(k); // global index
+            index.get_nns_by_vector(query.data(),
+                                    nsearch,
+                                    -1,
+                                    &neighbor_index,
+                                    &neighbor_dist);
+
+            for (Index k = 0; k < nsearch; ++k) {
+                const Index kk = neighbor_index.at(k);
+                const Scalar dd = neighbor_dist.at(k);
+                const Index _cell_i = cells_i.at(kk);
                 if (_cell_j != _cell_i) {
                     counterfactual_neigh.emplace_back(_cell_i);
-                    dist_neigh.emplace_back(d);
+                    dist_neigh.emplace_back(dd);
                 }
-                pq.pop();
             }
         }
 
-        ////////////////////////////////////////////////////////
-        // Find optimal weights for counterfactual imputation //
-        ////////////////////////////////////////////////////////
+        // Estimate counterfactual y
 
         if (counterfactual_neigh.size() > 1) {
-            Mat yy = y.col(jth);
-            Index deg_ = counterfactual_neigh.size();
+            const Index deg_ = counterfactual_neigh.size();
+            const Mat y0_ = read(counterfactual_neigh);
+
             weights_neigh.resize(deg_);
             normalize_weights(deg_, dist_neigh, weights_neigh);
-            // Vec w0_ = eigen_vector(weights_neigh);
-            const Eigen::Map<Vec> w0_(weights_neigh.data(), deg_);
-            const Mat y0_ = read(counterfactual_neigh);
+            Vec w0_ = eigen_vector(weights_neigh);
             const Scalar denom = w0_.sum(); // must be > 0
             y0.col(jth) = y0_ * w0_ / denom;
+
         } else if (counterfactual_neigh.size() == 1) {
             y0.col(jth) = read(counterfactual_neigh).col(0);
         }
@@ -125,61 +133,46 @@ data_loader_t::exposure_group(const Index j) const
     return exposure_map.at(j);
 }
 
-int
-data_loader_t::build_dictionary(const Mat _Q_kn, const std::size_t NUM_THREADS)
+const data_loader_t::str_vec_t &
+data_loader_t::get_exposure_names() const
 {
+    return exposure_id_name;
+}
+const data_loader_t::idx_vec_t &
+data_loader_t::get_exposure_mapping() const
+{
+    return exposure_map;
+}
 
+int
+data_loader_t::build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS)
+{
     Q_kn.resize(_Q_kn.rows(), _Q_kn.cols());
     Q_kn = _Q_kn;
-
-    ASSERT_RET(Q_kn.rows() > 0 && Q_kn.cols() > 0, "Empty Q_kn");
-    ASSERT_RET(Q_kn.cols() == Nsample, "#columns(Q) != Nsample");
+    normalize_columns(Q_kn);
     const std::size_t rank = Q_kn.rows();
-
-    if (param_bilink >= rank) {
-        param_bilink = rank - 1;
-    }
-
-    if (param_bilink < 2) {
-        param_bilink = 2; // WLOG("too small M value");
-    }
-
-    if (param_nnlist <= knn) {
-        param_nnlist = knn + 1; // WLOG("too small N value");
-    }
-
     TLOG("Building dictionaries for each exposure ...");
 
     for (Index tt = 0; tt < Nexposure; ++tt) {
-
         const Index n_tot = exposure_index_set[tt].size();
-
-        vs_vec_exposure.emplace_back(std::make_shared<vs_type>(rank));
-
-        vs_type &VS = *vs_vec_exposure[tt].get();
-
-        knn_lookup_exposure.emplace_back(
-            std::make_shared<KnnAlg>(&VS, n_tot, param_bilink, param_nnlist));
+        annoy_indexes.emplace_back(std::make_shared<annoy_index_t>(rank));
+        // annoy_index_t & index = *annoy_indexes[tt].get();
     }
 
     for (Index tt = 0; tt < Nexposure; ++tt) {
         const Index n_tot = exposure_index_set[tt].size(); // # cells
-        KnnAlg &alg = *knn_lookup_exposure[tt].get();      // lookup
-        const float *mass = Q_kn.data();                   // raw data
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
+        annoy_index_t &index = *annoy_indexes[tt].get();
+        std::vector<Scalar> vec(rank);
         for (Index i = 0; i < n_tot; ++i) {
             const Index cell_j = exposure_index_set.at(tt).at(i);
-            alg.addPoint((void *)(mass + rank * cell_j), i);
+            Eigen::Map<Mat>(vec.data(), rank, 1) = Q_kn.col(cell_j);
+            index.add_item(i, vec.data());
         }
-        TLOG("Built the dictionary [" << (tt + 1) << " / " << Nexposure << "]");
     }
-
-    ASSERT_RET(knn_lookup_exposure.size() > 0, "Failed to build look-up");
-
+    for (Index tt = 0; tt < Nexposure; ++tt) {
+        annoy_index_t &index = *annoy_indexes[tt].get();
+        index.build(50);
+    }
     return EXIT_SUCCESS;
 }
 

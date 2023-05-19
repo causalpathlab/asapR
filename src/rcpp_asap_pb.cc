@@ -3,7 +3,7 @@
 //' Generate approximate pseudo-bulk data by random projections
 //'
 //' @param mtx_file matrix-market-formatted data file (bgzip)
-//' @param memory_location column indexing for the mtx
+//' @param mtx_idx_file matrix-market colum index file
 //' @param num_factors a desired number of random factors
 //' @param r_covar covariates (default: NULL)
 //' @param r_batch batch information (default: NULL)
@@ -15,14 +15,12 @@
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
-//' @param KNN_BILINK num. of bidirectional links (default: 10)
-//' @param KNN_NNLIST num. of nearest neighbor lists (default: 10)
 //'
 // [[Rcpp::export]]
 Rcpp::List
 asap_random_bulk_data(
     const std::string mtx_file,
-    const Rcpp::NumericVector &memory_location,
+    const std::string mtx_idx_file,
     const std::size_t num_factors,
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_batch = R_NilValue,
@@ -33,9 +31,7 @@ asap_random_bulk_data(
     const bool do_normalize = false,
     const bool do_log1p = false,
     const bool do_row_std = false,
-    const std::size_t KNN_CELL = 10,
-    const std::size_t KNN_BILINK = 10,
-    const std::size_t KNN_NNLIST = 10)
+    const std::size_t KNN_CELL = 10)
 {
 
     log1p_op<Mat> log1p;
@@ -47,6 +43,13 @@ asap_random_bulk_data(
     mm_info_reader_t info;
     CHK_RETL_(peek_bgzf_header(mtx_file, info),
               "Failed to read the size of this mtx file:" << mtx_file);
+
+    std::vector<Index> mtx_idx;
+    CHK_RETL_(read_mmutil_index(mtx_idx_file, mtx_idx),
+              "Failed to read the index file:" << std::endl
+                                               << mtx_idx_file << std::endl
+                                               << "Consider rebuilding it."
+                                               << std::endl);
 
     const Index D = info.max_row; // dimensionality
     const Index N = info.max_col; // number of cells
@@ -62,17 +65,8 @@ asap_random_bulk_data(
         TLOG(D << " x " << N << " single cell matrix");
     }
 
-    std::vector<Index> mtx_idx;
-    std::copy(std::begin(memory_location),
-              std::end(memory_location),
-              std::back_inserter(mtx_idx));
-
     using data_t = mmutil::match::data_loader_t;
-    data_t matched_data(mtx_file,
-                        mtx_idx,
-                        mmutil::match::KNN(KNN_CELL),
-                        mmutil::match::BILINK(KNN_BILINK),
-                        mmutil::match::NNLIST(KNN_NNLIST));
+    data_t matched_data(mtx_file, mtx_idx, mmutil::match::KNN(KNN_CELL));
 
     /////////////////////////////////////////////
     // Step 1. sample random projection matrix //
@@ -120,8 +114,8 @@ asap_random_bulk_data(
             // memory location = 0 means the end //
             ///////////////////////////////////////
 
-            const Index lb_mem = lb < N ? mtx_idx[lb] : 0;
-            const Index ub_mem = ub < N ? mtx_idx[ub] : 0;
+            const Index lb_mem = lb < N ? mtx_idx.at(lb) : 0;
+            const Index ub_mem = ub < N ? mtx_idx.at(ub) : 0;
 
             mmutil::stat::row_collector_t collector(do_log1p);
             collector.set_size(info.max_row, info.max_col, info.max_elem);
@@ -172,6 +166,7 @@ asap_random_bulk_data(
         TLOG("Finished random matrix projection");
 
     // Regress out
+    const std::size_t lu_iter = 5; // this should be enough
     if (X.cols() < 2) {
         Mat Qt = Q.transpose();
         ColVec denom = (X.cwiseProduct(X))
@@ -184,7 +179,7 @@ asap_random_bulk_data(
     } else {
         Mat Qt = Q.transpose();
         const std::size_t r = std::min(X.cols(), Qt.cols());
-        RandomizedSVD<Mat> svd_x(r, 5);
+        RandomizedSVD<Mat> svd_x(r, lu_iter);
         svd_x.compute(X);
         const ColVec d = svd_x.singularValues();
         Mat u = svd_x.matrixU();
@@ -206,8 +201,7 @@ asap_random_bulk_data(
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    const std::size_t lu_iter = 5;      // this should be good
-    RandomizedSVD<Mat> svd(K, lu_iter); //
+    RandomizedSVD<Mat> svd(K, lu_iter);
     // if (verbose) svd.set_verbose();
 
     if (do_normalize)
@@ -267,7 +261,6 @@ asap_random_bulk_data(
     auto pb_cells = make_index_vec_vec(positions);
 
     Mat mu_ds = Mat::Zero(D, S);
-    Mat Qpb = Mat::Zero(K, S);
 
     ////////////////////////////
     // Read batch information //
@@ -300,7 +293,9 @@ asap_random_bulk_data(
         Mat prob_bs = Mat::Zero(B, S);        // batch x PB prob
         Mat n_bs = Mat::Zero(B, S);           // batch x PB freq
 
-        matched_data.build_dictionary(Q, NUM_THREADS);
+        CHK_RETL_(matched_data.build_annoy_index(Q, NUM_THREADS),
+                  "Failed to build Annoy Indexes: " << Q.rows() << " x "
+                                                    << Q.cols());
 
         ////////////////////////////
         // Step a. precalculation //
@@ -315,9 +310,6 @@ asap_random_bulk_data(
             if (pb_cells.at(s).size() < 1)
                 continue;
 
-            const Index ns = pb_cells.at(s).size();
-            const Scalar ns_ = static_cast<Scalar>(ns);
-
             const Mat yy = matched_data.read(pb_cells.at(s));
             const Mat zz = matched_data.read_counterfactual(pb_cells.at(s));
 
@@ -325,12 +317,16 @@ asap_random_bulk_data(
             zbar_ds.col(s) = zz.rowwise().mean();
 
             prob_bs.col(s).setZero();
+            n_bs.col(s).setZero();
+
             for (Index j = 0; j < pb_cells.at(s).size(); ++j) {
-                const Index b = matched_data.exposure_group(j);
-                prob_bs(b, s) = prob_bs(b, s) + 1. / ns_;
+                const Index k = pb_cells.at(s).at(j);
+                const Index b = matched_data.exposure_group(k);
                 n_bs(b, s) = n_bs(b, s) + 1.;
                 delta_num_db.col(b) += yy.col(j);
             }
+
+            prob_bs.col(s) = n_bs.col(s) / n_bs.col(s).sum();
         }
 
         ///////////////////////////////
@@ -338,7 +334,7 @@ asap_random_bulk_data(
         ///////////////////////////////
 
         const Scalar tol = 1e-8;
-        const Index max_iter = 100;
+        const Index max_iter = 100; // should be enough
 
         for (Index t = 0; t < max_iter; ++t) {
             mu_ds = (ybar_ds + zbar_ds).array() /
@@ -347,6 +343,7 @@ asap_random_bulk_data(
             delta_denom_db = mu_ds * n_bs.transpose();
             delta_db = delta_num_db.array() / (delta_denom_db.array() + tol);
         }
+
     } else {
 
         //////////////////////////////////////////////////
@@ -367,7 +364,6 @@ asap_random_bulk_data(
                 const Index j = i + lb;
                 const Index s = positions.at(j);
                 mu_ds.col(s) += y.col(i);
-                Qpb.col(s) += Q.col(j);
             }
         }
     }
@@ -378,21 +374,21 @@ asap_random_bulk_data(
                    std::begin(positions),
                    [](Index x) -> Index { return (x + 1); });
 
-    if (do_normalize)
-        normalize_columns(Qpb);
-
     if (verbose)
         TLOG("Finished populating the PB matrix: " << mu_ds.rows() << " x "
                                                    << mu_ds.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = mu_ds,
+                              Rcpp::_["batch.effect"] = delta_db,
+                              Rcpp::_["batch.membership"] =
+                                  matched_data.get_exposure_mapping(),
+                              Rcpp::_["batch.names"] =
+                                  matched_data.get_exposure_names(),
+                              Rcpp::_["positions"] = positions,
+                              Rcpp::_["rand.proj"] = R,
                               Rcpp::_["Q"] = Q,
-                              Rcpp::_["Q.pb"] = Qpb,
-                              Rcpp::_[""] = delta_db,
                               Rcpp::_["rand.dict"] = random_dict,
                               Rcpp::_["svd.u"] = svd.matrixU(),
                               Rcpp::_["svd.d"] = svd.singularValues(),
-                              Rcpp::_["svd.v"] = svd.matrixV(),
-                              Rcpp::_["positions"] = positions,
-                              Rcpp::_["rand.proj"] = R);
+                              Rcpp::_["svd.v"] = svd.matrixV());
 }

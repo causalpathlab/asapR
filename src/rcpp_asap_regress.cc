@@ -108,9 +108,11 @@ asap_regression(const Eigen::MatrixXf Y_,
 
 //' Poisson regression to estimate factor loading
 //'
-//' @param mtx_file matrix-market-formatted data file (bgzip)
-//' @param memory_location column indexing for the mtx
+//' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+//' @param mtx_idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
+//' @param r_batch_effect D x B batch effect matrix
+//' @param r_batch_membership N integer vector for 0-based batch membership
 //' @param r_x_row_names (default: NULL)
 //' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
@@ -127,8 +129,10 @@ asap_regression(const Eigen::MatrixXf Y_,
 Rcpp::List
 asap_regression_mtx(
     const std::string mtx_file,
-    const Rcpp::NumericVector &memory_location,
+    const std::string mtx_idx_file,
     const Eigen::MatrixXf log_x,
+    const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
+    const Rcpp::Nullable<Rcpp::IntegerVector> r_batch_membership = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names = R_NilValue,
@@ -257,14 +261,21 @@ asap_regression_mtx(
         Rcpp::Rcerr << "Calibrating total = " << N << std::flush;
     }
 
+    std::vector<Index> mtx_idx;
+    CHK_RETL_(read_mmutil_index(mtx_idx_file, mtx_idx),
+              "Failed to read the index file:" << std::endl
+                                               << mtx_idx_file << std::endl
+                                               << "Consider rebuilding it."
+                                               << std::endl);
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
         Index ub = std::min(N, block_size + lb);
-        Index col_lb_mem = memory_location[lb];
-        Index col_ub_mem = ub < N ? memory_location[ub] : 0; // 0 = the end
+        Index col_lb_mem = mtx_idx.at(lb);
+        Index col_ub_mem = ub < N ? mtx_idx.at(ub) : 0; // 0 = the end
 
         const SpMat y = take_row_subset ?
             (read_eigen_sparse_subset_row_col(mtx_file,

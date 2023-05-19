@@ -18,6 +18,12 @@ mmutil_build_index(const std::string mtx_file,
 {
     using namespace mmutil::index;
     CHK_RET(mmutil::bgzf::convert_bgzip(mtx_file));
+
+    if (file_exists(index_file)) {
+        WLOG("Rewrite the existing index file: " << index_file);
+        rename_file(index_file, index_file + ".old");
+    }
+
     return build_mmutil_index(mtx_file, index_file);
 }
 
@@ -45,15 +51,15 @@ mmutil_read_index(const std::string index_file)
 //' @param mtx_file data file
 //' @param index_tab index tab (a vector of memory locations)
 //'
-//' @return EXIT_SUCCESS or EXIT_FAILURE
+//' @return TRUE or FALSE
 //'
 // [[Rcpp::export]]
-int
+bool
 mmutil_check_index(const std::string mtx_file,
                    const Rcpp::NumericVector &index_tab)
 {
     CHK_RET(mmutil::bgzf::convert_bgzip(mtx_file));
     using namespace mmutil::index;
     std::vector<Index> _idx(index_tab.begin(), index_tab.end());
-    return check_index_tab(mtx_file, _idx);
+    return check_index_tab(mtx_file, _idx) == EXIT_SUCCESS;
 }

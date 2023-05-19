@@ -5,7 +5,8 @@
 #' @param num.proj the number of pseudobulk projection steps (default: 1)
 #' @param em.step Monte Carlo EM steps (default: 100)
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
-#' @param covar covariates (default: NULL)
+#' @param covar sample x var covariate matrix (default: NULL)
+#' @param batch batch information for each sample (default: NULL)
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .reg.steps number of steps in regression analysis (default: 10)
 #' @param .reg.stdize standardize X in regression (default: TRUE)
@@ -70,16 +71,11 @@ fit.topic.asap <- function(mtx.file,
                            svd.init = TRUE,
                            do.log1p = FALSE,
                            max.depth = 1e4,
-                           covar = NULL){
+                           covar = NULL,
+                           batch = NULL){
 
     if(!file.exists(index.file)){
         mmutil_build_index(mtx.file, index.file)
-    }
-
-    mtx.index <- mmutil_read_index(index.file)
-    if(length(mtx.index) < 1){
-        message("Failed to read the indexing file: ", index.file)
-        return(NULL)
     }
 
     message("Phase I: Create random pseudo-bulk data")
@@ -90,16 +86,17 @@ fit.topic.asap <- function(mtx.file,
 
     for(r in 1:num.proj){
         .pb <- asap_random_bulk_data(mtx_file = mtx.file,
-                                     memory_location = mtx.index,
+                                     mtx_idx_file = index.file,
                                      num_factors = pb.factors,
+                                     r_covar = covar,
+                                     r_batch = batch,
                                      rseed = .rand.seed + (r - 1),
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
                                      do_normalize = FALSE,
                                      do_log1p = do.log1p,
-                                     do_row_std = FALSE,
-                                     r_covar = covar)
+                                     do_row_std = FALSE)
         Y <- cbind(Y, .pb$PB)
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
@@ -137,7 +134,7 @@ fit.topic.asap <- function(mtx.file,
     log.x <- .nmf$log.beta
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
-                                memory_location = mtx.index,
+                                mtx_idx_file = index.file,
                                 log_x = log.x,
                                 r_x_row_names = NULL,
                                 r_mtx_row_names = NULL,
@@ -162,7 +159,7 @@ fit.topic.asap <- function(mtx.file,
     asap$nmf <- .nmf
     asap$Y <- Y
     asap$rand.proj <- rand.proj
-    asap$rand.positions <- (rand.positions + 1) # fix 0-based to 1-based
+    asap$rand.positions <- rand.positions
     return(asap)
 }
 

@@ -1,33 +1,13 @@
 #ifndef MMUTIL_MATCH_HH_
 #define MMUTIL_MATCH_HH_
 
-#include "hnswlib.h"
 #include "math.hh"
-
 #include "mmutil.hh"
 
 namespace mmutil { namespace match {
 
-using KnnAlg = hnswlib::HierarchicalNSW<Scalar>;
-
 struct KNN {
     explicit KNN(const std::size_t _val)
-        : val(_val)
-    {
-    }
-    const std::size_t val;
-};
-
-struct BILINK {
-    explicit BILINK(const std::size_t _val)
-        : val(_val)
-    {
-    }
-    const std::size_t val;
-};
-
-struct NNLIST {
-    explicit NNLIST(const std::size_t _val)
         : val(_val)
     {
     }

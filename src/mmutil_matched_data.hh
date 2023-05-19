@@ -10,37 +10,40 @@
 #include "mmutil_io.hh"
 #include "mmutil_match.hh"
 
+#include "RcppAnnoy.h"
+
 namespace mmutil { namespace match {
+
+#define ANNOYLIB_MULTITHREADED_BUILD 1
 
 struct data_loader_t {
 
-    using vs_type = hnswlib::InnerProductSpace;
+    using annoy_t = Scalar;
+    using annoy_index_t = AnnoyIndex<Index,
+                                     Scalar,
+                                     Euclidean,
+                                     Kiss64Random,
+                                     RcppAnnoyIndexThreadPolicy>;
+
     using str_vec_t = std::vector<std::string>;
     using idx_vec_t = std::vector<Index>;
     using num_vec_t = std::vector<Scalar>;
 
     explicit data_loader_t(const std::string _mtx_file,
                            const idx_vec_t &_mtx_idx_tab,
-                           const KNN _knn,
-                           const BILINK _bilink,
-                           const NNLIST _nnlist)
+                           const KNN _knn)
         : mtx_file(_mtx_file)
         , mtx_idx_tab(_mtx_idx_tab)
         , knn(_knn.val)
-        , param_bilink(_bilink.val)
-        , param_nnlist(_nnlist.val)
     {
         mmutil::io::mm_info_reader_t info;
         CHECK(mmutil::bgzf::peek_bgzf_header(mtx_file, info));
-        CHECK(mtx_idx_tab.size() == info.max_col);
         D = info.max_row;
         Nsample = info.max_col;
         Nexposure = 0;
     }
 
     int set_exposure_info(const str_vec_t &);
-
-    int build_dictionary(const Mat, const std::size_t NUM_THREADS);
 
     Mat read_counterfactual(const idx_vec_t &cells_j);
     Mat read(const idx_vec_t &cells_j);
@@ -51,11 +54,13 @@ struct data_loader_t {
 
     const std::string mtx_file;
     const idx_vec_t &mtx_idx_tab;
+    const str_vec_t &get_exposure_names() const;
+    const idx_vec_t &get_exposure_mapping() const;
+
+    int build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS);
 
 private:
     const std::size_t knn;
-    std::size_t param_bilink;
-    std::size_t param_nnlist;
 
     Index D;
     Index Nsample;
@@ -66,8 +71,7 @@ private:
     std::vector<idx_vec_t> exposure_index_set;
     Mat Q_kn; // rank x column matching data
 
-    std::vector<std::shared_ptr<vs_type>> vs_vec_exposure;
-    std::vector<std::shared_ptr<KnnAlg>> knn_lookup_exposure;
+    std::vector<std::shared_ptr<annoy_index_t>> annoy_indexes;
 };
 
 }} // namespace mmutil::match

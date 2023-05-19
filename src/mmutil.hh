@@ -1,7 +1,3 @@
-// #include <boost/graph/adjacency_list.hpp>
-// #include <boost/graph/connected_components.hpp>
-// #include <boost/lexical_cast.hpp>
-
 // [[Rcpp::plugins(cpp14)]]
 #include <Rcpp.h>
 // [[Rcpp::depends(RcppEigen)]]

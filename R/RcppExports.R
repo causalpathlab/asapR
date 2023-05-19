@@ -52,7 +52,7 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' Generate approximate pseudo-bulk data by random projections
 #'
 #' @param mtx_file matrix-market-formatted data file (bgzip)
-#' @param memory_location column indexing for the mtx
+#' @param mtx_idx_file matrix-market colum index file
 #' @param num_factors a desired number of random factors
 #' @param r_covar covariates (default: NULL)
 #' @param r_batch batch information (default: NULL)
@@ -64,11 +64,9 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_row_std rowwise standardization (default: FALSE)
 #' @param KNN_CELL k-NN matching between cells (default: 10)
-#' @param KNN_BILINK num. of bidirectional links (default: 10)
-#' @param KNN_NNLIST num. of nearest neighbor lists (default: 10)
 #'
-asap_random_bulk_data <- function(mtx_file, memory_location, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, KNN_BILINK = 10L, KNN_NNLIST = 10L) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, memory_location, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL, KNN_BILINK, KNN_NNLIST)
+asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_normalize = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL)
 }
 
 #' Poisson regression to estimate factor loading
@@ -88,9 +86,11 @@ asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1
 
 #' Poisson regression to estimate factor loading
 #'
-#' @param mtx_file matrix-market-formatted data file (bgzip)
-#' @param memory_location column indexing for the mtx
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param mtx_idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
+#' @param r_batch_effect D x B batch effect matrix
+#' @param r_batch_membership N integer vector for 0-based batch membership
 #' @param r_x_row_names (default: NULL)
 #' @param r_mtx_row_names (default: NULL)
 #' @param a0 gamma(a0, b0)
@@ -103,8 +103,8 @@ asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1
 #' @param do_stdize do the standardization of log_x
 #' @param std_topic_latent standardization of latent variables
 #'
-asap_regression_mtx <- function(mtx_file, memory_location, log_x, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, max_depth = 1e4, do_stdize_x = FALSE, std_topic_latent = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent)
+asap_regression_mtx <- function(mtx_file, mtx_idx_file, log_x, r_batch_effect = NULL, r_batch_membership = NULL, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, max_depth = 1e4, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, mtx_idx_file, log_x, r_batch_effect, r_batch_membership, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent)
 }
 
 #' Clustering the rows of a count data matrix
@@ -151,7 +151,7 @@ mmutil_read_index <- function(index_file) {
 #' @param mtx_file data file
 #' @param index_tab index tab (a vector of memory locations)
 #'
-#' @return EXIT_SUCCESS or EXIT_FAILURE
+#' @return TRUE or FALSE
 #'
 mmutil_check_index <- function(mtx_file, index_tab) {
     .Call('_asapR_mmutil_check_index', PACKAGE = 'asapR', mtx_file, index_tab)

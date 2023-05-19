@@ -59,13 +59,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_random_bulk_data
-Rcpp::List asap_random_bulk_data(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar, const Rcpp::Nullable<Rcpp::StringVector> r_batch, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool do_normalize, const bool do_log1p, const bool do_row_std, const std::size_t KNN_CELL, const std::size_t KNN_BILINK, const std::size_t KNN_NNLIST);
-RcppExport SEXP _asapR_asap_random_bulk_data(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP num_factorsSEXP, SEXP r_covarSEXP, SEXP r_batchSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP do_normalizeSEXP, SEXP do_log1pSEXP, SEXP do_row_stdSEXP, SEXP KNN_CELLSEXP, SEXP KNN_BILINKSEXP, SEXP KNN_NNLISTSEXP) {
+Rcpp::List asap_random_bulk_data(const std::string mtx_file, const std::string mtx_idx_file, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar, const Rcpp::Nullable<Rcpp::StringVector> r_batch, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool do_normalize, const bool do_log1p, const bool do_row_std, const std::size_t KNN_CELL);
+RcppExport SEXP _asapR_asap_random_bulk_data(SEXP mtx_fileSEXP, SEXP mtx_idx_fileSEXP, SEXP num_factorsSEXP, SEXP r_covarSEXP, SEXP r_batchSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP do_normalizeSEXP, SEXP do_log1pSEXP, SEXP do_row_stdSEXP, SEXP KNN_CELLSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::string >::type mtx_file(mtx_fileSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type memory_location(memory_locationSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type mtx_idx_file(mtx_idx_fileSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type num_factors(num_factorsSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericMatrix> >::type r_covar(r_covarSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_batch(r_batchSEXP);
@@ -77,9 +77,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_row_std(do_row_stdSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type KNN_CELL(KNN_CELLSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type KNN_BILINK(KNN_BILINKSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type KNN_NNLIST(KNN_NNLISTSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data(mtx_file, memory_location, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL, KNN_BILINK, KNN_NNLIST));
+    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data(mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_normalize, do_log1p, do_row_std, KNN_CELL));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -103,14 +101,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_regression_mtx
-Rcpp::List asap_regression_mtx(const std::string mtx_file, const Rcpp::NumericVector& memory_location, const Eigen::MatrixXf log_x, const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const double max_depth, const bool do_stdize_x, const bool std_topic_latent);
-RcppExport SEXP _asapR_asap_regression_mtx(SEXP mtx_fileSEXP, SEXP memory_locationSEXP, SEXP log_xSEXP, SEXP r_x_row_namesSEXP, SEXP r_mtx_row_namesSEXP, SEXP r_taboo_namesSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP max_depthSEXP, SEXP do_stdize_xSEXP, SEXP std_topic_latentSEXP) {
+Rcpp::List asap_regression_mtx(const std::string mtx_file, const std::string mtx_idx_file, const Eigen::MatrixXf log_x, const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect, const Rcpp::Nullable<Rcpp::IntegerVector> r_batch_membership, const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names, const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const double max_depth, const bool do_stdize_x, const bool std_topic_latent);
+RcppExport SEXP _asapR_asap_regression_mtx(SEXP mtx_fileSEXP, SEXP mtx_idx_fileSEXP, SEXP log_xSEXP, SEXP r_batch_effectSEXP, SEXP r_batch_membershipSEXP, SEXP r_x_row_namesSEXP, SEXP r_mtx_row_namesSEXP, SEXP r_taboo_namesSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP max_depthSEXP, SEXP do_stdize_xSEXP, SEXP std_topic_latentSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const std::string >::type mtx_file(mtx_fileSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::NumericVector& >::type memory_location(memory_locationSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type mtx_idx_file(mtx_idx_fileSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type log_x(log_xSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericMatrix> >::type r_batch_effect(r_batch_effectSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::IntegerVector> >::type r_batch_membership(r_batch_membershipSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_x_row_names(r_x_row_namesSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_mtx_row_names(r_mtx_row_namesSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type r_taboo_names(r_taboo_namesSEXP);
@@ -124,7 +124,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type max_depth(max_depthSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_stdize_x(do_stdize_xSEXP);
     Rcpp::traits::input_parameter< const bool >::type std_topic_latent(std_topic_latentSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_regression_mtx(mtx_file, memory_location, log_x, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent));
+    rcpp_result_gen = Rcpp::wrap(asap_regression_mtx(mtx_file, mtx_idx_file, log_x, r_batch_effect, r_batch_membership, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, max_depth, do_stdize_x, std_topic_latent));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -171,7 +171,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // mmutil_check_index
-int mmutil_check_index(const std::string mtx_file, const Rcpp::NumericVector& index_tab);
+bool mmutil_check_index(const std::string mtx_file, const Rcpp::NumericVector& index_tab);
 RcppExport SEXP _asapR_mmutil_check_index(SEXP mtx_fileSEXP, SEXP index_tabSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
@@ -284,9 +284,9 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_fit_nmf_alternate", (DL_FUNC) &_asapR_asap_fit_nmf_alternate, 13},
-    {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 15},
+    {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 13},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 9},
-    {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 16},
+    {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 18},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
     {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},

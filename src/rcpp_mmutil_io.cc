@@ -82,6 +82,11 @@ mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> &X,
 
     ofs.close();
 
+    if (file_exists(idx_file)) {
+        WLOG("Rewrite the existing index file: " << idx_file);
+        rename_file(idx_file, idx_file + ".old");
+    }
+
     CHK_RET_(build_mmutil_index(mtx_file, idx_file),
              "Unable to create the index file");
 
