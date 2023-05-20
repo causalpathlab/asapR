@@ -32,9 +32,9 @@ asap_regression_mtx(
 
 \item{log_x}{D x K log dictionary/design matrix}
 
-\item{r_batch_effect}{D x B batch effect matrix}
+\item{r_batch_effect}{D x B batch effect matrix (default: NULL)}
 
-\item{r_batch_membership}{N integer vector for 0-based batch membership}
+\item{r_batch_membership}{N integer vector for 0-based batch membership (default: NULL)}
 
 \item{r_x_row_names}{(default: NULL)}
 

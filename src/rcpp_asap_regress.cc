@@ -1,11 +1,13 @@
-#include "rcpp_asap.hh"
+#include "rcpp_asap_regress.hh"
 
 //' Poisson regression to estimate factor loading
 //'
 //' @param Y D x N data matrix
 //' @param log_x D x K log dictionary/design matrix
-//' @param a0 gamma(a0, b0)
-//' @param b0 gamma(a0, b0)
+//' @param r_batch_effect D x B batch effect matrix (default: NULL)
+//' @param r_batch_membership N integer vector for 0-based membership (default: NULL)
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity (default: false)
 //' @param do_stdize do the standardization of log_x
@@ -13,15 +15,18 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_regression(const Eigen::MatrixXf Y_,
-                const Eigen::MatrixXf log_x,
-                const double a0 = 1.,
-                const double b0 = 1.,
-                const std::size_t max_iter = 10,
-                const bool do_log1p = false,
-                const bool verbose = false,
-                const bool do_stdize_x = false,
-                const bool std_topic_latent = false)
+asap_regression(
+    const Eigen::MatrixXf Y_,
+    const Eigen::MatrixXf log_x,
+    const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
+    const Rcpp::Nullable<Rcpp::IntegerVector> r_batch_membership = R_NilValue,
+    const double a0 = 1.,
+    const double b0 = 1.,
+    const std::size_t max_iter = 10,
+    const bool do_log1p = false,
+    const bool verbose = false,
+    const bool do_stdize_x = false,
+    const bool std_topic_latent = false)
 {
 
     exp_op<Mat> exp;
@@ -40,8 +45,14 @@ asap_regression(const Eigen::MatrixXf Y_,
     const Index N = Y_dn.cols();
     const Index K = log_x.cols(); // number of topics
 
-    const Mat log_X = do_stdize_x ? standardize(log_x) : log_x;
-    const RowVec Xsum = log_X.unaryExpr(exp).colwise().sum();
+    batch_info_t batch_info(D, N);
+    CHK_RETL(batch_info.read(r_batch_effect, r_batch_membership));
+
+    const Mat &delta_db = batch_info.delta_db;
+    const Index B = delta_db.cols();
+    const std::vector<Index> &batch_membership = batch_info.membership;
+
+    const Mat logX_dk = do_stdize_x ? standardize(log_x) : log_x;
 
     using RNG = dqrng::xoshiro256plus;
     using gamma_t = gamma_param_t<Mat, RNG>;
@@ -60,8 +71,22 @@ asap_regression(const Eigen::MatrixXf Y_,
     const ColVec Y_d1 = Y_d.unaryExpr(at_least_one);
 
     const Mat R_nk =
-        (Y_dn.transpose() * log_X).array().colwise() / Y_n1.array();
-    const Mat x_nk = ColVec::Ones(Y_dn.cols()) * Xsum;
+        (Y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
+
+    Mat x_nk(N, K);
+
+    if (B > 1) {
+        // X[j,k] = sum_i X[i,k] sum_b delta[i, b] M[j, b]
+        Mat deltaX_bk = delta_db.transpose() * logX_dk.unaryExpr(exp);
+        for (Index jj = 0; jj < N; ++jj) {
+            Index b = batch_membership.at(jj);
+            x_nk.row(jj) = deltaX_bk.row(b);
+        }
+    } else {
+        // X[j,k] = sum_i X[i,k]
+        RowVec Xsum = logX_dk.unaryExpr(exp).colwise().sum();
+        x_nk = ColVec::Ones(N) * Xsum; // n x K
+    }
 
     RowVec tempK(K);
 
@@ -75,7 +100,7 @@ asap_regression(const Eigen::MatrixXf Y_,
 
             logPhi_dk = Y_dn * theta_nk.log_mean();
             logPhi_dk.array().colwise() /= Y_d1.array();
-            logPhi_dk += log_X;
+            logPhi_dk += logX_dk;
 
             std_ln_phi_dk.colwise(EPS);
             phi_dk = logPhi_dk.unaryExpr(exp);
@@ -98,7 +123,7 @@ asap_regression(const Eigen::MatrixXf Y_,
         theta_nk.calibrate();
     }
 
-    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp),
+    return Rcpp::List::create(Rcpp::_["beta"] = logX_dk.unaryExpr(exp),
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["corr"] = R_nk,
@@ -111,8 +136,8 @@ asap_regression(const Eigen::MatrixXf Y_,
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 //' @param mtx_idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
-//' @param r_batch_effect D x B batch effect matrix
-//' @param r_batch_membership N integer vector for 0-based batch membership
+//' @param r_batch_effect D x B batch effect matrix (default: NULL)
+//' @param r_batch_membership N integer vector for 0-based batch membership (default: NULL)
 //' @param r_x_row_names (default: NULL)
 //' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
@@ -212,42 +237,46 @@ asap_regression_mtx(
         TLOG("Theta: " << N << " x " << K);
     }
 
+    batch_info_t batch_info(D, N);
+    CHK_RETL(batch_info.read(r_batch_effect, r_batch_membership));
+
+    const Mat &delta_db = batch_info.delta_db;
+    const Index B = delta_db.cols();
+    const std::vector<Index> &batch_membership = batch_info.membership;
+
     exp_op<Mat> exp;
     at_least_one_op<Mat> at_least_one;
     softmax_op_t<Mat> softmax;
     log1p_op<Mat> log1p;
 
-    Mat log_X;
+    Mat logX_dk;
 
-    /////////////////////////////
-    // preprocess log_X matrix //
-    /////////////////////////////
+    ///////////////////////////////
+    // preprocess logX_dk matrix //
+    ///////////////////////////////
     eigen_triplet_reader_remapped_rows_cols_t::index_map_t mtx_row_loc;
 
-    {
-        if (!take_row_subset) {
-            ASSERT_RETL(log_x.rows() == D,
-                        "The log-X matrix contains "
-                            << " different numbers of rows: " << mtx_file);
-            log_X = do_stdize_x ? standardize(log_x) : log_x;
-        } else {
-            const Index d = x_row_idx.size();
-            Mat temp(d, log_x.cols());
-            for (Index r = 0; r < d; ++r) {
-                temp.row(r) = log_x.row(x_row_idx.at(r));
-            }
-            log_X = do_stdize_x ? standardize(temp) : temp;
-            for (Index r = 0; r < d; ++r) {
-                mtx_row_loc[mtx_row_idx.at(r)] = r;
-            }
+    if (!take_row_subset) {
+        ASSERT_RETL(log_x.rows() == D,
+                    "The log-X matrix contains different"
+                        << " numbers of rows from the one in " << mtx_file
+                        << ": " << log_x.rows() << " vs. " << D);
+        logX_dk = do_stdize_x ? standardize(log_x) : log_x;
+    } else {
+        const Index d = x_row_idx.size();
+        Mat temp(d, log_x.cols());
+        for (Index r = 0; r < d; ++r) {
+            temp.row(r) = log_x.row(x_row_idx.at(r));
+        }
+        logX_dk = do_stdize_x ? standardize(temp) : temp;
+        for (Index r = 0; r < d; ++r) {
+            mtx_row_loc[mtx_row_idx.at(r)] = r;
         }
     }
 
     if (verbose) {
-        TLOG("log.X: " << log_X.rows() << " x " << log_X.cols());
+        TLOG("log.X: " << logX_dk.rows() << " x " << logX_dk.cols());
     }
-
-    RowVec Xsum = log_X.unaryExpr(exp).colwise().sum();
 
     Mat R_tot(N, K);
     Mat Z_tot(N, K);
@@ -302,9 +331,8 @@ asap_regression_mtx(
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
-
         const Mat Y_dn = do_log1p ? ynorm.unaryExpr(log1p) : ynorm;
-
+        const Index n = Y_dn.cols();
         using RNG = dqrng::xoshiro256plus;
         using gamma_t = gamma_param_t<Mat, RNG>;
         RNG rng;
@@ -318,11 +346,24 @@ asap_regression_mtx(
         Mat logRho_nk(Y_dn.cols(), K), rho_nk(Y_dn.cols(), K);
         Mat logPhi_dk(Y_dn.rows(), K), phi_dk(Y_dn.rows(), K);
 
-        Mat R_nk = (Y_dn.transpose() * log_X).array().colwise() / Y_n1.array();
+        const Mat R_nk =
+            (Y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
 
-        ColVec onesN(Y_dn.cols()); // n x 1
-        onesN.setOnes();           //
-        Mat x_nk = onesN * Xsum;   // n x K
+        Mat x_nk(n, K);
+
+        if (B > 1) {
+            // X[j,k] = sum_i X[i,k] sum_b delta[i, b] M[j, b]
+            Mat deltaX_bk = delta_db.transpose() * logX_dk.unaryExpr(exp);
+            for (Index jj = 0; jj < (ub - lb); ++jj) {
+                const Index j = lb + jj;
+                const Index b = batch_membership.at(j);
+                x_nk.row(jj) = deltaX_bk.row(b);
+            }
+        } else {
+            // X[j,k] = sum_i X[i,k]
+            RowVec Xsum = logX_dk.unaryExpr(exp).colwise().sum();
+            x_nk = ColVec::Ones(n) * Xsum; // n x K
+        }
 
         RowVec tempK(K);
 
@@ -338,7 +379,7 @@ asap_regression_mtx(
             if (std_topic_latent) {
                 logPhi_dk = Y_dn * theta_b.log_mean();
                 logPhi_dk.array().colwise() /= Y_d1.array();
-                logPhi_dk += log_X;
+                logPhi_dk += logX_dk;
 
                 std_ln_phi_dk.colwise(EPS);
                 phi_dk = logPhi_dk.unaryExpr(exp);
@@ -383,7 +424,7 @@ asap_regression_mtx(
     Rcpp::Rcerr << std::endl;
     TLOG("Done");
 
-    return Rcpp::List::create(Rcpp::_["beta"] = log_X.unaryExpr(exp),
+    return Rcpp::List::create(Rcpp::_["beta"] = logX_dk.unaryExpr(exp),
                               Rcpp::_["theta"] = theta_tot,
                               Rcpp::_["corr"] = R_tot,
                               Rcpp::_["latent"] = Z_tot,

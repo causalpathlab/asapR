@@ -7,6 +7,8 @@
 asap_regression(
   Y_,
   log_x,
+  r_batch_effect = NULL,
+  r_batch_membership = NULL,
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
@@ -19,9 +21,13 @@ asap_regression(
 \arguments{
 \item{log_x}{D x K log dictionary/design matrix}
 
-\item{a0}{gamma(a0, b0)}
+\item{r_batch_effect}{D x B batch effect matrix (default: NULL)}
 
-\item{b0}{gamma(a0, b0)}
+\item{r_batch_membership}{N integer vector for 0-based membership (default: NULL)}
+
+\item{a0}{gamma(a0, b0) (default: 1)}
+
+\item{b0}{gamma(a0, b0) (default: 1)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

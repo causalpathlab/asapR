@@ -74,15 +74,17 @@ asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar =
 #'
 #' @param Y D x N data matrix
 #' @param log_x D x K log dictionary/design matrix
-#' @param a0 gamma(a0, b0)
-#' @param b0 gamma(a0, b0)
+#' @param r_batch_effect D x B batch effect matrix (default: NULL)
+#' @param r_batch_membership N integer vector for 0-based membership (default: NULL)
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity (default: false)
 #' @param do_stdize do the standardization of log_x
 #' @param std_topic_latent standardization of latent variables
 #'
-asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
-    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, a0, b0, max_iter, do_log1p, verbose, do_stdize_x, std_topic_latent)
+asap_regression <- function(Y_, log_x, r_batch_effect = NULL, r_batch_membership = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, do_stdize_x = FALSE, std_topic_latent = FALSE) {
+    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, r_batch_effect, r_batch_membership, a0, b0, max_iter, do_log1p, verbose, do_stdize_x, std_topic_latent)
 }
 
 #' Poisson regression to estimate factor loading
@@ -90,8 +92,8 @@ asap_regression <- function(Y_, log_x, a0 = 1., b0 = 1., max_iter = 10L, do_log1
 #' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 #' @param mtx_idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
-#' @param r_batch_effect D x B batch effect matrix
-#' @param r_batch_membership N integer vector for 0-based batch membership
+#' @param r_batch_effect D x B batch effect matrix (default: NULL)
+#' @param r_batch_membership N integer vector for 0-based batch membership (default: NULL)
 #' @param r_x_row_names (default: NULL)
 #' @param r_mtx_row_names (default: NULL)
 #' @param a0 gamma(a0, b0)
