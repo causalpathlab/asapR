@@ -18,7 +18,9 @@ asap_random_bulk_data(
   do_log1p = FALSE,
   do_row_std = FALSE,
   KNN_CELL = 10L,
-  BATCH_ADJ_ITER = 100L
+  BATCH_ADJ_ITER = 100L,
+  a0 = 1,
+  b0 = 1
 )
 }
 \arguments{
@@ -49,6 +51,10 @@ asap_random_bulk_data(
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
 
 \item{BATCH_ADJ_ITER}{batch Adjustment steps (default: 100)}
+
+\item{a0}{gamma(a0, b0) (default: 1)}
+
+\item{b0}{gamma(a0, b0) (default: 1)}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

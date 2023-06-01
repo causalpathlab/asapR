@@ -94,8 +94,10 @@ data_loader_t::read(const Index lb, const Index ub)
     ///////////////////////////////////////
     // memory location = 0 means the end //
     ///////////////////////////////////////
+
     const Index lb_mem = lb < Nsample ? mtx_idx_tab[lb] : 0;
     const Index ub_mem = ub < Nsample ? mtx_idx_tab[ub] : 0;
+
     return Mat(mmutil::io::read_eigen_sparse_subset_col(mtx_file,
                                                         lb,
                                                         ub,
@@ -116,7 +118,7 @@ data_loader_t::set_exposure_info(const data_loader_t::str_vec_t &exposure)
 
     Nexposure = exposure_index_set.size();
 
-    TLOG("Found " << Nexposure << " treatment groups");
+    // TLOG("Found " << Nexposure << " treatment groups");
 
     return EXIT_SUCCESS;
 }
@@ -151,7 +153,7 @@ data_loader_t::build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS)
     Q_kn = _Q_kn;
     normalize_columns(Q_kn);
     const std::size_t rank = Q_kn.rows();
-    TLOG("Building dictionaries for each exposure ...");
+    // TLOG("Building dictionaries for each exposure ...");
 
     for (Index tt = 0; tt < Nexposure; ++tt) {
         const Index n_tot = exposure_index_set[tt].size();

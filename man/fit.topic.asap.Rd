@@ -14,7 +14,6 @@ fit.topic.asap(
   .burnin = 10,
   .reg.steps = 10,
   .reg.stdize = TRUE,
-  .reg.stdize.latent = FALSE,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -23,8 +22,6 @@ fit.topic.asap(
   block.size = 100,
   .rand.seed = 42,
   .eps = 1e-06,
-  rate.m = 1,
-  rate.v = 1,
   svd.init = TRUE,
   do.log1p = FALSE,
   max.depth = 10000,
@@ -48,8 +45,6 @@ fit.topic.asap(
 \item{.reg.steps}{number of steps in regression analysis (default: 10)}
 
 \item{.reg.stdize}{standardize X in regression (default: TRUE)}
-
-\item{.reg.stdize.latent}{standardize latent states in regression (default: FALSE)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 

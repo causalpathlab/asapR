@@ -30,11 +30,15 @@ struct gamma_param_t {
     void calibrate()
     {
         estimate_mean = a_stat.cwiseQuotient(b_stat);
+        estimate_sd = a_stat.binaryExpr(b_stat, estimate_sd_op);
         estimate_log = a_stat.binaryExpr(b_stat, estimate_log_op);
+        estimate_log_sd = a_stat.unaryExpr(estimate_sd_log_op);
     }
 
     const T &mean() const { return estimate_mean; }
+    const T &sd() const { return estimate_sd; }
     const T &log_mean() const { return estimate_log; }
+    const T &log_sd() const { return estimate_log_sd; }
 
     void reset()
     {
@@ -104,12 +108,36 @@ struct gamma_param_t {
     struct estimate_log_op_t {
         const Scalar operator()(const Scalar &a, const Scalar &b) const
         {
-            return fastdigamma(a) - fastlog(b);
+            return fasterdigamma(a) - fasterlog(b);
+        }
+    };
+
+    // Delta method
+    // sqrt V[ln(mu)] = sqrt (V[mu] / mu)
+    //                = 1/sqrt(a -1 )
+    // approximated at the mode = (a - 1)/b
+    struct estimate_sd_log_op_t {
+        Scalar operator()(const Scalar &a) const
+        {
+            if (a > one)
+                return std::max(one / std::sqrt(a - one), zero);
+
+            return std::max(one / std::sqrt(a), zero);
+        }
+        static constexpr Scalar one = 1.0;
+        static constexpr Scalar zero = 0.0;
+    };
+
+    // sqrt(a) / b
+    struct estimate_sd_op_t {
+        Scalar operator()(const Scalar &a, const Scalar &b) const
+        {
+            return std::max(std::sqrt(a) / (b), static_cast<Scalar>(0.));
         }
     };
 
     struct log_op_t {
-        const Scalar operator()(const Scalar &x) const { return fastlog(x); }
+        const Scalar operator()(const Scalar &x) const { return fasterlog(x); }
     };
 
     const Index nrows, ncols;
@@ -117,11 +145,16 @@ struct gamma_param_t {
 
     T a_stat;
     T b_stat;
-    T estimate_mean; // E[lambda]
-    T estimate_log;  // E[log lambda]
+    T estimate_mean;   // E[lambda]
+    T estimate_sd;     // SD[lambda]
+    T estimate_log;    // E[log lambda]
+    T estimate_log_sd; // SD[log lambda]
 
     rgamma_op_t rgamma_op;
     estimate_log_op_t estimate_log_op;
+    estimate_sd_log_op_t estimate_sd_log_op;
+    estimate_sd_op_t estimate_sd_op;
+
     log_op_t log_op;
 };
 

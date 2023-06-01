@@ -12,15 +12,15 @@ asap_fit_nmf_alternate(
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
-  do_log1p = TRUE,
+  do_log1p = FALSE,
   rseed = 1337L,
-  EPS = 1e-06,
-  rate_m = 1,
-  rate_v = 1,
-  svd_init = TRUE
+  svd_init = TRUE,
+  EPS = 1e-04
 )
 }
 \arguments{
+\item{Y_}{non-negative data matrix (gene x sample)}
+
 \item{maxK}{maximum number of factors}
 
 \item{max_iter}{max number of optimization steps}
@@ -37,7 +37,9 @@ asap_fit_nmf_alternate(
 
 \item{rseed}{random seed (default: 1337)}
 
-\item{Y_dn}{non-negative data matrix (gene x sample)}
+\item{svd_init}{initialize by SVD (default: TRUE)}
+
+\item{EPS}{(default: 1e-4)}
 
 \item{min_iter}{min number of optimization steps}
 }

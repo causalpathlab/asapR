@@ -1,4 +1,5 @@
 #include "rcpp_asap.hh"
+#include "rcpp_asap_stat.hh"
 
 //' Generate approximate pseudo-bulk data by random projections
 //'
@@ -16,6 +17,8 @@
 //' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -33,7 +36,9 @@ asap_random_bulk_data(
     const bool do_log1p = false,
     const bool do_row_std = false,
     const std::size_t KNN_CELL = 10,
-    const std::size_t BATCH_ADJ_ITER = 100)
+    const std::size_t BATCH_ADJ_ITER = 100,
+    const double a0 = 1,
+    const double b0 = 1)
 {
 
     log1p_op<Mat> log1p;
@@ -62,7 +67,6 @@ asap_random_bulk_data(
         Mat::Ones(N, 1);
 
     const Scalar eps = 1e-8;
-
     ASSERT_RETL(X.rows() == N, "incompatible covariate matrix");
 
     if (verbose) {
@@ -77,7 +81,8 @@ asap_random_bulk_data(
     /////////////////////////////////////////////
 
     using norm_dist_t = boost::random::normal_distribution<Scalar>;
-    dqrng::xoshiro256plus rng(rseed);
+    using RNG = dqrng::xoshiro256plus;
+    RNG rng(rseed);
     norm_dist_t norm_dist(0., 1.);
 
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
@@ -87,59 +92,23 @@ asap_random_bulk_data(
         TLOG("Random projection: " << R.rows() << " x " << R.cols());
     }
 
-    Mat Q(K, N);
-    Q.setZero();
-
-    mmutil::stat::row_collector_t collector(do_log1p);
-
-    ColVec mu(D), sig(D);
-
-    mu.setZero();
-    sig.setOnes();
+    Mat Q = Mat::Zero(K, N);
+    ColVec mu = ColVec::Zero(D), sig = ColVec::Ones(D);
 
     if (do_row_std) {
 
-        ColVec s1(D), s2(D);
-        s1.setZero();
-        s2.setZero();
-
-        if (verbose)
-            TLOG("Collecting row-wise statistics...");
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
-        for (Index lb = 0; lb < N; lb += block_size) {
-
-            const Index ub = std::min(N, block_size + lb);
-
-            ///////////////////////////////////////
-            // memory location = 0 means the end //
-            ///////////////////////////////////////
-
-            const Index lb_mem = lb < N ? mtx_idx.at(lb) : 0;
-            const Index ub_mem = ub < N ? mtx_idx.at(ub) : 0;
-
-            mmutil::stat::row_collector_t collector(do_log1p);
-            collector.set_size(info.max_row, info.max_col, info.max_elem);
-
-            CHECK(visit_bgzf_block(mtx_file, lb_mem, ub_mem, collector));
-
-            s1 += collector.Row_S1;
-            s2 += collector.Row_S2;
-        }
-
-        safe_sqrt_op<Mat> safe_sqrt;
-        const Scalar nn = static_cast<Scalar>(N);
-
-        mu = s1 / nn;
-        sig = (s2 / nn - mu.cwiseProduct(mu)).unaryExpr(safe_sqrt);
-        sig.array() += eps;
+        std::tie(mu, sig) = compute_row_stat(mtx_file,
+                                             mtx_idx,
+                                             block_size,
+                                             do_log1p,
+                                             NUM_THREADS,
+                                             verbose);
     }
 
-    if (verbose)
+    if (verbose) {
         TLOG("Collecting random projection data");
+    }
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
@@ -151,7 +120,8 @@ asap_random_bulk_data(
         Mat yy = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
                             matched_data.read(lb, ub);
 
-        Mat temp;
+        Mat temp(K, yy.cols());
+
         if (do_row_std) {
             temp = R *
                 ((yy.array().colwise() - mu.array()) / sig.array()).matrix();
@@ -161,59 +131,45 @@ asap_random_bulk_data(
 
         for (Index i = 0; i < temp.cols(); ++i) {
             const Index j = i + lb;
-            Q.col(j) += temp.col(i);
+            Q.col(j) = temp.col(i);
         }
     }
 
-    if (verbose)
+    if (verbose) {
         TLOG("Finished random matrix projection");
+    }
 
     // Regress out
-    const std::size_t lu_iter = 5; // this should be enough
-    if (X.cols() < 2) {
-        Mat Qt = Q.transpose();
-        ColVec denom = (X.cwiseProduct(X))
-                           .colwise()
-                           .sum()
-                           .unaryExpr(at_least_one)
-                           .transpose();
-        Mat B = (X.transpose() * Qt).array().colwise() / denom.array();
-        Q = (Qt - X * B).transpose();
-    } else {
-        Mat Qt = Q.transpose();
-        const std::size_t r = std::min(X.cols(), Qt.cols());
-        RandomizedSVD<Mat> svd_x(r, lu_iter);
-        svd_x.compute(X);
-        const ColVec d = svd_x.singularValues();
-        Mat u = svd_x.matrixU();
-
-        for (Index k = 0; k < r; ++k) {
-            if (d(k) < eps)
-                u.col(k).setZero();
-        }
-        // X theta = X inv(X'X) X' Y
-        //         = U D V' V inv(D^2) V' (U D V')' Y
-        //         = U inv(D) V' V D U' Y
-        //         = U U' Y
-        Q = (Qt - u * u.transpose() * Qt).transpose();
+    if (X.cols() > 0) {
+        Mat Qt = Q.transpose(); // N x K
+        residual_columns(Qt, X);
+        Q = Qt.transpose();
     }
-    if (verbose)
-        TLOG("Regress out known covariates");
+
+    if (verbose) {
+        TLOG("Regressed out Q: " << Q.rows() << " x " << Q.cols());
+    }
 
     /////////////////////////////////////////////////
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    RandomizedSVD<Mat> svd(K, lu_iter);
-    // if (verbose) svd.set_verbose();
-
-    if (do_normalize)
+    if (do_normalize) {
         normalize_columns(Q);
-    svd.compute(Q);
-    Mat random_dict = standardize(svd.matrixV()); // N x K
+    }
 
-    if (verbose)
-        TLOG("Finished SVD on the projected data");
+    Eigen::BDCSVD<Mat> svd;
+    svd.compute(Q, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Mat vv = svd.matrixV();
+    ASSERT_RETL(vv.rows() == N, " failed SVD for Q");
+
+    Mat random_dict = standardize(vv); // N x K
+    TLOG(random_dict.rows() << " x " << random_dict.cols());
+
+    if (verbose) {
+        TLOG("SVD on the projected: " << random_dict.rows() << " x "
+                                      << random_dict.cols());
+    }
 
     ////////////////////////////////////////////////
     // Step 3. sorting in an implicit binary tree //
@@ -228,6 +184,8 @@ asap_random_bulk_data(
         };
         bb += random_dict.col(k).unaryExpr(binary_shift);
     }
+
+    TLOG("Assigned random membership: [0, " << bb.maxCoeff() << ")");
 
     const std::vector<Index> membership = std_vector(bb);
 
@@ -255,15 +213,41 @@ asap_random_bulk_data(
     auto _pos_op = [&pb_position](const std::size_t x) {
         return pb_position.at(x);
     };
+
     std::transform(std::begin(membership),
                    std::end(membership),
                    std::begin(positions),
                    _pos_op);
 
+    // convert zero-based to 1-based for R
+    std::vector<Index> r_positions(positions.size());
+    std::transform(std::begin(positions),
+                   std::end(positions),
+                   std::begin(r_positions),
+                   [](Index x) -> Index { return (x + 1); });
+
     // Pseudobulk samples to cells
     auto pb_cells = make_index_vec_vec(positions);
 
-    Mat mu_ds = Mat::Zero(D, S);
+    Mat mu_ds = Mat::Ones(D, S);
+    Mat log_mu_ds = Mat::Ones(D, S);
+    Mat ysum_ds = Mat::Zero(D, S);
+    RowVec size_s = RowVec::Zero(S);
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+    for (Index lb = 0; lb < N; lb += block_size) {
+        const Index ub = std::min(N, block_size + lb);
+        Mat y = matched_data.read(lb, ub);
+        for (Index i = 0; i < (ub - lb); ++i) {
+            const Index j = i + lb;
+            const Index s = positions.at(j);
+            ysum_ds.col(s) += y.col(i);
+            size_s(s) += 1.;
+        }
+    }
 
     ////////////////////////////
     // Read batch information //
@@ -277,7 +261,8 @@ asap_random_bulk_data(
 
     const Index B = matched_data.num_exposure();
 
-    Mat delta_db;
+    Mat delta_db, log_delta_db, delta_ds;
+    Mat prob_bs, n_bs;
 
     if (B > 1) {
 
@@ -291,14 +276,17 @@ asap_random_bulk_data(
 
         Mat delta_num_db = Mat::Zero(D, B);   // gene x batch numerator
         Mat delta_denom_db = Mat::Zero(D, B); // gene x batch denominator
-        Mat ybar_ds = Mat::Zero(D, S);        // gene x PB mean
-        Mat zbar_ds = Mat::Zero(D, S);        // gene x PB counterfactual
-        Mat prob_bs = Mat::Zero(B, S);        // batch x PB prob
-        Mat n_bs = Mat::Zero(B, S);           // batch x PB freq
+
+        prob_bs.resize(B, S);      //
+        prob_bs = Mat::Zero(B, S); // batch x PB prob
+        n_bs.resize(B, S);         //
+        n_bs = Mat::Zero(B, S);    // batch x PB freq
 
         CHK_RETL_(matched_data.build_annoy_index(Q, NUM_THREADS),
                   "Failed to build Annoy Indexes: " << Q.rows() << " x "
                                                     << Q.cols());
+
+        Mat zsum_ds = Mat::Zero(D, S); // gene x PB mean
 
         ////////////////////////////
         // Step a. precalculation //
@@ -316,9 +304,7 @@ asap_random_bulk_data(
             const Mat yy = matched_data.read(pb_cells.at(s));
             const Mat zz = matched_data.read_counterfactual(pb_cells.at(s));
 
-            ybar_ds.col(s) = yy.rowwise().mean();
-            zbar_ds.col(s) = zz.rowwise().mean();
-
+            zsum_ds.col(s) += zz.rowwise().sum();
             prob_bs.col(s).setZero();
             n_bs.col(s).setZero();
 
@@ -332,17 +318,58 @@ asap_random_bulk_data(
             prob_bs.col(s) = n_bs.col(s) / n_bs.col(s).sum();
         }
 
+        gamma_param_t<Mat, RNG> delta_param(D, B, a0, b0, rng);
+        gamma_param_t<Mat, RNG> mu_param(D, S, a0, b0, rng);
+        gamma_param_t<Mat, RNG> gamma_param(D, S, a0, b0, rng);
+
         ///////////////////////////////
         // Step b. Iterative updates //
         ///////////////////////////////
 
-        for (std::size_t t = 0; t < BATCH_ADJ_ITER; ++t) {
-            mu_ds = (ybar_ds + zbar_ds).array() /
-                ((delta_db * prob_bs).array() + 1.);
+        Mat gamma_ds = Mat::Ones(D, S); // bias on the side of CF
 
+        for (std::size_t t = 0; t < BATCH_ADJ_ITER; ++t) {
+            ////////////////////////
+            // shared components  //
+            ////////////////////////
+            mu_param.update(ysum_ds + zsum_ds,
+                            delta_db * n_bs +
+                                ((gamma_ds.array().rowwise() * size_s.array()))
+                                    .matrix());
+            mu_param.calibrate();
+            mu_ds = mu_param.mean();
+
+            // mu_ds = (ybar_ds + zbar_ds).array() /
+            //     ((delta_db * prob_bs).array() + gamma_ds.array() + eps);
+
+            ////////////////////
+            // residual for z //
+            ////////////////////
+
+            gamma_param
+                .update(zsum_ds,
+                        (mu_ds.array().rowwise() * size_s.array()).matrix());
+            gamma_param.calibrate();
+            gamma_ds = gamma_param.mean();
+
+            // gamma_ds = zbar_ds.array() / (mu_ds.array() + eps);
+
+            ///////////////////////////////
+            // batch-specific components //
+            ///////////////////////////////
             delta_denom_db = mu_ds * n_bs.transpose();
-            delta_db = delta_num_db.array() / (delta_denom_db.array() + eps);
+            delta_param.update(delta_num_db, delta_denom_db);
+            delta_param.calibrate();
+            delta_db = delta_param.mean();
+            log_delta_db = delta_param.log_mean();
         }
+
+        delta_ds = delta_db * prob_bs;
+
+        mu_param.update(ysum_ds, delta_db * n_bs);
+        mu_param.calibrate();
+        mu_ds = mu_param.mean();
+        log_mu_ds = mu_param.log_mean();
 
     } else {
 
@@ -353,38 +380,27 @@ asap_random_bulk_data(
         if (verbose)
             TLOG("Pseudobulk estimation in a vanilla mode");
 
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
-        for (Index lb = 0; lb < N; lb += block_size) {
-            const Index ub = std::min(N, block_size + lb);
-            Mat y = matched_data.read(lb, ub);
-            for (Index i = 0; i < (ub - lb); ++i) {
-                const Index j = i + lb;
-                const Index s = positions.at(j);
-                mu_ds.col(s) += y.col(i);
-            }
-        }
+        mu_ds = ysum_ds.array().rowwise() / size_s.array();
     }
-
-    // convert zero-based to 1-based
-    std::transform(std::begin(positions),
-                   std::end(positions),
-                   std::begin(positions),
-                   [](Index x) -> Index { return (x + 1); });
 
     if (verbose)
         TLOG("Finished populating the PB matrix: " << mu_ds.rows() << " x "
                                                    << mu_ds.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = mu_ds,
+                              Rcpp::_["PB.batch"] = delta_ds,
+                              Rcpp::_["log.PB"] = log_mu_ds,
+                              Rcpp::_["sum"] = ysum_ds,
+                              Rcpp::_["size"] = size_s,
+                              Rcpp::_["prob.batch.sample"] = prob_bs,
+                              Rcpp::_["size.batch.sample"] = n_bs,
                               Rcpp::_["batch.effect"] = delta_db,
+                              Rcpp::_["log.batch.effect"] = log_delta_db,
                               Rcpp::_["batch.membership"] =
                                   matched_data.get_exposure_mapping(),
                               Rcpp::_["batch.names"] =
                                   matched_data.get_exposure_names(),
-                              Rcpp::_["positions"] = positions,
+                              Rcpp::_["positions"] = r_positions,
                               Rcpp::_["rand.proj"] = R,
                               Rcpp::_["Q"] = Q,
                               Rcpp::_["rand.dict"] = random_dict,

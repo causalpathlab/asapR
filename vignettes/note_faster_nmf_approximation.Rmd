@@ -53,7 +53,7 @@ $$\ln \rho_{jk}
 where $\sum_{k} \rho_{jk} = 1$, and
 
 $$\theta_{jk} \sim \operatorname{Gamma}\left(
-a_{0} + \rho_{jk} \sum_{i,j} Y_{ij},\,
+a_{0} + \rho_{jk} \sum_{i} Y_{ij},\,
 b_{0} + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 \right)$$
 

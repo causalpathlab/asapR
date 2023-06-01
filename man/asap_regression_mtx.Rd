@@ -9,7 +9,6 @@ asap_regression_mtx(
   mtx_idx_file,
   log_x,
   r_batch_effect = NULL,
-  r_batch_membership = NULL,
   r_x_row_names = NULL,
   r_mtx_row_names = NULL,
   r_taboo_names = NULL,
@@ -21,8 +20,7 @@ asap_regression_mtx(
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   max_depth = 10000,
-  do_stdize_x = FALSE,
-  std_topic_latent = FALSE
+  do_stdize_x = FALSE
 )
 }
 \arguments{
@@ -33,8 +31,6 @@ asap_regression_mtx(
 \item{log_x}{D x K log dictionary/design matrix}
 
 \item{r_batch_effect}{D x B batch effect matrix (default: NULL)}
-
-\item{r_batch_membership}{N integer vector for 0-based batch membership (default: NULL)}
 
 \item{r_x_row_names}{(default: NULL)}
 
@@ -53,8 +49,6 @@ asap_regression_mtx(
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
 \item{max_depth}{maximum depth per column}
-
-\item{std_topic_latent}{standardization of latent variables}
 
 \item{do_stdize}{do the standardization of log_x}
 }

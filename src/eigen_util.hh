@@ -526,67 +526,6 @@ hcat(const Eigen::MatrixBase<Derived> &_left,
     return ret;
 }
 
-template <typename Derived>
-inline Eigen::Matrix<typename Derived::Scalar,
-                     Eigen::Dynamic,
-                     Eigen::Dynamic,
-                     Eigen::ColMajor>
-standardize(const Eigen::MatrixBase<Derived> &Xraw,
-            const typename Derived::Scalar EPS = 1e-8)
-{
-    using Index = typename Derived::Index;
-    using Scalar = typename Derived::Scalar;
-    using mat_t =
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
-    using RowVec = typename Eigen::internal::plain_row_type<Derived>::type;
-
-    mat_t X(Xraw.rows(), Xraw.cols());
-
-    ////////////////
-    // Remove NaN //
-    ////////////////
-
-    const RowVec num_obs = Xraw.unaryExpr([](const Scalar x) {
-                                   return std::isfinite(x) ?
-                                       static_cast<Scalar>(1) :
-                                       static_cast<Scalar>(0);
-                               })
-                               .colwise()
-                               .sum();
-
-    X = Xraw.unaryExpr([](const Scalar x) {
-        return std::isfinite(x) ? x : static_cast<Scalar>(0);
-    });
-
-    //////////////////////////
-    // calculate statistics //
-    //////////////////////////
-
-    const RowVec x_mean = X.colwise().sum().cwiseQuotient(num_obs);
-    const RowVec x2_mean =
-        X.cwiseProduct(X).colwise().sum().cwiseQuotient(num_obs);
-    const RowVec x_sd = (x2_mean - x_mean.cwiseProduct(x_mean))
-                            .array()
-                            .max(EPS)
-                            .matrix()
-                            .cwiseSqrt();
-
-    // standardize
-    for (Index j = 0; j < X.cols(); ++j) {
-        const Scalar mu = x_mean(j);
-        const Scalar sd = x_sd(j);
-        auto std_op = [&mu, &sd](const Scalar &x) -> Scalar {
-            const Scalar ret = static_cast<Scalar>((x - mu) / sd);
-            return ret;
-        };
-
-        // This must be done with original data
-        X.col(j) = X.col(j).unaryExpr(std_op).eval();
-    }
-
-    return X;
-}
-
 template <typename T>
 struct stdizer_t {
     using Scalar = typename T::Scalar;
@@ -594,7 +533,7 @@ struct stdizer_t {
     using RowVec = typename Eigen::internal::plain_row_type<T>::type;
     using ColVec = typename Eigen::internal::plain_col_type<T>::type;
 
-    explicit stdizer_t(T &data_, const Scalar r_m, const Scalar r_v)
+    explicit stdizer_t(T &data_, const Scalar r_m = 1., const Scalar r_v = 1.)
         : X(data_)
         , D1(X.rows())
         , D2(X.cols())
@@ -672,6 +611,77 @@ private:
         }
     } is_obs_val;
 };
+
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar,
+              Eigen::Dynamic,
+              Eigen::Dynamic,
+              Eigen::ColMajor>
+standardize(const Eigen::MatrixBase<Derived> &Xraw,
+            const typename Derived::Scalar EPS = 1e-8)
+{
+    using Index = typename Derived::Index;
+    using Scalar = typename Derived::Scalar;
+    using mat_t =
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
+    using RowVec = typename Eigen::internal::plain_row_type<Derived>::type;
+
+    mat_t X(Xraw.rows(), Xraw.cols());
+    X = Xraw;
+    stdizer_t<mat_t> std_op(X);
+    std_op.colwise();
+    return X;
+}
+
+template <typename Derived, typename Derived2>
+void
+residual_columns(Eigen::MatrixBase<Derived> &_yy,
+                 const Eigen::MatrixBase<Derived2> &_xx,
+                 const typename Derived::Scalar eps = 1e-8)
+{
+    using Index = typename Derived::Index;
+    using Scalar = typename Derived::Scalar;
+
+    const Derived Yraw = _yy.derived();
+    Derived &Yout = _yy.derived();
+    const Derived2 &X = _xx.derived();
+    using ColVec = typename Eigen::internal::plain_col_type<Derived>::type;
+
+    ASSERT(X.rows() == Yraw.rows(), "incompatible Y and X");
+
+    if (X.cols() < 1) {
+        // nothing to do
+    } else if (X.cols() == 1) {
+
+        const Scalar denom = X.cwiseProduct(X).sum();
+        for (Index k = 0; k < Yraw.cols(); ++k) {
+            const Scalar b =
+                (X.transpose() * Yraw.col(k)).sum() / (denom + eps);
+            Yout.col(k) = Yraw.col(k) - b * X.col(0);
+        }
+
+    } else {
+        const std::size_t r = std::min(X.cols(), Yraw.cols());
+        Eigen::BDCSVD<Derived> svd_x;
+        svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+        const ColVec d = svd_x.singularValues();
+
+        Derived u = svd_x.matrixU();
+
+        for (Index k = 0; k < r; ++k) {
+            if (d(k) < eps)
+                u.col(k).setZero();
+        }
+
+        // X theta = X inv(X'X) X' Y
+        //         = U D V' V inv(D^2) V' (U D V')' Y
+        //         = U inv(D) V' V D U' Y
+        //         = U U' Y
+
+        Yout = Yraw - u * u.transpose() * Yraw;
+    }
+}
 
 template <typename Derived>
 void

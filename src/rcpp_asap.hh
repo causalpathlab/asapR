@@ -34,14 +34,10 @@ using namespace mmutil::bgzf;
 #include <boost/random/uniform_01.hpp>
 #include <xoshiro.h>
 
-#include "dirichlet_prior.hh"
-#include "poisson_nmf_model.hh"
-#include "poisson_cluster_model.hh"
 #include "gamma_parameter.hh"
-#include "latent_matrix.hh"
-
 #include "clustering.hh"
 #include "dirichlet_prior.hh"
 #include "poisson_cluster_model.hh"
+#include "rcpp_asap_nmf_model.hh"
 
 #endif

@@ -10,7 +10,6 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .reg.steps number of steps in regression analysis (default: 10)
 #' @param .reg.stdize standardize X in regression (default: TRUE)
-#' @param .reg.stdize.latent standardize latent states in regression (default: FALSE)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -57,7 +56,6 @@ fit.topic.asap <- function(mtx.file,
                            .burnin = 10,
                            .reg.steps = 10,
                            .reg.stdize = TRUE,
-                           .reg.stdize.latent = FALSE,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
@@ -66,8 +64,6 @@ fit.topic.asap <- function(mtx.file,
                            block.size = 100,
                            .rand.seed = 42,
                            .eps = 1e-6,
-                           rate.m = 1,
-                           rate.v = 1,
                            svd.init = TRUE,
                            do.log1p = FALSE,
                            max.depth = 1e4,
@@ -81,8 +77,10 @@ fit.topic.asap <- function(mtx.file,
     message("Phase I: Create random pseudo-bulk data")
 
     Y <- NULL
+    Y0 <- NULL
     rand.proj <- NULL
     rand.positions <- NULL
+    batch.effect <- NULL
 
     for(r in 1:num.proj){
         .pb <- asap_random_bulk_data(mtx_file = mtx.file,
@@ -97,18 +95,31 @@ fit.topic.asap <- function(mtx.file,
                                      do_normalize = FALSE,
                                      do_log1p = do.log1p,
                                      do_row_std = FALSE)
+        
+        stopifnot(!is.null(.pb$PB))
+
         Y <- cbind(Y, .pb$PB)
+        if(nrow(.pb$PB.batch) == nrow(.pb$PB) && ncol(.pb$PB.batch) == ncol(.pb$PB)){
+            Y0 <- cbind(Y0, .pb$PB.batch)
+        }
+
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
-
-        message("Found Random Pseudobulk: Y ", nrow(Y), " x ", ncol(Y))
+        if(nrow(.pb$log.batch.effect) == nrow(Y)){
+            batch.effect <- cbind(batch.effect, .pb$log.batch.effect)
+        }
+        message("random pseudo-bulk: Y ", nrow(Y), " x ", ncol(Y))
     }
 
     if(ncol(Y) > max.pb.size){
-        Y <- Y[, sample(ncol(Y), max.pb.size), drop = FALSE]
+        .cols <- sample(ncol(Y), max.pb.size)
+        Y <- Y[, .cols, drop = FALSE]
+        if(!is.null(Y0)){
+            Y0 <- Y0[, .cols, drop = FALSE]
+        }
     }
 
-    message("Phase II: Perform Poisson matrix factorization ...")
+    message("Phase II: Perform Poisson matrix factorization on the Y")
 
     .nmf <- asap_fit_nmf_alternate(Y,
                                    maxK = k,
@@ -119,23 +130,22 @@ fit.topic.asap <- function(mtx.file,
                                    b0 = b0,
                                    do_log1p = do.log1p,
                                    rseed = .rand.seed,
-                                   EPS = .eps,
-                                   rate_m = rate.m,
-                                   rate_v = rate.v,
-                                   svd_init = svd.init)
+                                   svd_init = svd.init,
+                                   EPS = .eps)
 
     .multinom <- pmf2topic(.nmf$beta, .nmf$theta)
     .nmf$beta.rescaled <- .multinom$beta
     .nmf$theta.rescaled <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
-    message("Phase III: Calibrating the topic loading of the original data")
+    message("Phase III: Topic proportions of the columns in the original data")
 
     log.x <- .nmf$log.beta
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 mtx_idx_file = index.file,
                                 log_x = log.x,
+                                r_batch_effect = batch.effect,
                                 r_x_row_names = NULL,
                                 r_mtx_row_names = NULL,
                                 r_taboo_names = NULL,
@@ -146,10 +156,9 @@ fit.topic.asap <- function(mtx.file,
                                 NUM_THREADS = num.threads,
                                 BLOCK_SIZE = block.size,
                                 max_depth = max.depth,
-                                do_stdize_x = .reg.stdize,
-                                std_topic_latent = .reg.stdize.latent)
+                                do_stdize_x = .reg.stdize)
 
-    message("normalizing the estimated model parameters")
+    message("Normalizing the estimated model parameters")
 
     .multinom <- pmf2topic(asap$beta, asap$theta)
 
@@ -158,76 +167,13 @@ fit.topic.asap <- function(mtx.file,
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$Y <- Y
+    asap$Y0 <- Y0
+
     asap$rand.proj <- rand.proj
     asap$rand.positions <- rand.positions
+    asap$batch.effect <- batch.effect
+
     return(asap)
-}
-
-
-#' Fit a topic model by full column-wise iterations
-#'
-#' @param mtx.file data matrix file in a matrix market format
-#' @param k number of topics
-#' @param em.step Monte Carlo EM steps (default: 100)
-#' @param e.step Num of E-step MCMC steps (default: 1)
-#' @param .burnin burn-in period in the record keeping (default: 10)
-#' @param .thining thining for the record keeping (default: 3)
-#' @param a0 Gamma(a0, b0) prior (default: 1)
-#' @param b0 Gamma(a0, b0) prior (default: 1)
-#' @param index.file a file for column indexes (default: "{mtx.file}.index")
-#' @param verbose verbosity
-#' @param num.threads number of threads (default: 1)
-#' @param eval.llik evaluate log-likelihood trace in PMF (default: FALSE)
-#' @param .rand.seed random seed (default: 42)
-#' @param .sample.col.row Take column-wise MH step (default: TRUE)
-#'
-#'
-fit.topic.full <- function(mtx.file,
-                           k,
-                           em.step = 100,
-                           e.step = 1,
-                           .burnin = 10,
-                           .thining = 3,
-                           a0 = 1,
-                           b0 = 1,
-                           index.file = paste0(mtx.file, ".index"),
-                           verbose = TRUE,
-                           num.threads = 1,
-                           eval.llik = FALSE,
-                           .rand.seed = 42,
-                           .sample.col.row = TRUE){
-
-    message("Reading in the full data ...")
-
-    Y <- read.mtx.dense(mtx.file = mtx.file,
-                        memory.idx.file = index.file,
-                        verbose = verbose,
-                        num.threads = num.threads)
-
-    message("Start estimating a PMF model in the full data ...")
-
-    ret <- asap_fit_nmf(Y,
-                        maxK = k,
-                        mcem = em.step,
-                        burnin = .burnin,
-                        latent_iter = e.step,
-                        thining = .thining,
-                        verbose = verbose,
-                        eval_llik = eval.llik,
-                        a0=a0,
-                        b0=b0,
-                        rseed = .rand.seed,
-                        NUM_THREADS = num.threads)
-
-    message("normalizing the estimated model parameters")
-
-    .multinom <- pmf2topic(ret$dict$mean, ret$column$mean)
-
-    ret$beta <- .multinom$beta
-    ret$prop <- .multinom$prop
-    ret$depth <- .multinom$depth
-
-    return(ret)
 }
 
 #' Convert Poisson Matrix Factorization to Multinomial Topic model.
