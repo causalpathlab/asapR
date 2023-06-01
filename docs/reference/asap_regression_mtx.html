@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -61,6 +61,7 @@
   <span class="va">mtx_file</span>,
   <span class="va">mtx_idx_file</span>,
   <span class="va">log_x</span>,
+  r_batch_effect <span class="op">=</span> <span class="cn">NULL</span>,
   r_x_row_names <span class="op">=</span> <span class="cn">NULL</span>,
   r_mtx_row_names <span class="op">=</span> <span class="cn">NULL</span>,
   r_taboo_names <span class="op">=</span> <span class="cn">NULL</span>,
@@ -72,15 +73,14 @@
   NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
   BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,
   max_depth <span class="op">=</span> <span class="fl">10000</span>,
-  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span>,
-  std_topic_latent <span class="op">=</span> <span class="cn">FALSE</span>
+  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
     <dl><dt>mtx_file</dt>
-<dd><p>matrix-market-formatted data file (bgzip)</p></dd>
+<dd><p>matrix-market-formatted data file (D x N, bgzip)</p></dd>
 
 
 <dt>mtx_idx_file</dt>
@@ -89,6 +89,10 @@
 
 <dt>log_x</dt>
 <dd><p>D x K log dictionary/design matrix</p></dd>
+
+
+<dt>r_batch_effect</dt>
+<dd><p>D x B batch effect matrix (default: NULL)</p></dd>
 
 
 <dt>r_x_row_names</dt>
@@ -127,10 +131,6 @@
 <dd><p>maximum depth per column</p></dd>
 
 
-<dt>std_topic_latent</dt>
-<dd><p>standardization of latent variables</p></dd>
-
-
 <dt>do_stdize</dt>
 <dd><p>do the standardization of log_x</p></dd>
 
@@ -148,7 +148,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

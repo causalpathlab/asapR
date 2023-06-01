@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -71,8 +71,9 @@
   do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
   do_row_std <span class="op">=</span> <span class="cn">FALSE</span>,
   KNN_CELL <span class="op">=</span> <span class="fl">10L</span>,
-  KNN_BILINK <span class="op">=</span> <span class="fl">10L</span>,
-  KNN_NNLIST <span class="op">=</span> <span class="fl">10L</span>
+  BATCH_ADJ_ITER <span class="op">=</span> <span class="fl">100L</span>,
+  a0 <span class="op">=</span> <span class="fl">1</span>,
+  b0 <span class="op">=</span> <span class="fl">1</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -130,12 +131,16 @@
 <dd><p>k-NN matching between cells (default: 10)</p></dd>
 
 
-<dt>KNN_BILINK</dt>
-<dd><p>num. of bidirectional links (default: 10)</p></dd>
+<dt>BATCH_ADJ_ITER</dt>
+<dd><p>batch Adjustment steps (default: 100)</p></dd>
 
 
-<dt>KNN_NNLIST</dt>
-<dd><p>num. of nearest neighbor lists (default: 10)</p></dd>
+<dt>a0</dt>
+<dd><p>gamma(a0, b0) (default: 1)</p></dd>
+
+
+<dt>b0</dt>
+<dd><p>gamma(a0, b0) (default: 1)</p></dd>
 
 </dl></div>
 
@@ -151,7 +156,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

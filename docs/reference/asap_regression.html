@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -60,13 +60,13 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">asap_regression</span><span class="op">(</span>
   <span class="va">Y_</span>,
   <span class="va">log_x</span>,
+  r_batch_effect <span class="op">=</span> <span class="cn">NULL</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
   b0 <span class="op">=</span> <span class="fl">1</span>,
   max_iter <span class="op">=</span> <span class="fl">10L</span>,
   do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
-  verbose <span class="op">=</span> <span class="cn">FALSE</span>,
-  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span>,
-  std_topic_latent <span class="op">=</span> <span class="cn">FALSE</span>
+  verbose <span class="op">=</span> <span class="cn">TRUE</span>,
+  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
@@ -76,12 +76,16 @@
 <dd><p>D x K log dictionary/design matrix</p></dd>
 
 
+<dt>r_batch_effect</dt>
+<dd><p>D x B batch effect matrix (default: NULL)</p></dd>
+
+
 <dt>a0</dt>
-<dd><p>gamma(a0, b0)</p></dd>
+<dd><p>gamma(a0, b0) (default: 1)</p></dd>
 
 
 <dt>b0</dt>
-<dd><p>gamma(a0, b0)</p></dd>
+<dd><p>gamma(a0, b0) (default: 1)</p></dd>
 
 
 <dt>do_log1p</dt>
@@ -90,10 +94,6 @@
 
 <dt>verbose</dt>
 <dd><p>verbosity (default: false)</p></dd>
-
-
-<dt>std_topic_latent</dt>
-<dd><p>standardization of latent variables</p></dd>
 
 
 <dt>Y</dt>
@@ -117,7 +117,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -71,8 +71,10 @@
       </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Expedite Poisson-NMF estimation via alternating regression models</h1>
-                        <h4 data-toc-skip class="author">Yongjin Park</h4>
+      <h1 data-toc-skip>Expedite Poisson-NMF estimation via alternating
+regression models</h1>
+                        <h4 data-toc-skip class="author">Yongjin
+Park</h4>
             
       
       
@@ -82,26 +84,49 @@
 
     
     
-<p>What if we apply single-effect Poisson regression alternatively? Let’s consider this parameterization of Poisson distribution: <span class="math inline">\(\lambda_{ij} = \sum_{k} \beta_{ik} \theta_{jk}\)</span> Previously, we introduced <span class="math inline">\(q_{ij}^{k}\)</span> (triplets for each gene <span class="math inline">\(i\)</span>, cell <span class="math inline">\(j\)</span>, and factor <span class="math inline">\(k\)</span>) to derive closed-form variational update equations. But the overall complexity can increase in a cubic time. Can we factorize <span class="math inline">\(q\)</span> into two parts, like <span class="math inline">\(q_{ij}^{k} = c_{ik} z_{jk}\)</span>? It will certainly lead to a more restrictive approximation objective. Perhaps, the lower-bound induced by the factored auxiliary variables will be not as tight as before. Still, we can show that some sort of alternating regression algorithm can benefit from having two factored auxiliary variables.</p>
-<p>Let us define latent variables, <span class="math inline">\(\phi_{ik} \overset{\Delta}{=} \mathbb{E}\!\left[c_{ik}\right]\)</span> and <span class="math inline">\(\rho_{jk} \overset{\Delta}{=} \mathbb{E}\!\left[z_{jk}\right]\)</span> under variational approximation:</p>
-<p><span class="math display">\[q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k} \phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k} \rho_{jk}^{z_{jk}}\]</span></p>
+<p>What if we apply single-effect Poisson regression alternatively?
+Let’s consider this parameterization of Poisson distribution: <span class="math inline">\(\lambda_{ij} = \sum_{k} \beta_{ik}
+\theta_{jk}\)</span> Previously, we introduced <span class="math inline">\(q_{ij}^{k}\)</span> (triplets for each gene <span class="math inline">\(i\)</span>, cell <span class="math inline">\(j\)</span>, and factor <span class="math inline">\(k\)</span>) to derive closed-form variational
+update equations. But the overall complexity can increase in a cubic
+time. Can we factorize <span class="math inline">\(q\)</span> into two
+parts, like <span class="math inline">\(q_{ij}^{k} = c_{ik}
+z_{jk}\)</span>? It will certainly lead to a more restrictive
+approximation objective. Perhaps, the lower-bound induced by the
+factored auxiliary variables will be not as tight as before. Still, we
+can show that some sort of alternating regression algorithm can benefit
+from having two factored auxiliary variables.</p>
+<p>Let us define latent variables, <span class="math inline">\(\phi_{ik}
+\overset{\Delta}{=} \mathbb{E}\!\left[c_{ik}\right]\)</span> and <span class="math inline">\(\rho_{jk} \overset{\Delta}{=}
+\mathbb{E}\!\left[z_{jk}\right]\)</span> under variational
+approximation:</p>
+<p><span class="math display">\[q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k}
+\phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k}
+\rho_{jk}^{z_{jk}}\]</span></p>
 <div class="section level3">
 <h3 id="regression-1-approximation-from-the-rows-perspective">Regression 1: Approximation from the rows’ perspective<a class="anchor" aria-label="anchor" href="#regression-1-approximation-from-the-rows-perspective"></a>
 </h3>
-<p>We want to estimate <span class="math inline">\(\beta_{ik}\)</span> given <span class="math inline">\(\theta_{jk}\)</span>.</p>
-<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
+<p>We want to estimate <span class="math inline">\(\beta_{ik}\)</span>
+given <span class="math inline">\(\theta_{jk}\)</span>.</p>
+<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k}
+\beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik} \theta_{jk}}{c_{ik}}
+\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik}
+\theta_{jk}}{c_{ik}}
 - \sum_{i,j,k}\beta_{ik}\theta_{jk}\]</span></p>
 <p>Find the most correlated factor <span class="math inline">\(k\)</span> (softly).</p>
-<p><span class="math display">\[\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
-+  \underbrace{\mathbb{E}\!\left[\ln \beta_{ik}\right]}_{\textsf{memory}} + \textsf{const.}\]</span></p>
-<p>with <span class="math inline">\(\sum_{k} \phi_{ik} = 1\)</span>, and <span class="math display">\[\beta_{ik} \sim \operatorname{Gamma}\left(
+<p><span class="math display">\[\ln \phi_{ik} =
+\underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln
+\theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
++  \underbrace{\mathbb{E}\!\left[\ln
+\beta_{ik}\right]}_{\textsf{memory}} + \textsf{const.}\]</span></p>
+<p>with <span class="math inline">\(\sum_{k} \phi_{ik} = 1\)</span>, and
+<span class="math display">\[\beta_{ik} \sim \operatorname{Gamma}\left(
 a_{0} + \phi_{ik} \sum_{j} Y_{ij}, \,
 b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 \right)\]</span></p>
-<p><span class="math display">\[\theta_{jk} \sim \operatorname{Gamma}\left(
+<p><span class="math display">\[\theta_{jk} \sim
+\operatorname{Gamma}\left(
 a_0 + \rho_{jk}  \sum_{i} \phi_{ik} Y_{ij} ,\,
 b_0 + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 \right)\]</span></p>
@@ -109,22 +134,29 @@ b_0 + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 <div class="section level3">
 <h3 id="regression-2-approximation-from-the-columns-perspective">Regression 2: Approximation from the columns’ perspective<a class="anchor" aria-label="anchor" href="#regression-2-approximation-from-the-columns-perspective"></a>
 </h3>
-<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
+<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k}
+\beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{z_{jk}}
+\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik}
+\theta_{jk}}{z_{jk}}
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}\]</span></p>
 <p><span class="math display">\[\ln \rho_{jk}
 =
-\underbrace{\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln \beta_{ik}\right]}{\sum_{i} Y_{ij}}}_{\textsf{empirical correlation}}
-+ \underbrace{\mathbb{E}\!\left[\ln \theta_{jk}\right]}_{\textsf{memory}}
+\underbrace{\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln
+\beta_{ik}\right]}{\sum_{i} Y_{ij}}}_{\textsf{empirical correlation}}
++ \underbrace{\mathbb{E}\!\left[\ln
+\theta_{jk}\right]}_{\textsf{memory}}
 + \textsf{const.}\]</span></p>
-<p>where <span class="math inline">\(\sum_{k} \rho_{jk} = 1\)</span>, and</p>
-<p><span class="math display">\[\theta_{jk} \sim \operatorname{Gamma}\left(
-a_{0} + \rho_{jk} \sum_{i,j} Y_{ij},\,
+<p>where <span class="math inline">\(\sum_{k} \rho_{jk} = 1\)</span>,
+and</p>
+<p><span class="math display">\[\theta_{jk} \sim
+\operatorname{Gamma}\left(
+a_{0} + \rho_{jk} \sum_{i} Y_{ij},\,
 b_{0} + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 \right)\]</span></p>
-<p><span class="math display">\[\beta_{ik} \sim  \operatorname{Gamma}\left(
+<p><span class="math display">\[\beta_{ik}
+\sim  \operatorname{Gamma}\left(
 a_{0} +  \phi_{ik} \sum_{j} Y_{ij} \rho_{jk}, \,
 b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 \right)\]</span></p>
@@ -135,7 +167,8 @@ b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 <p>As a result, we will maximize the following lower-bound:</p>
 <p><span class="math display">\[L
 \ge
-\sum_{i,j,k} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{\phi_{ik} \rho_{jk}}
+\sum_{i,j,k} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik}
+\theta_{jk}}{\phi_{ik} \rho_{jk}}
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}.\]</span></p>
 </div>
 <div class="section level2">
@@ -182,7 +215,7 @@ b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer>

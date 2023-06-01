@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
       </span>
     </div>
 
@@ -65,18 +65,20 @@
   verbose <span class="op">=</span> <span class="cn">TRUE</span>,
   a0 <span class="op">=</span> <span class="fl">1</span>,
   b0 <span class="op">=</span> <span class="fl">1</span>,
-  do_log1p <span class="op">=</span> <span class="cn">TRUE</span>,
+  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
   rseed <span class="op">=</span> <span class="fl">1337L</span>,
-  EPS <span class="op">=</span> <span class="fl">1e-06</span>,
-  rate_m <span class="op">=</span> <span class="fl">1</span>,
-  rate_v <span class="op">=</span> <span class="fl">1</span>,
-  svd_init <span class="op">=</span> <span class="cn">TRUE</span>
+  svd_init <span class="op">=</span> <span class="cn">TRUE</span>,
+  EPS <span class="op">=</span> <span class="fl">1e-04</span>
 <span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
     <h2>Arguments</h2>
-    <dl><dt>maxK</dt>
+    <dl><dt>Y_</dt>
+<dd><p>non-negative data matrix (gene x sample)</p></dd>
+
+
+<dt>maxK</dt>
 <dd><p>maximum number of factors</p></dd>
 
 
@@ -108,8 +110,12 @@
 <dd><p>random seed (default: 1337)</p></dd>
 
 
-<dt>Y_dn</dt>
-<dd><p>non-negative data matrix (gene x sample)</p></dd>
+<dt>svd_init</dt>
+<dd><p>initialize by SVD (default: TRUE)</p></dd>
+
+
+<dt>EPS</dt>
+<dd><p>(default: 1e-4)</p></dd>
 
 
 <dt>min_iter</dt>
@@ -141,7 +147,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>
