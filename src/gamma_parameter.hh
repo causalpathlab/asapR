@@ -20,6 +20,10 @@ struct gamma_param_t {
         , b0(_b0)
         , a_stat(r, c)
         , b_stat(r, c)
+        , estimate_mean(r, c)
+        , estimate_sd(r, c)
+        , estimate_log(r, c)
+        , estimate_log_sd(r, c)
         , rgamma_op(_rng)
     {
         a_stat.setConstant(a0);
@@ -119,13 +123,14 @@ struct gamma_param_t {
     struct estimate_sd_log_op_t {
         Scalar operator()(const Scalar &a) const
         {
+            const Scalar one = 1.0;
+            const Scalar zero = 0.0;
+
             if (a > one)
                 return std::max(one / std::sqrt(a - one), zero);
 
             return std::max(one / std::sqrt(a), zero);
         }
-        static constexpr Scalar one = 1.0;
-        static constexpr Scalar zero = 0.0;
     };
 
     // sqrt(a) / b

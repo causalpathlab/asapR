@@ -57,7 +57,7 @@ struct data_loader_t {
     const str_vec_t &get_exposure_names() const;
     const idx_vec_t &get_exposure_mapping() const;
 
-    int build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS);
+    int build_annoy_index(const Mat _Q_kn);
 
 private:
     const std::size_t knn;

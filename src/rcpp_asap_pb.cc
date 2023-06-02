@@ -227,7 +227,13 @@ asap_random_bulk_data(
                    [](Index x) -> Index { return (x + 1); });
 
     // Pseudobulk samples to cells
-    auto pb_cells = make_index_vec_vec(positions);
+    const std::vector<std::vector<Index>> pb_cells =
+        make_index_vec_vec(positions);
+
+    if (verbose) {
+        TLOG("Start collecting statistics... "
+             << " for " << pb_cells.size() << " samples");
+    }
 
     Mat mu_ds = Mat::Ones(D, S);
     Mat log_mu_ds = Mat::Ones(D, S);
@@ -261,7 +267,7 @@ asap_random_bulk_data(
 
     const Index B = matched_data.num_exposure();
 
-    Mat delta_db, log_delta_db, delta_ds;
+    Mat delta_db, delta_sd_db, log_delta_db, log_delta_sd_db, delta_ds;
     Mat prob_bs, n_bs;
 
     if (B > 1) {
@@ -270,52 +276,72 @@ asap_random_bulk_data(
         delta_db.setOnes();
 
         if (verbose) {
-            TLOG("Pseudobulk estimation while "
-                 << "accounting for batch effects");
+            TLOG("Random pseudo-bulk estimation while "
+                 << "accounting for " << B << " batch effects");
         }
 
         Mat delta_num_db = Mat::Zero(D, B);   // gene x batch numerator
         Mat delta_denom_db = Mat::Zero(D, B); // gene x batch denominator
 
-        prob_bs.resize(B, S);      //
         prob_bs = Mat::Zero(B, S); // batch x PB prob
-        n_bs.resize(B, S);         //
         n_bs = Mat::Zero(B, S);    // batch x PB freq
 
-        CHK_RETL_(matched_data.build_annoy_index(Q, NUM_THREADS),
+        CHK_RETL_(matched_data.build_annoy_index(Q),
                   "Failed to build Annoy Indexes: " << Q.rows() << " x "
                                                     << Q.cols());
-
-        Mat zsum_ds = Mat::Zero(D, S); // gene x PB mean
 
         ////////////////////////////
         // Step a. precalculation //
         ////////////////////////////
 
+        if (verbose) {
+            TLOG("Start collecting sufficient statistics");
+        }
+
+        Mat zsum_ds = Mat::Zero(D, S); // gene x PB mean
+
+        Index Nprocessed = 0;
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index s = 0; s < S; ++s) {
+        for (Index s = 0; s < pb_cells.size(); ++s) {
 
-            if (pb_cells.at(s).size() < 1)
-                continue;
+            const std::vector<Index> &_cells_s = pb_cells.at(s);
 
-            const Mat yy = matched_data.read(pb_cells.at(s));
-            const Mat zz = matched_data.read_counterfactual(pb_cells.at(s));
+            const Mat yy = matched_data.read(_cells_s);
+            const Mat zz = matched_data.read_counterfactual(_cells_s);
 
-            zsum_ds.col(s) += zz.rowwise().sum();
             prob_bs.col(s).setZero();
             n_bs.col(s).setZero();
 
-            for (Index j = 0; j < pb_cells.at(s).size(); ++j) {
-                const Index k = pb_cells.at(s).at(j);
+            zsum_ds.col(s) += zz.rowwise().sum();
+            for (Index j = 0; j < _cells_s.size(); ++j) {
+                const Index k = _cells_s.at(j);
                 const Index b = matched_data.exposure_group(k);
                 n_bs(b, s) = n_bs(b, s) + 1.;
                 delta_num_db.col(b) += yy.col(j);
             }
-
             prob_bs.col(s) = n_bs.col(s) / n_bs.col(s).sum();
+
+#pragma omp critical
+            {
+                Nprocessed += 1;
+                if (verbose) {
+                    Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
+                } else {
+                    Rcpp::Rcerr << "+ " << std::flush;
+                    if (Nprocessed % 100 == 0)
+                        Rcpp::Rcerr << "\r" << std::flush;
+                }
+            }
+        }
+
+        Rcpp::Rcerr << std::endl;
+
+        if (verbose) {
+            TLOG("Collected sufficient statistics");
         }
 
         gamma_param_t<Mat, RNG> delta_param(D, B, a0, b0, rng);
@@ -361,7 +387,9 @@ asap_random_bulk_data(
             delta_param.update(delta_num_db, delta_denom_db);
             delta_param.calibrate();
             delta_db = delta_param.mean();
+            delta_sd_db = delta_param.sd();
             log_delta_db = delta_param.log_mean();
+            log_delta_sd_db = delta_param.log_sd();
         }
 
         delta_ds = delta_db * prob_bs;
@@ -395,7 +423,9 @@ asap_random_bulk_data(
                               Rcpp::_["prob.batch.sample"] = prob_bs,
                               Rcpp::_["size.batch.sample"] = n_bs,
                               Rcpp::_["batch.effect"] = delta_db,
+                              Rcpp::_["batch.sd"] = delta_sd_db,
                               Rcpp::_["log.batch.effect"] = log_delta_db,
+                              Rcpp::_["log.batch.sd"] = log_delta_sd_db,
                               Rcpp::_["batch.membership"] =
                                   matched_data.get_exposure_mapping(),
                               Rcpp::_["batch.names"] =

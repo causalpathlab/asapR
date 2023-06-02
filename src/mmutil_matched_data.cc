@@ -15,17 +15,15 @@ data_loader_t::read_counterfactual(const data_loader_t::idx_vec_t &cells_j)
 
     std::vector<Scalar> query(rank);
 
-    for (Index jth = 0; jth < n_j; ++jth) {    // For each cell j
-        const Index _cell_j = cells_j.at(jth); //
-        const Index tj =
-            exposure_map.at(_cell_j); // Exposure group for this cell j
-        const std::size_t n_j = cells_j.size(); // number of cells
+    idx_vec_t neighbor_index(knn);
+    num_vec_t neighbor_dist(knn);
+
+    for (Index jth = 0; jth < n_j; ++jth) {        // For each cell j
+        const Index _cell_j = cells_j.at(jth);     //
+        const Index tj = exposure_map.at(_cell_j); // Exposure  for this cell j
 
         idx_vec_t counterfactual_neigh;
         num_vec_t dist_neigh, weights_neigh;
-
-        idx_vec_t neighbor_index;
-        num_vec_t neighbor_dist;
 
         ///////////////////////////////////////////////
         // Search neighbours in the other conditions //
@@ -115,11 +113,11 @@ data_loader_t::set_exposure_info(const data_loader_t::str_vec_t &exposure)
         make_indexed_vector<std::string, Index>(exposure);
 
     exposure_index_set = make_index_vec_vec(exposure_map);
-
     Nexposure = exposure_index_set.size();
 
-    // TLOG("Found " << Nexposure << " treatment groups");
-
+    TLOG("Found " << Nexposure << " exposure groups,"
+                  << " " << exposure_map.size() << " of"
+                  << " " << exposure_id_name.size());
     return EXIT_SUCCESS;
 }
 
@@ -147,13 +145,12 @@ data_loader_t::get_exposure_mapping() const
 }
 
 int
-data_loader_t::build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS)
+data_loader_t::build_annoy_index(const Mat _Q_kn)
 {
     Q_kn.resize(_Q_kn.rows(), _Q_kn.cols());
     Q_kn = _Q_kn;
     normalize_columns(Q_kn);
     const std::size_t rank = Q_kn.rows();
-    // TLOG("Building dictionaries for each exposure ...");
 
     for (Index tt = 0; tt < Nexposure; ++tt) {
         const Index n_tot = exposure_index_set[tt].size();
@@ -161,20 +158,31 @@ data_loader_t::build_annoy_index(const Mat _Q_kn, const std::size_t NUM_THREADS)
         // annoy_index_t & index = *annoy_indexes[tt].get();
     }
 
+    TLOG("Populating ANNOY indexes for each exposure group");
+
     for (Index tt = 0; tt < Nexposure; ++tt) {
         const Index n_tot = exposure_index_set[tt].size(); // # cells
+
+        if (n_tot < 1) {
+            WLOG("Empty group: " << tt << ", " << exposure_id_name[tt]);
+            continue;
+        }
+
         annoy_index_t &index = *annoy_indexes[tt].get();
         std::vector<Scalar> vec(rank);
         for (Index i = 0; i < n_tot; ++i) {
-            const Index cell_j = exposure_index_set.at(tt).at(i);
+            const Index cell_j = exposure_index_set[tt].at(i);
             Eigen::Map<Mat>(vec.data(), rank, 1) = Q_kn.col(cell_j);
             index.add_item(i, vec.data());
         }
     }
+
     for (Index tt = 0; tt < Nexposure; ++tt) {
         annoy_index_t &index = *annoy_indexes[tt].get();
         index.build(50);
     }
+
+    TLOG("Populated " << Nexposure << " ANNOY indexes");
     return EXIT_SUCCESS;
 }
 

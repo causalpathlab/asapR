@@ -28,7 +28,7 @@ std::string zeropad(const int t, const int tmax);
 #define WLOG(msg)                                                  \
     {                                                              \
         Rcpp::Rcerr << "[" << curr_time() << "] [Warning] " << msg \
-                    << std::endl;                                  \
+                    << std::flush << std::endl;                    \
     }
 
 #define ERR_RET(cond, msg)       \
