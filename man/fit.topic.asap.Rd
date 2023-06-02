@@ -14,6 +14,7 @@ fit.topic.asap(
   .burnin = 10,
   .reg.steps = 10,
   .reg.stdize = TRUE,
+  .scale.cols = TRUE,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -24,7 +25,6 @@ fit.topic.asap(
   .eps = 1e-06,
   svd.init = TRUE,
   do.log1p = FALSE,
-  max.depth = 10000,
   covar = NULL,
   batch = NULL
 )
@@ -46,6 +46,8 @@ fit.topic.asap(
 
 \item{.reg.stdize}{standardize X in regression (default: TRUE)}
 
+\item{.scale.cols}{scale columns by standard deviation (default: TRUE)}
+
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
 \item{b0}{Gamma(a0, b0) prior (default: 1)}
@@ -63,8 +65,6 @@ fit.topic.asap(
 \item{svd.init}{(default: TRUE)}
 
 \item{do.log1p}{(default: FALSE)}
-
-\item{max.depth}{(default: 1e4)}
 
 \item{covar}{sample x var covariate matrix (default: NULL)}
 

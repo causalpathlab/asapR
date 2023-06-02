@@ -12,7 +12,7 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_normalize normalize each column after random projection
+//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
@@ -32,7 +32,7 @@ asap_random_bulk_data(
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
-    const bool do_normalize = false,
+    const bool do_scale = false,
     const bool do_log1p = false,
     const bool do_row_std = false,
     const std::size_t KNN_CELL = 10,
@@ -120,6 +120,11 @@ asap_random_bulk_data(
         Mat yy = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
                             matched_data.read(lb, ub);
 
+        if (do_scale) {
+            normalize_columns(yy);
+            scale_columns(yy);
+        }
+
         Mat temp(K, yy.cols());
 
         if (do_row_std) {
@@ -154,16 +159,12 @@ asap_random_bulk_data(
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    if (do_normalize) {
-        normalize_columns(Q);
-    }
-
     Eigen::BDCSVD<Mat> svd;
     svd.compute(Q, Eigen::ComputeThinU | Eigen::ComputeThinV);
     Mat vv = svd.matrixV();
     ASSERT_RETL(vv.rows() == N, " failed SVD for Q");
 
-    Mat random_dict = standardize(vv); // N x K
+    Mat random_dict = standardize_columns(vv); // N x K
     TLOG(random_dict.rows() << " x " << random_dict.cols());
 
     if (verbose) {
@@ -310,8 +311,19 @@ asap_random_bulk_data(
 
             const std::vector<Index> &_cells_s = pb_cells.at(s);
 
-            const Mat yy = matched_data.read(_cells_s);
-            const Mat zz = matched_data.read_counterfactual(_cells_s);
+            Mat yy = do_log1p ? matched_data.read(_cells_s).unaryExpr(log1p) :
+                                matched_data.read(_cells_s);
+
+            Mat zz = do_log1p ?
+                matched_data.read_counterfactual(_cells_s).unaryExpr(log1p) :
+                matched_data.read_counterfactual(_cells_s);
+
+            if (do_scale) {
+                normalize_columns(yy);
+                scale_columns(yy);
+                normalize_columns(zz);
+                scale_columns(zz);
+            }
 
             prob_bs.col(s).setZero();
             n_bs.col(s).setZero();

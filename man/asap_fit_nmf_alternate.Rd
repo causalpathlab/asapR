@@ -12,6 +12,7 @@ asap_fit_nmf_alternate(
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
+  do_scale = TRUE,
   do_log1p = FALSE,
   rseed = 1337L,
   svd_init = TRUE,
@@ -32,6 +33,8 @@ asap_fit_nmf_alternate(
 \item{a0}{gamma(a0, b0) default: a0 = 1}
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
+
+\item{do_scale}{scale each column by standard deviation (default: TRUE)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

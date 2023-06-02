@@ -10,6 +10,7 @@
 #' @param .burnin burn-in period in the record keeping (default: 10)
 #' @param .reg.steps number of steps in regression analysis (default: 10)
 #' @param .reg.stdize standardize X in regression (default: TRUE)
+#' @param .scale.cols scale columns by standard deviation (default: TRUE)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -19,7 +20,6 @@
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
 #' @param svd.init (default: TRUE)
 #' @param do.log1p (default: FALSE)
-#' @param max.depth (default: 1e4)
 #' @param .rand.seed random seed (default: 42)
 #'
 #' @return a list that contains:
@@ -56,6 +56,7 @@ fit.topic.asap <- function(mtx.file,
                            .burnin = 10,
                            .reg.steps = 10,
                            .reg.stdize = TRUE,
+                           .scale.cols = TRUE,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
@@ -66,7 +67,6 @@ fit.topic.asap <- function(mtx.file,
                            .eps = 1e-6,
                            svd.init = TRUE,
                            do.log1p = FALSE,
-                           max.depth = 1e4,
                            covar = NULL,
                            batch = NULL){
 
@@ -77,7 +77,6 @@ fit.topic.asap <- function(mtx.file,
     message("Phase I: Create random pseudo-bulk data")
 
     Y <- NULL
-    Y0 <- NULL
     rand.proj <- NULL
     rand.positions <- NULL
     batch.effect <- NULL
@@ -92,16 +91,13 @@ fit.topic.asap <- function(mtx.file,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     do_normalize = FALSE,
+                                     do_scale = .scale.cols,
                                      do_log1p = do.log1p,
                                      do_row_std = FALSE)
-        
+
         stopifnot(!is.null(.pb$PB))
 
         Y <- cbind(Y, .pb$PB)
-        if(nrow(.pb$PB.batch) == nrow(.pb$PB) && ncol(.pb$PB.batch) == ncol(.pb$PB)){
-            Y0 <- cbind(Y0, .pb$PB.batch)
-        }
 
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
@@ -114,9 +110,6 @@ fit.topic.asap <- function(mtx.file,
     if(ncol(Y) > max.pb.size){
         .cols <- sample(ncol(Y), max.pb.size)
         Y <- Y[, .cols, drop = FALSE]
-        if(!is.null(Y0)){
-            Y0 <- Y0[, .cols, drop = FALSE]
-        }
     }
 
     message("Phase II: Perform Poisson matrix factorization on the Y")
@@ -128,6 +121,7 @@ fit.topic.asap <- function(mtx.file,
                                    verbose = verbose,
                                    a0 = a0,
                                    b0 = b0,
+                                   do_scale = .scale.cols,
                                    do_log1p = do.log1p,
                                    rseed = .rand.seed,
                                    svd_init = svd.init,
@@ -151,11 +145,11 @@ fit.topic.asap <- function(mtx.file,
                                 r_taboo_names = NULL,
                                 a0 = a0, b0 = b0,
                                 max_iter = .reg.steps,
+                                do_scale = .scale.cols,
                                 do_log1p = do.log1p,
                                 verbose = verbose,
                                 NUM_THREADS = num.threads,
                                 BLOCK_SIZE = block.size,
-                                max_depth = max.depth,
                                 do_stdize_x = .reg.stdize)
 
     message("Normalizing the estimated model parameters")
@@ -167,7 +161,6 @@ fit.topic.asap <- function(mtx.file,
     asap$depth <- .multinom$depth
     asap$nmf <- .nmf
     asap$Y <- Y
-    asap$Y0 <- Y0
 
     asap$rand.proj <- rand.proj
     asap$rand.positions <- rand.positions

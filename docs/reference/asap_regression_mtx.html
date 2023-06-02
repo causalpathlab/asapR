@@ -26,7 +26,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -57,24 +57,24 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">asap_regression_mtx</span><span class="op">(</span>
-  <span class="va">mtx_file</span>,
-  <span class="va">mtx_idx_file</span>,
-  <span class="va">log_x</span>,
-  r_batch_effect <span class="op">=</span> <span class="cn">NULL</span>,
-  r_x_row_names <span class="op">=</span> <span class="cn">NULL</span>,
-  r_mtx_row_names <span class="op">=</span> <span class="cn">NULL</span>,
-  r_taboo_names <span class="op">=</span> <span class="cn">NULL</span>,
-  a0 <span class="op">=</span> <span class="fl">1</span>,
-  b0 <span class="op">=</span> <span class="fl">1</span>,
-  max_iter <span class="op">=</span> <span class="fl">10L</span>,
-  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
-  verbose <span class="op">=</span> <span class="cn">FALSE</span>,
-  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
-  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,
-  max_depth <span class="op">=</span> <span class="fl">10000</span>,
-  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">asap_regression_mtx</span><span class="op">(</span></span>
+<span>  <span class="va">mtx_file</span>,</span>
+<span>  <span class="va">mtx_idx_file</span>,</span>
+<span>  <span class="va">log_x</span>,</span>
+<span>  r_batch_effect <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  r_x_row_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  r_mtx_row_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  r_taboo_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  max_iter <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  do_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  do_stdize_x <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -111,6 +111,10 @@
 <dd><p>gamma(a0, b0)</p></dd>
 
 
+<dt>do_scale</dt>
+<dd><p>scale each column by standard deviation (default: TRUE)</p></dd>
+
+
 <dt>do_log1p</dt>
 <dd><p>do log(1+y) transformation</p></dd>
 
@@ -125,10 +129,6 @@
 
 <dt>BLOCK_SIZE</dt>
 <dd><p>disk I/O block size (number of columns)</p></dd>
-
-
-<dt>max_depth</dt>
-<dd><p>maximum depth per column</p></dd>
 
 
 <dt>do_stdize</dt>

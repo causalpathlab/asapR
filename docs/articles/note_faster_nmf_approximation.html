@@ -43,7 +43,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -68,13 +68,11 @@
 
       
 
-      </header><div class="row">
+      </header><script src="note_faster_nmf_approximation_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Expedite Poisson-NMF estimation via alternating
-regression models</h1>
-                        <h4 data-toc-skip class="author">Yongjin
-Park</h4>
+      <h1 data-toc-skip>Expedite Poisson-NMF estimation via alternating regression models</h1>
+                        <h4 data-toc-skip class="author">Yongjin Park</h4>
             
       
       
@@ -84,49 +82,26 @@ Park</h4>
 
     
     
-<p>What if we apply single-effect Poisson regression alternatively?
-Let’s consider this parameterization of Poisson distribution: <span class="math inline">\(\lambda_{ij} = \sum_{k} \beta_{ik}
-\theta_{jk}\)</span> Previously, we introduced <span class="math inline">\(q_{ij}^{k}\)</span> (triplets for each gene <span class="math inline">\(i\)</span>, cell <span class="math inline">\(j\)</span>, and factor <span class="math inline">\(k\)</span>) to derive closed-form variational
-update equations. But the overall complexity can increase in a cubic
-time. Can we factorize <span class="math inline">\(q\)</span> into two
-parts, like <span class="math inline">\(q_{ij}^{k} = c_{ik}
-z_{jk}\)</span>? It will certainly lead to a more restrictive
-approximation objective. Perhaps, the lower-bound induced by the
-factored auxiliary variables will be not as tight as before. Still, we
-can show that some sort of alternating regression algorithm can benefit
-from having two factored auxiliary variables.</p>
-<p>Let us define latent variables, <span class="math inline">\(\phi_{ik}
-\overset{\Delta}{=} \mathbb{E}\!\left[c_{ik}\right]\)</span> and <span class="math inline">\(\rho_{jk} \overset{\Delta}{=}
-\mathbb{E}\!\left[z_{jk}\right]\)</span> under variational
-approximation:</p>
-<p><span class="math display">\[q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k}
-\phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k}
-\rho_{jk}^{z_{jk}}\]</span></p>
+<p>What if we apply single-effect Poisson regression alternatively? Let’s consider this parameterization of Poisson distribution: <span class="math inline">\(\lambda_{ij} = \sum_{k} \beta_{ik} \theta_{jk}\)</span> Previously, we introduced <span class="math inline">\(q_{ij}^{k}\)</span> (triplets for each gene <span class="math inline">\(i\)</span>, cell <span class="math inline">\(j\)</span>, and factor <span class="math inline">\(k\)</span>) to derive closed-form variational update equations. But the overall complexity can increase in a cubic time. Can we factorize <span class="math inline">\(q\)</span> into two parts, like <span class="math inline">\(q_{ij}^{k} = c_{ik} z_{jk}\)</span>? It will certainly lead to a more restrictive approximation objective. Perhaps, the lower-bound induced by the factored auxiliary variables will be not as tight as before. Still, we can show that some sort of alternating regression algorithm can benefit from having two factored auxiliary variables.</p>
+<p>Let us define latent variables, <span class="math inline">\(\phi_{ik} \overset{\Delta}{=} \mathbb{E}\!\left[c_{ik}\right]\)</span> and <span class="math inline">\(\rho_{jk} \overset{\Delta}{=} \mathbb{E}\!\left[z_{jk}\right]\)</span> under variational approximation:</p>
+<p><span class="math display">\[q(\mathbf{c}_{i}|\phi_{i}) = \prod_{k} \phi_{ik}^{c_{ik}}, \, q(\mathbf{z}_{j}|\rho_{j}) = \prod_{k} \rho_{jk}^{z_{jk}}\]</span></p>
 <div class="section level3">
 <h3 id="regression-1-approximation-from-the-rows-perspective">Regression 1: Approximation from the rows’ perspective<a class="anchor" aria-label="anchor" href="#regression-1-approximation-from-the-rows-perspective"></a>
 </h3>
-<p>We want to estimate <span class="math inline">\(\beta_{ik}\)</span>
-given <span class="math inline">\(\theta_{jk}\)</span>.</p>
-<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k}
-\beta_{ik} \theta_{jk} \right)
+<p>We want to estimate <span class="math inline">\(\beta_{ik}\)</span> given <span class="math inline">\(\theta_{jk}\)</span>.</p>
+<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik}
-\theta_{jk}}{c_{ik}}
+\sum_{i,k} \sum_{j} Y_{ij} c_{ik} \ln \frac{\beta_{ik} \theta_{jk}}{c_{ik}}
 - \sum_{i,j,k}\beta_{ik}\theta_{jk}\]</span></p>
 <p>Find the most correlated factor <span class="math inline">\(k\)</span> (softly).</p>
-<p><span class="math display">\[\ln \phi_{ik} =
-\underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln
-\theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
-+  \underbrace{\mathbb{E}\!\left[\ln
-\beta_{ik}\right]}_{\textsf{memory}} + \textsf{const.}\]</span></p>
-<p>with <span class="math inline">\(\sum_{k} \phi_{ik} = 1\)</span>, and
-<span class="math display">\[\beta_{ik} \sim \operatorname{Gamma}\left(
+<p><span class="math display">\[\ln \phi_{ik} = \underbrace{\frac{\sum_{j} Y_{ij} \mathbb{E}\!\left[\ln \theta_{jk}\right]}{\sum_{j} Y_{ij}}}_{\textsf{empirical correlation}}
++  \underbrace{\mathbb{E}\!\left[\ln \beta_{ik}\right]}_{\textsf{memory}} + \textsf{const.}\]</span></p>
+<p>with <span class="math inline">\(\sum_{k} \phi_{ik} = 1\)</span>, and <span class="math display">\[\beta_{ik} \sim \operatorname{Gamma}\left(
 a_{0} + \phi_{ik} \sum_{j} Y_{ij}, \,
 b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 \right)\]</span></p>
-<p><span class="math display">\[\theta_{jk} \sim
-\operatorname{Gamma}\left(
+<p><span class="math display">\[\theta_{jk} \sim \operatorname{Gamma}\left(
 a_0 + \rho_{jk}  \sum_{i} \phi_{ik} Y_{ij} ,\,
 b_0 + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 \right)\]</span></p>
@@ -134,29 +109,22 @@ b_0 + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 <div class="section level3">
 <h3 id="regression-2-approximation-from-the-columns-perspective">Regression 2: Approximation from the columns’ perspective<a class="anchor" aria-label="anchor" href="#regression-2-approximation-from-the-columns-perspective"></a>
 </h3>
-<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k}
-\beta_{ik} \theta_{jk} \right)
+<p><span class="math display">\[\sum_{i,j} Y_{ij} \ln \left( \sum_{k} \beta_{ik} \theta_{jk} \right)
 - \sum_{i,j,k} \beta_{ik}\theta_{jk}
 \ge
-\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik}
-\theta_{jk}}{z_{jk}}
+\sum_{j,k} \sum_{i} Y_{ij} z_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{z_{jk}}
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}\]</span></p>
 <p><span class="math display">\[\ln \rho_{jk}
 =
-\underbrace{\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln
-\beta_{ik}\right]}{\sum_{i} Y_{ij}}}_{\textsf{empirical correlation}}
-+ \underbrace{\mathbb{E}\!\left[\ln
-\theta_{jk}\right]}_{\textsf{memory}}
+\underbrace{\frac{\sum_{i} Y_{ij} \mathbb{E}\!\left[\ln \beta_{ik}\right]}{\sum_{i} Y_{ij}}}_{\textsf{empirical correlation}}
++ \underbrace{\mathbb{E}\!\left[\ln \theta_{jk}\right]}_{\textsf{memory}}
 + \textsf{const.}\]</span></p>
-<p>where <span class="math inline">\(\sum_{k} \rho_{jk} = 1\)</span>,
-and</p>
-<p><span class="math display">\[\theta_{jk} \sim
-\operatorname{Gamma}\left(
+<p>where <span class="math inline">\(\sum_{k} \rho_{jk} = 1\)</span>, and</p>
+<p><span class="math display">\[\theta_{jk} \sim \operatorname{Gamma}\left(
 a_{0} + \rho_{jk} \sum_{i} Y_{ij},\,
 b_{0} + \sum_{i} \mathbb{E}\!\left[\beta_{ik}\right]
 \right)\]</span></p>
-<p><span class="math display">\[\beta_{ik}
-\sim  \operatorname{Gamma}\left(
+<p><span class="math display">\[\beta_{ik} \sim  \operatorname{Gamma}\left(
 a_{0} +  \phi_{ik} \sum_{j} Y_{ij} \rho_{jk}, \,
 b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 \right)\]</span></p>
@@ -167,33 +135,32 @@ b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 <p>As a result, we will maximize the following lower-bound:</p>
 <p><span class="math display">\[L
 \ge
-\sum_{i,j,k} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik}
-\theta_{jk}}{\phi_{ik} \rho_{jk}}
+\sum_{i,j,k} Y_{ij} \phi_{ik} \rho_{jk} \ln \frac{\beta_{ik} \theta_{jk}}{\phi_{ik} \rho_{jk}}
 - \sum_{i,j,k} \beta_{ik} \theta_{jk}.\]</span></p>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">asapR</span><span class="op">)</span>
-
-<span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1331</span><span class="op">)</span>
-<span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">1000</span>
-<span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">500</span>
-<span class="va">.rnorm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d1</span>,<span class="va">d2</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">d1</span> <span class="op">*</span> <span class="va">d2</span><span class="op">)</span>, <span class="va">d1</span>, <span class="va">d2</span><span class="op">)</span>
-
-<span class="va">uu</span> <span class="op">&lt;-</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">d</span>, <span class="fl">3</span><span class="op">)</span>
-<span class="va">vv</span> <span class="op">&lt;-</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">n</span>, <span class="fl">3</span><span class="op">)</span>
-<span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">uu</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">vv</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">scale</span><span class="op">)</span> <span class="op">+</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">d</span>, <span class="va">n</span><span class="op">)</span>
-<span class="va">Y</span><span class="op">[</span><span class="va">Y</span> <span class="op">&lt;</span> <span class="fl">0</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span>
-
-<span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/asap_fit_nmf_alternate.html">asap_fit_nmf_alternate</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fl">5</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">asapR</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1331</span><span class="op">)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">500</span></span>
+<span><span class="va">.rnorm</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d1</span>,<span class="va">d2</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">d1</span> <span class="op">*</span> <span class="va">d2</span><span class="op">)</span>, <span class="va">d1</span>, <span class="va">d2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">uu</span> <span class="op">&lt;-</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">d</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">vv</span> <span class="op">&lt;-</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">n</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">uu</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">vv</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">scale</span><span class="op">)</span> <span class="op">+</span> <span class="fu">.rnorm</span><span class="op">(</span><span class="va">d</span>, <span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">Y</span><span class="op">[</span><span class="va">Y</span> <span class="op">&lt;</span> <span class="fl">0</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
+<span></span>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/asap_fit_nmf_alternate.html">asap_fit_nmf_alternate</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_faster_nmf_approximation_files/figure-html/unnamed-chunk-2-1.png" width="480"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">v.order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">vv</span>, <span class="fl">1</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">v.order</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">v.order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">vv</span>, <span class="fl">1</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">v.order</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_faster_nmf_approximation_files/figure-html/unnamed-chunk-3-1.png" width="480"></p>
 </div>
   </div>

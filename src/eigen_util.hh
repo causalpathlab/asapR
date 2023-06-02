@@ -594,6 +594,43 @@ public:
         return X;
     }
 
+    const T &colwise_scale(const Scalar eps = 1e-8)
+    {
+        rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
+        rowNobs.array() += eps;
+
+        rowMean = X.unaryExpr(obs_val).colwise().sum().cwiseQuotient(rowNobs);
+
+        rowSqMean = (X.cwiseProduct(X))
+                        .unaryExpr(obs_val)
+                        .colwise()
+                        .sum()
+                        .cwiseQuotient(rowNobs);
+
+        if (rate_m == 1) {
+            rowMu = rowMean;
+        } else if (rate_m > 0) {
+            rowMu *= (1. - rate_m);
+            rowMu += rate_m * rowMean;
+        }
+
+        temp = rowSqMean - rowMean.cwiseProduct(rowMean);
+        temp.array() += eps;
+        if (temp.minCoeff() < 0.) {
+            temp.array() -= temp.minCoeff();
+        }
+
+        if (rate_v > 0) {
+            rowSd += rate_v * temp.cwiseSqrt();
+        } else if (rate_v > 0) {
+            rowSd *= (1. - rate_v);
+            rowSd += rate_v * temp.cwiseSqrt();
+        }
+
+        X.array().rowwise() /= (rowSd.array() + eps);
+        return X;
+    }
+
 private:
     RowVec rowMean, rowSqMean, rowMu, rowSd, rowNobs, temp;
 
@@ -617,8 +654,8 @@ Eigen::Matrix<typename Derived::Scalar,
               Eigen::Dynamic,
               Eigen::Dynamic,
               Eigen::ColMajor>
-standardize(const Eigen::MatrixBase<Derived> &Xraw,
-            const typename Derived::Scalar EPS = 1e-8)
+standardize_columns(const Eigen::MatrixBase<Derived> &Xraw,
+                    const typename Derived::Scalar EPS = 1e-8)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
@@ -629,7 +666,28 @@ standardize(const Eigen::MatrixBase<Derived> &Xraw,
     mat_t X(Xraw.rows(), Xraw.cols());
     X = Xraw;
     stdizer_t<mat_t> std_op(X);
-    std_op.colwise();
+    std_op.colwise(EPS);
+    return X;
+}
+
+template <typename Derived>
+Eigen::Matrix<typename Derived::Scalar,
+              Eigen::Dynamic,
+              Eigen::Dynamic,
+              Eigen::ColMajor>
+scale_columns(const Eigen::MatrixBase<Derived> &Xraw,
+              const typename Derived::Scalar EPS = 1e-8)
+{
+    using Index = typename Derived::Index;
+    using Scalar = typename Derived::Scalar;
+    using mat_t =
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
+    using RowVec = typename Eigen::internal::plain_row_type<Derived>::type;
+
+    mat_t X(Xraw.rows(), Xraw.cols());
+    X = Xraw;
+    stdizer_t<mat_t> std_op(X);
+    std_op.colwise_scale(EPS);
     return X;
 }
 

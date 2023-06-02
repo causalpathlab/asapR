@@ -15,11 +15,11 @@ asap_regression_mtx(
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
+  do_scale = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
-  max_depth = 10000,
   do_stdize_x = FALSE
 )
 }
@@ -40,6 +40,8 @@ asap_regression_mtx(
 
 \item{b0}{gamma(a0, b0)}
 
+\item{do_scale}{scale each column by standard deviation (default: TRUE)}
+
 \item{do_log1p}{do log(1+y) transformation}
 
 \item{verbose}{verbosity}
@@ -47,8 +49,6 @@ asap_regression_mtx(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
-
-\item{max_depth}{maximum depth per column}
 
 \item{do_stdize}{do the standardization of log_x}
 }

@@ -43,7 +43,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -68,13 +68,11 @@
 
       
 
-      </header><div class="row">
+      </header><script src="note_batch_correction_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>Batch correction within each pseudobulk
-sample</h1>
-                        <h4 data-toc-skip class="author">Yongjin
-Park</h4>
+      <h1 data-toc-skip>Batch correction within each pseudobulk sample</h1>
+                        <h4 data-toc-skip class="author">Yongjin Park</h4>
             
       
       
@@ -85,180 +83,112 @@ Park</h4>
     
     
 <div class="section level3">
-<h3 id="a-generative-scheme-for-a-single-cell-count-matrix-with-multiplicative-batch-effects">A generative scheme for a single-cell count matrix with
-multiplicative batch effects<a class="anchor" aria-label="anchor" href="#a-generative-scheme-for-a-single-cell-count-matrix-with-multiplicative-batch-effects"></a>
+<h3 id="a-generative-scheme-for-a-single-cell-count-matrix-with-multiplicative-batch-effects">A generative scheme for a single-cell count matrix with multiplicative batch effects<a class="anchor" aria-label="anchor" href="#a-generative-scheme-for-a-single-cell-count-matrix-with-multiplicative-batch-effects"></a>
 </h3>
-<p>We encounter single-cell expression data consisting of multiple
-batches. One of the primary goals is to identify cell types
-(clusters/factors) and cell-type-specific gene expression patterns.
-However, distinguishing batch-specific and cell-type-specific genes only
-by a factorization method is challenging and often not identifiable from
-data alone. For each gene <span class="math inline">\(g\)</span> and
-cell <span class="math inline">\(j\)</span>, the gene expression <span class="math inline">\(Y_{gj}\)</span> were sampled from Poisson
-distribution with the rate parameter:</p>
-<p><span class="math display">\[\lambda_{gj} =
-\lambda_{gj}^{\textsf{unbiased}} \times \prod_{k}
-\delta_{gk}^{X_{kj}},\]</span></p>
-<p>affected by the batch effects <span class="math inline">\(\delta_{gk}\)</span>. More formally, letting <span class="math inline">\(X_{kj}\)</span> be a batch membership matrix,
-assigning a cell <span class="math inline">\(j\)</span> to a batch <span class="math inline">\(k\)</span> if and only if <span class="math inline">\(X_{kj}=1\)</span>, we assume the average gene
-expression rates are linearly affected by in the log-transformed
-space:</p>
-<p><span class="math display">\[\mathbb{E}\!\left[\ln Y_{gj}\right] =
-\ln \left( \sum_{t} \beta_{gt} \theta_{jt} \right) + \sum_{k}
-\ln\delta_{gk} X_{kj}.\]</span></p>
+<p>We encounter single-cell expression data consisting of multiple batches. One of the primary goals is to identify cell types (clusters/factors) and cell-type-specific gene expression patterns. However, distinguishing batch-specific and cell-type-specific genes only by a factorization method is challenging and often not identifiable from data alone. For each gene <span class="math inline">\(g\)</span> and cell <span class="math inline">\(j\)</span>, the gene expression <span class="math inline">\(Y_{gj}\)</span> were sampled from Poisson distribution with the rate parameter:</p>
+<p><span class="math display">\[\lambda_{gj} = \lambda_{gj}^{\textsf{unbiased}} \times \prod_{k} \delta_{gk}^{X_{kj}},\]</span></p>
+<p>affected by the batch effects <span class="math inline">\(\delta_{gk}\)</span>. More formally, letting <span class="math inline">\(X_{kj}\)</span> be a batch membership matrix, assigning a cell <span class="math inline">\(j\)</span> to a batch <span class="math inline">\(k\)</span> if and only if <span class="math inline">\(X_{kj}=1\)</span>, we assume the average gene expression rates are linearly affected by in the log-transformed space:</p>
+<p><span class="math display">\[\mathbb{E}\!\left[\ln Y_{gj}\right] = \ln \left( \sum_{t} \beta_{gt} \theta_{jt} \right) + \sum_{k} \ln\delta_{gk} X_{kj}.\]</span></p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1331</span><span class="op">)</span>
-
-<span class="va">m</span> <span class="op">&lt;-</span> <span class="fl">500</span> <span class="co"># genes</span>
-<span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">1000</span> <span class="co"># cells</span>
-<span class="va">nb</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="co"># batches</span>
-
-<span class="co">## 1. batch membership</span>
-<span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">n</span>, <span class="va">nb</span><span class="op">)</span>
-<span class="va">batch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">nb</span>, <span class="va">n</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
-<span class="kw">for</span><span class="op">(</span><span class="va">b</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nb</span><span class="op">)</span><span class="op">{</span>
-    <span class="va">X</span><span class="op">[</span><span class="va">batch</span> <span class="op">==</span> <span class="va">b</span>, <span class="va">b</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span>
-<span class="op">}</span>
-
-<span class="co">## 2. batch effects</span>
-<span class="va">W.true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">m</span><span class="op">*</span><span class="va">nb</span><span class="op">)</span>, <span class="va">m</span>, <span class="va">nb</span><span class="op">)</span>
-<span class="va">ln.delta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">W.true</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">scale</span><span class="op">)</span>
-
-<span class="co">## 3. true effects</span>
-<span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">5</span>
-<span class="va">.beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="va">m</span> <span class="op">*</span> <span class="va">K</span>, <span class="fl">1</span><span class="op">)</span>, <span class="va">m</span>, <span class="va">K</span><span class="op">)</span>
-<span class="va">.theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="va">K</span>, <span class="fl">1</span><span class="op">)</span>, <span class="va">n</span>, <span class="va">K</span><span class="op">)</span>
-<span class="va">lambda.true</span> <span class="op">&lt;-</span> <span class="va">.beta</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.theta</span><span class="op">)</span>
-
-<span class="va">lambda</span> <span class="op">&lt;-</span> <span class="va">lambda.true</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">ln.delta</span><span class="op">)</span>
-<span class="va">yy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">lambda</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">l</span>, <span class="va">rpois</span>, n<span class="op">=</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>
-<span class="va">oo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.theta</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p>If we can accurately estimate a true batch effect matrix, say <span class="math inline">\(\delta_{gk}\)</span>, it is straightforward to
-adjust the difference between batches. How can we identify the true
-batch effect <span class="math inline">\(\delta_{gk}\)</span> for all
-the genes <span class="math inline">\(g\)</span> specifically expressed
-in the batch <span class="math inline">\(k\)</span>? If we match cells
-<span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> sampled from the batches <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, respectively, we expect the
-batch-specific difference <span class="math inline">\(\delta_{ga} \neq
-\delta_{gk}\)</span> will persist and even amplify, but the difference
-originated from cell types will vanish. This problem is equivalent to
-estimating the potential outcome of gene expressions in each batch <span class="math inline">\(k\)</span>, <span class="math inline">\(\mathbb{E}\!\left[Y_{gj}^{(k)}\right]\)</span>.</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1331</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fl">500</span> <span class="co"># genes</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">1000</span> <span class="co"># cells</span></span>
+<span><span class="va">nb</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="co"># batches</span></span>
+<span></span>
+<span><span class="co">## 1. batch membership</span></span>
+<span><span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">n</span>, <span class="va">nb</span><span class="op">)</span></span>
+<span><span class="va">batch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="va">nb</span>, <span class="va">n</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">b</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nb</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="va">X</span><span class="op">[</span><span class="va">batch</span> <span class="op">==</span> <span class="va">b</span>, <span class="va">b</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co">## 2. batch effects</span></span>
+<span><span class="va">W.true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">m</span><span class="op">*</span><span class="va">nb</span><span class="op">)</span>, <span class="va">m</span>, <span class="va">nb</span><span class="op">)</span></span>
+<span><span class="va">ln.delta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">W.true</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">scale</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## 3. true effects</span></span>
+<span><span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">5</span></span>
+<span><span class="va">.beta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="va">m</span> <span class="op">*</span> <span class="va">K</span>, <span class="fl">1</span><span class="op">)</span>, <span class="va">m</span>, <span class="va">K</span><span class="op">)</span></span>
+<span><span class="va">.theta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="va">n</span> <span class="op">*</span> <span class="va">K</span>, <span class="fl">1</span><span class="op">)</span>, <span class="va">n</span>, <span class="va">K</span><span class="op">)</span></span>
+<span><span class="va">lambda.true</span> <span class="op">&lt;-</span> <span class="va">.beta</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.theta</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">lambda</span> <span class="op">&lt;-</span> <span class="va">lambda.true</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">ln.delta</span><span class="op">)</span></span>
+<span><span class="va">yy</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">lambda</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">l</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">l</span>, <span class="va">rpois</span>, n<span class="op">=</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">oo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.theta</span><span class="op">)</span>, <span class="fl">2</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>If we can accurately estimate a true batch effect matrix, say <span class="math inline">\(\delta_{gk}\)</span>, it is straightforward to adjust the difference between batches. How can we identify the true batch effect <span class="math inline">\(\delta_{gk}\)</span> for all the genes <span class="math inline">\(g\)</span> specifically expressed in the batch <span class="math inline">\(k\)</span>? If we match cells <span class="math inline">\(i\)</span> and <span class="math inline">\(j\)</span> sampled from the batches <span class="math inline">\(a\)</span> and <span class="math inline">\(b\)</span>, respectively, we expect the batch-specific difference <span class="math inline">\(\delta_{ga} \neq \delta_{gk}\)</span> will persist and even amplify, but the difference originated from cell types will vanish. This problem is equivalent to estimating the potential outcome of gene expressions in each batch <span class="math inline">\(k\)</span>, <span class="math inline">\(\mathbb{E}\!\left[Y_{gj}^{(k)}\right]\)</span>.</p>
 </div>
 <div class="section level3">
 <h3 id="a-causal-inference-approach-to-identify-batch-effects">A causal inference approach to identify batch effects<a class="anchor" aria-label="anchor" href="#a-causal-inference-approach-to-identify-batch-effects"></a>
 </h3>
-<p>To dissect batch-specific effect in a causal inference (potential
-outcome) framework, we assume our confounding variables <span class="math inline">\(Q\)</span> are well-distributed across different
-batches:</p>
+<p>To dissect batch-specific effect in a causal inference (potential outcome) framework, we assume our confounding variables <span class="math inline">\(Q\)</span> are well-distributed across different batches:</p>
 <ul>
-<li>Overlap: <span class="math inline">\(0 &lt; p(X_{kj}=1|Q) &lt;
-1\)</span> for all <span class="math inline">\(k\)</span>.</li>
+<li>Overlap: <span class="math inline">\(0 &lt; p(X_{kj}=1|Q) &lt; 1\)</span> for all <span class="math inline">\(k\)</span>.</li>
 </ul>
-<p>Moreover, we assume these covariates are sufficient enough to induce
-conditional dependence between potential (imputed) gene expression and
-batch assignment mechanisms:</p>
+<p>Moreover, we assume these covariates are sufficient enough to induce conditional dependence between potential (imputed) gene expression and batch assignment mechanisms:</p>
 <ul>
-<li>Strong ignorability: <span class="math inline">\((Y(k), Y(k'))
-\perp\!\!\!\perp X | Q\)</span> for all <span class="math inline">\(k,k'\)</span> pairs.</li>
+<li>Strong ignorability: <span class="math inline">\((Y(k), Y(k')) \perp\!\!\!\perp X | Q\)</span> for all <span class="math inline">\(k,k'\)</span> pairs.</li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="estimation-of-the-batch-effects-by-matching">Estimation of the batch effects by matching<a class="anchor" aria-label="anchor" href="#estimation-of-the-batch-effects-by-matching"></a>
 </h3>
-<p>Suppose we can counterfactually estimate gene expressions of a
-certain cell <span class="math inline">\(j\)</span> if the cell was
-measured in different batches other than the observed batch <span class="math inline">\(k\)</span>.</p>
-<p><span class="math display">\[Z_{gj} = \frac{ \sum_{i} (1 - X_{ik})
-w_{ji} Y_{gi} }{ \sum_{i} (1 - X_{ik}) w_{ji} }\]</span></p>
-<p>Like many other batch correction methods invented for single-cell
-RNA-seq analysis, we will assume <span class="math inline">\(Z_{gj}\)</span> reliably contain
-biologically-relevant cell state information while excluding the
-batch-specific effects to which the cell <span class="math inline">\(j\)</span> belong.</p>
-<p>Observed log-likelihood: <span class="math display">\[\prod_{j}
-p(Y_{gj}|\mu_{gs},\delta_{gk},X_{jk})
-=\prod_{j} \operatorname{Poisson}(Y_{gj}|\mu_{gs} \sum_{k} \delta_{gk}
-X_{jk})\]</span></p>
-<p>Counterfactual log-likelihood: <span class="math display">\[\prod_{j}
-p(Z_{gj}|\mu_{gs}, \gamma_{gs}) = \prod_{j}
-\operatorname{Poisson}(Z_{gj}|\mu_{gs} \gamma_{gs})\]</span></p>
+<p>Suppose we can counterfactually estimate gene expressions of a certain cell <span class="math inline">\(j\)</span> if the cell was measured in different batches other than the observed batch <span class="math inline">\(k\)</span>.</p>
+<p><span class="math display">\[Z_{gj} = \frac{ \sum_{i} (1 - X_{ik}) w_{ji} Y_{gi} }{ \sum_{i} (1 - X_{ik}) w_{ji} }\]</span></p>
+<p>Like many other batch correction methods invented for single-cell RNA-seq analysis, we will assume <span class="math inline">\(Z_{gj}\)</span> reliably contain biologically-relevant cell state information while excluding the batch-specific effects to which the cell <span class="math inline">\(j\)</span> belong.</p>
+<p>Observed log-likelihood: <span class="math display">\[\prod_{j} p(Y_{gj}|\mu_{gs},\delta_{gk},X_{jk})
+=\prod_{j} \operatorname{Poisson}(Y_{gj}|\mu_{gs} \sum_{k} \delta_{gk} X_{jk})\]</span></p>
+<p>Counterfactual log-likelihood: <span class="math display">\[\prod_{j} p(Z_{gj}|\mu_{gs}, \gamma_{gs}) = \prod_{j} \operatorname{Poisson}(Z_{gj}|\mu_{gs} \gamma_{gs})\]</span></p>
 <div class="section level4">
 <h4 id="local-update-maximize-batch-s-specific-parameters">Local update: Maximize batch <span class="math inline">\(s\)</span>-specific parameters<a class="anchor" aria-label="anchor" href="#local-update-maximize-batch-s-specific-parameters"></a>
 </h4>
-<p><span class="math display">\[\mathbb{E}\!\left[\mu_{gs}\right]
-\approx \frac{ \sum_{j \in \mathcal{C}_{s}} Y_{gj} + \sum_{j \in
-\mathcal{C}_{s}} Z_{gj} }
+<p><span class="math display">\[\mathbb{E}\!\left[\mu_{gs}\right] \approx \frac{ \sum_{j \in \mathcal{C}_{s}} Y_{gj} + \sum_{j \in \mathcal{C}_{s}} Z_{gj} }
 {\sum_{k} \delta_{gk} n_{sk} + n_{s} \gamma_{gs}}\]</span></p>
-<p>Letting <span class="math inline">\(p_{sk} = n_{sk} / n_{s}\)</span>,
-<span class="math display">\[\mu_{gs} \gets \frac{ \bar{Y}_{gs} +
-\bar{Z}_{gs}}
+<p>Letting <span class="math inline">\(p_{sk} = n_{sk} / n_{s}\)</span>, <span class="math display">\[\mu_{gs} \gets \frac{ \bar{Y}_{gs} + \bar{Z}_{gs}}
 {\sum_{k} \delta_{gk} p_{sk} + \gamma_{gs}}\]</span></p>
-<p>If <span class="math inline">\(\delta_{gk} \to 0\)</span> and <span class="math inline">\(p_{sk}=1\)</span>, meaning that this sample <span class="math inline">\(s\)</span> is just sampled from the batch <span class="math inline">\(k\)</span> only, <span class="math inline">\(\mu_{gs} \to \bar{Y}_{gs} + \bar{Z}_{gs}\)</span>
-and <span class="math inline">\(\bar{Y}_{gs} \to \bar{Y}_{gsk} =
-0\)</span>. Therefore, <span class="math inline">\(\mu_{gs} \to
-\bar{Z}_{gs}\)</span>.</p>
+<p>If <span class="math inline">\(\delta_{gk} \to 0\)</span> and <span class="math inline">\(p_{sk}=1\)</span>, meaning that this sample <span class="math inline">\(s\)</span> is just sampled from the batch <span class="math inline">\(k\)</span> only, <span class="math inline">\(\mu_{gs} \to \bar{Y}_{gs} + \bar{Z}_{gs}\)</span> and <span class="math inline">\(\bar{Y}_{gs} \to \bar{Y}_{gsk} = 0\)</span>. Therefore, <span class="math inline">\(\mu_{gs} \to \bar{Z}_{gs}\)</span>.</p>
 </div>
 <div class="section level4">
 <h4 id="global-update">Global update<a class="anchor" aria-label="anchor" href="#global-update"></a>
 </h4>
-<p><span class="math display">\[\mathbb{E}\!\left[\delta_{gk}\right]
-\approx
-\frac{\sum_{s} \sum_{j \in \mathcal{C}_{s}} X_{kj} Y_{gj}}{\sum_{s}
-\mu_{gs} \sum_{j \in \mathcal{C}_{s}} X_{kj}}\]</span></p>
-<p><span class="math display">\[\delta_{gk} \gets
+<p><span class="math display">\[\mathbb{E}\!\left[\delta_{gk}\right] \approx 
+\frac{\sum_{s} \sum_{j \in \mathcal{C}_{s}} X_{kj} Y_{gj}}{\sum_{s} \mu_{gs} \sum_{j \in \mathcal{C}_{s}} X_{kj}}\]</span></p>
+<p><span class="math display">\[\delta_{gk} \gets 
 \frac{\sum_{s} \bar{Y}_{gsk} n_{sk}}
 {\sum_{s} \mu_{gs} n_{sk}}\]</span></p>
-<p>If <span class="math inline">\(\bar{Y}_{gsk} \to \mu_{gs}\)</span>
-for all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} \to 1\)</span>. If <span class="math inline">\(\bar{Y}_{gsk} &lt; \mu_{gs}\)</span> in all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} &lt; 1\)</span>. If <span class="math inline">\(\bar{Y}_{gsk} \to 0\)</span> for all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} \to 0\)</span>.</p>
+<p>If <span class="math inline">\(\bar{Y}_{gsk} \to \mu_{gs}\)</span> for all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} \to 1\)</span>. If <span class="math inline">\(\bar{Y}_{gsk} &lt; \mu_{gs}\)</span> in all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} &lt; 1\)</span>. If <span class="math inline">\(\bar{Y}_{gsk} \to 0\)</span> for all <span class="math inline">\(s\)</span>, <span class="math inline">\(\delta_{gk} \to 0\)</span>.</p>
 </div>
 <div class="section level4">
 <h4 id="algorithm">Algorithm<a class="anchor" aria-label="anchor" href="#algorithm"></a>
 </h4>
 <ol style="list-style-type: decimal">
-<li><p>Initialize batch effect <span class="math inline">\(\delta_{gk}
-\gets 1\)</span> for each gene <span class="math inline">\(g\)</span>
-and batch <span class="math inline">\(k\)</span></p></li>
-<li><p>Initialize <span class="math inline">\(\gamma_{gs} \gets
-1\)</span> for each sample <span class="math inline">\(s\)</span></p></li>
-<li><p>Static global stat: <span class="math inline">\(S_{gk} \gets
-0\)</span></p></li>
+<li><p>Initialize batch effect <span class="math inline">\(\delta_{gk} \gets 1\)</span> for each gene <span class="math inline">\(g\)</span> and batch <span class="math inline">\(k\)</span></p></li>
+<li><p>Initialize <span class="math inline">\(\gamma_{gs} \gets 1\)</span> for each sample <span class="math inline">\(s\)</span></p></li>
+<li><p>Static global stat: <span class="math inline">\(S_{gk} \gets 0\)</span></p></li>
 <li>
 <p>For each pseudo-bulk sample <span class="math inline">\(s\)</span> with cells <span class="math inline">\(\mathcal{C}_{s}\)</span>,</p>
 <ul>
-<li><p><span class="math inline">\(n_{sk} \gets \sum_{j \in
-\mathcal{C}_{s}} X_{kj}\)</span>, <span class="math inline">\(n_{s}
-\gets \sum_{k} n_{sk}\)</span>, <span class="math inline">\(p_{sk} \gets
-n_{sk}/n_{s}\)</span></p></li>
-<li><p><span class="math inline">\(\bar{Y}_{gs} \gets \sum_{j \in
-\mathcal{C}_{s}} Y_{gj} / n_{s}\)</span></p></li>
-<li><p><span class="math inline">\(\bar{Y}_{gsk} \gets \sum_{j \in
-\mathcal{C}_{s}} Y_{gj} X_{kj} / n_{s}\)</span></p></li>
-<li><p><span class="math inline">\(\bar{Z}_{gs} \gets \sum_{j \in
-\mathcal{C}_{s}} Z_{gj} / n_{s}\)</span> after matching and
-imputation</p></li>
-<li><p><span class="math inline">\(S_{gk} \gets S_{gk} + \bar{Y}_{gsk}
-n_{sk}\)</span></p></li>
+<li><p><span class="math inline">\(n_{sk} \gets \sum_{j \in \mathcal{C}_{s}} X_{kj}\)</span>, <span class="math inline">\(n_{s} \gets \sum_{k} n_{sk}\)</span>, <span class="math inline">\(p_{sk} \gets n_{sk}/n_{s}\)</span></p></li>
+<li><p><span class="math inline">\(\bar{Y}_{gs} \gets \sum_{j \in \mathcal{C}_{s}} Y_{gj} / n_{s}\)</span></p></li>
+<li><p><span class="math inline">\(\bar{Y}_{gsk} \gets \sum_{j \in \mathcal{C}_{s}} Y_{gj} X_{kj} / n_{s}\)</span></p></li>
+<li><p><span class="math inline">\(\bar{Z}_{gs} \gets \sum_{j \in \mathcal{C}_{s}} Z_{gj} / n_{s}\)</span> after matching and imputation</p></li>
+<li><p><span class="math inline">\(S_{gk} \gets S_{gk} + \bar{Y}_{gsk} n_{sk}\)</span></p></li>
 </ul>
 </li>
-<li><p>Iterative-updated global stat: <span class="math inline">\(T_{gk}
-\gets 0\)</span></p></li>
+<li><p>Iterative-updated global stat: <span class="math inline">\(T_{gk} \gets 0\)</span></p></li>
 <li>
 <p>(Local step) For each PB sample <span class="math inline">\(s\)</span>:</p>
 <ul>
-<li><p><span class="math inline">\(\bar{\delta}_{gs} \gets \sum_{k}
-\delta_{gk} p_{sk}\)</span></p></li>
-<li><p><span class="math inline">\(\mu_{gs} \gets (\bar{Y}_{gs} +
-\bar{Z}_{gs}) / (\gamma_{gs} + \bar{\delta}_{gs})\)</span></p></li>
-<li><p><span class="math inline">\(\gamma_{gs} \gets
-(\bar{Y}_{gs})/(\mu_{gs})\)</span></p></li>
-<li><p>For each <span class="math inline">\(k\)</span>: <span class="math inline">\(T_{gk} \gets T_{gk} + \mu_{gs}
-n_{sk}\)</span></p></li>
+<li><p><span class="math inline">\(\bar{\delta}_{gs} \gets \sum_{k} \delta_{gk} p_{sk}\)</span></p></li>
+<li><p><span class="math inline">\(\mu_{gs} \gets (\bar{Y}_{gs} + \bar{Z}_{gs}) / (\gamma_{gs} + \bar{\delta}_{gs})\)</span></p></li>
+<li><p><span class="math inline">\(\gamma_{gs} \gets (\bar{Y}_{gs})/(\mu_{gs})\)</span></p></li>
+<li><p>For each <span class="math inline">\(k\)</span>: <span class="math inline">\(T_{gk} \gets T_{gk} + \mu_{gs} n_{sk}\)</span></p></li>
 </ul>
 </li>
 <li>
 <p>(Global step) For each batch <span class="math inline">\(k\)</span>:</p>
 <ul>
-<li><span class="math inline">\(\delta_{gk} \gets S_{gk} /
-T_{gk}\)</span></li>
+<li><span class="math inline">\(\delta_{gk} \gets S_{gk} / T_{gk}\)</span></li>
 </ul>
 </li>
 <li><p>Repeat the previous three steps (5-7) until convergence</p></li>
@@ -269,159 +199,154 @@ T_{gk}\)</span></li>
 <h3 id="a-toy-example">A toy example<a class="anchor" aria-label="anchor" href="#a-toy-example"></a>
 </h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co">## 1. project</span>
-<span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">5</span>
-<span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">m</span> <span class="op">*</span> <span class="va">K</span><span class="op">)</span>, <span class="va">K</span>, <span class="va">m</span><span class="op">)</span>
-<span class="va">Q.raw</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">yy</span> <span class="co"># K x n</span></code></pre></div>
-<p>Before we adjust batch membership in the random projection
-matrix:</p>
+<code class="sourceCode R"><span><span class="co">## 1. project</span></span>
+<span><span class="va">K</span> <span class="op">&lt;-</span> <span class="fl">5</span></span>
+<span><span class="va">R</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">m</span> <span class="op">*</span> <span class="va">K</span><span class="op">)</span>, <span class="va">K</span>, <span class="va">m</span><span class="op">)</span></span>
+<span><span class="va">Q.raw</span> <span class="op">&lt;-</span> <span class="va">R</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">yy</span> <span class="co"># K x n</span></span></code></pre></div>
+<p>Before we adjust batch membership in the random projection matrix:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.raw</span><span class="op">)</span>, <span class="va">X</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.raw</span><span class="op">)</span>, <span class="va">X</span><span class="op">)</span></span></code></pre></div>
 <pre><code>       [,1]       [,2]</code></pre>
-<p>[1,] 0.7617260 -0.7617260 [2,] 0.8283630 -0.8283630 [3,] 0.8099248
--0.8099248 [4,] -0.7250199 0.7250199 [5,] 0.6651915 -0.6651915</p>
+<p>[1,] 0.7617260 -0.7617260 [2,] 0.8283630 -0.8283630 [3,] 0.8099248 -0.8099248 [4,] -0.7250199 0.7250199 [5,] 0.6651915 -0.6651915</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co">## 2. regress out</span>
-<span class="co">##</span>
-<span class="co">##  X theta = X inv(X'X) X' Y</span>
-<span class="co">##          = U D V' V inv(D^2) V' (U D V')' Y</span>
-<span class="co">##          = U inv(D) V' V D U' Y</span>
-<span class="co">##          = U U' Y</span>
-
-<span class="va">x.svd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/svd.html" class="external-link">svd</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>
-<span class="va">U</span> <span class="op">&lt;-</span> <span class="va">x.svd</span><span class="op">$</span><span class="va">u</span>
-<span class="va">U.t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">x.svd</span><span class="op">$</span><span class="va">u</span><span class="op">)</span>
-
-<span class="va">Q.t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.raw</span><span class="op">)</span>
-<span class="va">Q.t</span> <span class="op">&lt;-</span> <span class="va">Q.t</span> <span class="op">-</span> <span class="va">U</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">U.t</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">Q.t</span>
-<span class="va">Q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.t</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="co">## 2. regress out</span></span>
+<span><span class="co">##</span></span>
+<span><span class="co">##  X theta = X inv(X'X) X' Y</span></span>
+<span><span class="co">##          = U D V' V inv(D^2) V' (U D V')' Y</span></span>
+<span><span class="co">##          = U inv(D) V' V D U' Y</span></span>
+<span><span class="co">##          = U U' Y</span></span>
+<span></span>
+<span><span class="va">x.svd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/svd.html" class="external-link">svd</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
+<span><span class="va">U</span> <span class="op">&lt;-</span> <span class="va">x.svd</span><span class="op">$</span><span class="va">u</span></span>
+<span><span class="va">U.t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">x.svd</span><span class="op">$</span><span class="va">u</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">Q.t</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.raw</span><span class="op">)</span></span>
+<span><span class="va">Q.t</span> <span class="op">&lt;-</span> <span class="va">Q.t</span> <span class="op">-</span> <span class="va">U</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">U.t</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">Q.t</span></span>
+<span><span class="va">Q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">Q.t</span><span class="op">)</span></span></code></pre></div>
 <p>After we adjust the batch effects:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">Q.t</span>, <span class="va">X</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">Q.t</span>, <span class="va">X</span><span class="op">)</span></span></code></pre></div>
 <pre><code>          [,1]          [,2]</code></pre>
-<p>[1,] -3.279581e-16 3.279581e-16 [2,] 3.472070e-16 -3.472070e-16 [3,]
--2.171142e-15 2.171142e-15 [4,] 9.365165e-16 -9.365165e-16 [5,]
-2.669246e-16 -2.669246e-16</p>
+<p>[1,] -2.276319e-16 2.276319e-16 [2,] -5.524025e-16 5.524025e-16 [3,] -2.934286e-16 2.934286e-16 [4,] 3.075415e-16 -3.075415e-16 [5,] -3.636223e-16 3.636223e-16</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">q.svd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/svd.html" class="external-link">svd</a></span><span class="op">(</span><span class="va">Q</span><span class="op">)</span>
-
-<span class="co">## 3. sorting</span>
-<span class="va">B</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="va">q.svd</span><span class="op">$</span><span class="va">v</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span><span class="op">/</span><span class="fl">2</span>
-<span class="va">ss</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">B</span>, <span class="fl">2</span>, <span class="fl">2</span><span class="op">^</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">K</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>, <span class="va">`*`</span><span class="op">)</span>, <span class="fl">1</span>, <span class="va">sum</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">q.svd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/svd.html" class="external-link">svd</a></span><span class="op">(</span><span class="va">Q</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">## 3. sorting</span></span>
+<span><span class="va">B</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sign.html" class="external-link">sign</a></span><span class="op">(</span><span class="va">q.svd</span><span class="op">$</span><span class="va">v</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span><span class="op">)</span><span class="op">/</span><span class="fl">2</span></span>
+<span><span class="va">ss</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">B</span>, <span class="fl">2</span>, <span class="fl">2</span><span class="op">^</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">K</span><span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span>, <span class="va">`*`</span><span class="op">)</span>, <span class="fl">1</span>, <span class="va">sum</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span></span></code></pre></div>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">feat.dn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">Q</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">x</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-<span class="va">knn</span> <span class="op">&lt;-</span> <span class="fl">3</span>
-<span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">feat.dn</span><span class="op">)</span>
-
-<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/eddelbuettel/rcppannoy" class="external-link">RcppAnnoy</a></span><span class="op">)</span>
-<span class="co">## a. construct dictionary for each batch</span>
-<span class="va">dict.list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">batch</span><span class="op">)</span><span class="op">)</span>,
-                    <span class="kw">function</span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">{</span> <span class="fu">new</span><span class="op">(</span><span class="va">AnnoyAngular</span>, <span class="va">d</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span>
-
-<span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">batch</span><span class="op">)</span><span class="op">)</span><span class="op">{</span>
-    <span class="va">b</span> <span class="op">&lt;-</span> <span class="va">batch</span><span class="op">[</span><span class="va">j</span><span class="op">]</span>
-    <span class="va">dict.list</span><span class="op">[[</span><span class="va">b</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">addItem</span><span class="op">(</span><span class="va">j</span>, <span class="va">feat.dn</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span><span class="op">)</span>
-<span class="op">}</span>
-
-<span class="kw">for</span><span class="op">(</span><span class="va">dd</span> <span class="kw">in</span> <span class="va">dict.list</span><span class="op">)</span><span class="op">{</span>
-    <span class="va">dd</span><span class="op">$</span><span class="fu">build</span><span class="op">(</span><span class="fl">50</span><span class="op">)</span>
-<span class="op">}</span>
-
-<span class="co">## b. a simplified routine to retrieve and estimate counterfactual y</span>
-<span class="va">.counterfactual</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">j</span><span class="op">)</span><span class="op">{</span>
-    <span class="va">v</span> <span class="op">&lt;-</span> <span class="va">feat.dn</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span>
-
-    <span class="va">nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>
-    <span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span>
-
-    <span class="kw">for</span><span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nb</span><span class="op">)</span><span class="op">{</span>
-        <span class="kw">if</span><span class="op">(</span><span class="va">k</span> <span class="op">==</span> <span class="va">batch</span><span class="op">[</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="kw">next</span>
-        <span class="va">.nn</span> <span class="op">&lt;-</span> <span class="va">dict.list</span><span class="op">[[</span><span class="va">k</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">getNNsByVector</span><span class="op">(</span><span class="va">v</span>, <span class="va">knn</span><span class="op">)</span>
-        <span class="va">.dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">feat.dn</span><span class="op">[</span>, <span class="va">.nn</span><span class="op">]</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">u</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">u</span> <span class="op">-</span> <span class="va">v</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-        <span class="va">nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">nn</span>, <span class="va">.nn</span><span class="op">)</span>
-        <span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">dd</span>, <span class="va">.dd</span><span class="op">)</span>
-    <span class="op">}</span>
-
-    <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">dd</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-    <span class="va">w</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span>
-
-    <span class="va">yy</span><span class="op">[</span>, <span class="va">nn</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="va">w</span>, ncol<span class="op">=</span><span class="fl">1</span><span class="op">)</span>
-<span class="op">}</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">feat.dn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">Q</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">x</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">knn</span> <span class="op">&lt;-</span> <span class="fl">3</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">feat.dn</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/eddelbuettel/rcppannoy" class="external-link">RcppAnnoy</a></span><span class="op">)</span></span>
+<span><span class="co">## a. construct dictionary for each batch</span></span>
+<span><span class="va">dict.list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">batch</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                    <span class="kw">function</span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">{</span> <span class="fu">new</span><span class="op">(</span><span class="va">AnnoyAngular</span>, <span class="va">d</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">j</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">batch</span><span class="op">)</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="va">b</span> <span class="op">&lt;-</span> <span class="va">batch</span><span class="op">[</span><span class="va">j</span><span class="op">]</span></span>
+<span>    <span class="va">dict.list</span><span class="op">[[</span><span class="va">b</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">addItem</span><span class="op">(</span><span class="va">j</span>, <span class="va">feat.dn</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">dd</span> <span class="kw">in</span> <span class="va">dict.list</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="va">dd</span><span class="op">$</span><span class="fu">build</span><span class="op">(</span><span class="fl">50</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co">## b. a simplified routine to retrieve and estimate counterfactual y</span></span>
+<span><span class="va">.counterfactual</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">j</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="va">v</span> <span class="op">&lt;-</span> <span class="va">feat.dn</span><span class="op">[</span>,<span class="va">j</span><span class="op">]</span></span>
+<span></span>
+<span>    <span class="va">nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="kw">for</span><span class="op">(</span><span class="va">k</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nb</span><span class="op">)</span><span class="op">{</span></span>
+<span>        <span class="kw">if</span><span class="op">(</span><span class="va">k</span> <span class="op">==</span> <span class="va">batch</span><span class="op">[</span><span class="va">j</span><span class="op">]</span><span class="op">)</span> <span class="kw">next</span></span>
+<span>        <span class="va">.nn</span> <span class="op">&lt;-</span> <span class="va">dict.list</span><span class="op">[[</span><span class="va">k</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="fu">getNNsByVector</span><span class="op">(</span><span class="va">v</span>, <span class="va">knn</span><span class="op">)</span></span>
+<span>        <span class="va">.dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">feat.dn</span><span class="op">[</span>, <span class="va">.nn</span><span class="op">]</span>, <span class="fl">2</span>, <span class="kw">function</span><span class="op">(</span><span class="va">u</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">u</span> <span class="op">-</span> <span class="va">v</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">nn</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">nn</span>, <span class="va">.nn</span><span class="op">)</span></span>
+<span>        <span class="va">dd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">dd</span>, <span class="va">.dd</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
+<span></span>
+<span>    <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">dd</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dd</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="va">w</span> <span class="op">&lt;-</span> <span class="va">w</span><span class="op">/</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">yy</span><span class="op">[</span>, <span class="va">nn</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="va">w</span>, ncol<span class="op">=</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ngene</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span>
-<span class="va">nbatch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>
-<span class="va">nsample</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">ss</span><span class="op">)</span>
-
-<span class="va">.delta.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>       <span class="co"># gene x batch effects</span>
-<span class="va">.delta.num.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>    <span class="co"># gene x batch numerators</span>
-<span class="va">.delta.denom.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>  <span class="co"># gene x batch denominators</span>
-
-<span class="va">.prob.bs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">nbatch</span>, <span class="va">nsample</span><span class="op">)</span>      <span class="co"># batch x sample probabilities</span>
-<span class="va">.size.bs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">nbatch</span>, <span class="va">nsample</span><span class="op">)</span>      <span class="co"># batch x sample freq</span>
-<span class="va">.ybar.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>       <span class="co"># gene x sample observed average</span>
-<span class="va">.zbar.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>       <span class="co"># gene x sample imputed average</span>
-<span class="va">.mu.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>         <span class="co"># gene x sample adjusted average</span>
-
-<span class="co">## Precalculate some statistics</span>
-<span class="kw">for</span><span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nsample</span><span class="op">)</span><span class="op">{</span>
-    <span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span> <span class="kw">next</span>
-
-    <span class="va">.yy</span> <span class="op">&lt;-</span> <span class="va">yy</span><span class="op">[</span>, <span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>
-    <span class="va">.zz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">cbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span><span class="op">)</span>, <span class="va">.counterfactual</span><span class="op">)</span><span class="op">)</span>
-
-    <span class="va">.ybar.ds</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.yy</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span>
-    <span class="va">.zbar.ds</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.zz</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span>
-    <span class="va">.prob.bs</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, <span class="op">]</span><span class="op">)</span>
-    <span class="va">.size.bs</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, <span class="op">]</span><span class="op">)</span>
-
-    <span class="va">.y.dsb</span> <span class="op">&lt;-</span> <span class="va">yy</span><span class="op">[</span>, <span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>
-    <span class="va">.delta.num.db</span> <span class="op">&lt;-</span> <span class="va">.delta.num.db</span> <span class="op">+</span> <span class="va">.y.dsb</span>
-<span class="op">}</span>
-
-<span class="va">.gamma.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>
-
-<span class="kw">for</span><span class="op">(</span><span class="va">iter</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span><span class="op">{</span>
-    <span class="va">.mu.ds</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">.ybar.ds</span> <span class="op">+</span> <span class="va">.zbar.ds</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="va">.delta.db</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">.prob.bs</span> <span class="op">+</span> <span class="va">.gamma.ds</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span>
-    <span class="va">.gamma.ds</span> <span class="op">&lt;-</span> <span class="va">.zbar.ds</span> <span class="op">/</span> <span class="op">(</span><span class="va">.mu.ds</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span>
-    <span class="va">.delta.db</span> <span class="op">&lt;-</span> <span class="va">.delta.num.db</span> <span class="op">/</span> <span class="op">(</span><span class="va">.mu.ds</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.size.bs</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span>
-<span class="op">}</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ngene</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span></span>
+<span><span class="va">nbatch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
+<span><span class="va">nsample</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">ss</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">.delta.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>       <span class="co"># gene x batch effects</span></span>
+<span><span class="va">.delta.num.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>    <span class="co"># gene x batch numerators</span></span>
+<span><span class="va">.delta.denom.db</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nbatch</span><span class="op">)</span>  <span class="co"># gene x batch denominators</span></span>
+<span></span>
+<span><span class="va">.prob.bs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">nbatch</span>, <span class="va">nsample</span><span class="op">)</span>      <span class="co"># batch x sample probabilities</span></span>
+<span><span class="va">.size.bs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">nbatch</span>, <span class="va">nsample</span><span class="op">)</span>      <span class="co"># batch x sample freq</span></span>
+<span><span class="va">.ybar.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>       <span class="co"># gene x sample observed average</span></span>
+<span><span class="va">.zbar.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>       <span class="co"># gene x sample imputed average</span></span>
+<span><span class="va">.mu.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span>         <span class="co"># gene x sample adjusted average</span></span>
+<span></span>
+<span><span class="co">## Precalculate some statistics</span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">s</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="va">nsample</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="kw">if</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span> <span class="kw">next</span></span>
+<span></span>
+<span>    <span class="va">.yy</span> <span class="op">&lt;-</span> <span class="va">yy</span><span class="op">[</span>, <span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span>    <span class="va">.zz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">cbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span><span class="op">)</span>, <span class="va">.counterfactual</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">.ybar.ds</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.yy</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span>    <span class="va">.zbar.ds</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.zz</span>, <span class="fl">1</span>, <span class="va">mean</span><span class="op">)</span></span>
+<span>    <span class="va">.prob.bs</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, <span class="op">]</span><span class="op">)</span></span>
+<span>    <span class="va">.size.bs</span><span class="op">[</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, <span class="op">]</span><span class="op">)</span></span>
+<span></span>
+<span>    <span class="va">.y.dsb</span> <span class="op">&lt;-</span> <span class="va">yy</span><span class="op">[</span>, <span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span><span class="op">[</span><span class="va">ss</span> <span class="op">==</span> <span class="va">s</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
+<span>    <span class="va">.delta.num.db</span> <span class="op">&lt;-</span> <span class="va">.delta.num.db</span> <span class="op">+</span> <span class="va">.y.dsb</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">.gamma.ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">ngene</span>, <span class="va">nsample</span><span class="op">)</span></span>
+<span></span>
+<span><span class="kw">for</span><span class="op">(</span><span class="va">iter</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">100</span><span class="op">)</span><span class="op">{</span></span>
+<span>    <span class="va">.mu.ds</span> <span class="op">&lt;-</span> <span class="op">(</span><span class="va">.ybar.ds</span> <span class="op">+</span> <span class="va">.zbar.ds</span><span class="op">)</span> <span class="op">/</span> <span class="op">(</span><span class="va">.delta.db</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">.prob.bs</span> <span class="op">+</span> <span class="va">.gamma.ds</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span></span>
+<span>    <span class="va">.gamma.ds</span> <span class="op">&lt;-</span> <span class="va">.zbar.ds</span> <span class="op">/</span> <span class="op">(</span><span class="va">.mu.ds</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span></span>
+<span>    <span class="va">.delta.db</span> <span class="op">&lt;-</span> <span class="va">.delta.num.db</span> <span class="op">/</span> <span class="op">(</span><span class="va">.mu.ds</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">.size.bs</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1e-8</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
 <p>Can we recover the original batch effects?</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">W.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true delta effect"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">W.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true delta effect"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">W.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true delta effect"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">W.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true delta effect"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_batch_correction_files/figure-html/unnamed-chunk-6-1.png" width="576"></p>
 <p>Are they independent of the cell type effects?</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">y.true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">lambda.true</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">y.true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">lambda.true</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"estimated delta"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_batch_correction_files/figure-html/unnamed-chunk-7-1.png" width="576"></p>
-<p>While adjusting the estimated batch effects, can we recover the
-unbiased cell type effects? The following is before adjustment:</p>
+<p>While adjusting the estimated batch effects, can we recover the unbiased cell type effects? The following is before adjustment:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ybar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">yy</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ybar</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">yy</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_batch_correction_files/figure-html/unnamed-chunk-8-1.png" width="576"></p>
 <p>Here, we adjusted the batch effects:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ybar.adj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="op">(</span><span class="va">yy</span> <span class="op">/</span> <span class="va">.delta.db</span><span class="op">[</span>, <span class="va">batch</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar.adj</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"adjusted sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar.adj</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"adjusted sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">ybar.adj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="op">(</span><span class="va">yy</span> <span class="op">/</span> <span class="va">.delta.db</span><span class="op">[</span>, <span class="va">batch</span><span class="op">]</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="va">X</span>, <span class="fl">2</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, <span class="va">`/`</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar.adj</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"adjusted sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch1"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ybar.adj</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, <span class="va">y.true</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, pch<span class="op">=</span><span class="fl">19</span>, xlab<span class="op">=</span><span class="st">"adjusted sample mean"</span>, ylab<span class="op">=</span><span class="st">"true y mean"</span>, log<span class="op">=</span><span class="st">"x"</span>, main<span class="op">=</span><span class="st">"batch2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_batch_correction_files/figure-html/unnamed-chunk-9-1.png" width="576"></p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span>
-<span class="va">.tsne</span> <span class="op">&lt;-</span> <span class="fu">Rtsne</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Rtsne/man/Rtsne.html" class="external-link">Rtsne</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span>, num_threads<span class="op">=</span><span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">Y</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.tsne</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">.tsne</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, col<span class="op">=</span><span class="va">batch</span>, pch<span class="op">=</span><span class="fl">19</span>, cex<span class="op">=</span><span class="fl">.5</span>, main<span class="op">=</span><span class="st">"before batch adj"</span>,
-     xlab <span class="op">=</span> <span class="st">"tsne1"</span>, ylab <span class="op">=</span> <span class="st">"tsne2"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topleft"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"batch #1"</span>, <span class="st">"batch #2"</span><span class="op">)</span>, col<span class="op">=</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, pch<span class="op">=</span><span class="fl">19</span><span class="op">)</span>
-<span class="va">.tsne</span> <span class="op">&lt;-</span> <span class="fu">Rtsne</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Rtsne/man/Rtsne.html" class="external-link">Rtsne</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">yy</span><span class="op">/</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="va">batch</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, num_threads<span class="op">=</span><span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">Y</span>
-<span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.tsne</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">.tsne</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, col<span class="op">=</span><span class="va">batch</span>, pch<span class="op">=</span><span class="fl">19</span>, cex<span class="op">=</span><span class="fl">.5</span>, main<span class="op">=</span><span class="st">"after batch adj"</span>,
-     xlab <span class="op">=</span> <span class="st">"tsne1"</span>, ylab <span class="op">=</span> <span class="st">"tsne2"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">.tsne</span> <span class="op">&lt;-</span> <span class="fu">Rtsne</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Rtsne/man/Rtsne.html" class="external-link">Rtsne</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span>, num_threads<span class="op">=</span><span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">Y</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.tsne</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">.tsne</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, col<span class="op">=</span><span class="va">batch</span>, pch<span class="op">=</span><span class="fl">19</span>, cex<span class="op">=</span><span class="fl">.5</span>, main<span class="op">=</span><span class="st">"before batch adj"</span>,</span>
+<span>     xlab <span class="op">=</span> <span class="st">"tsne1"</span>, ylab <span class="op">=</span> <span class="st">"tsne2"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topleft"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"batch #1"</span>, <span class="st">"batch #2"</span><span class="op">)</span>, col<span class="op">=</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, pch<span class="op">=</span><span class="fl">19</span><span class="op">)</span></span>
+<span><span class="va">.tsne</span> <span class="op">&lt;-</span> <span class="fu">Rtsne</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Rtsne/man/Rtsne.html" class="external-link">Rtsne</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">yy</span><span class="op">/</span><span class="va">.delta.db</span><span class="op">[</span>,<span class="va">batch</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>, num_threads<span class="op">=</span><span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">Y</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">.tsne</span><span class="op">[</span>,<span class="fl">1</span><span class="op">]</span>, <span class="va">.tsne</span><span class="op">[</span>,<span class="fl">2</span><span class="op">]</span>, col<span class="op">=</span><span class="va">batch</span>, pch<span class="op">=</span><span class="fl">19</span>, cex<span class="op">=</span><span class="fl">.5</span>, main<span class="op">=</span><span class="st">"after batch adj"</span>,</span>
+<span>     xlab <span class="op">=</span> <span class="st">"tsne1"</span>, ylab <span class="op">=</span> <span class="st">"tsne2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_batch_correction_files/figure-html/unnamed-chunk-10-1.png" width="576"></p>
 </div>
   </div>

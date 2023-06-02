@@ -10,6 +10,7 @@
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
+//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param svd_init initialize by SVD (default: TRUE)
@@ -36,6 +37,7 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_,
                        const bool verbose = true,
                        const double a0 = 1,
                        const double b0 = 1,
+                       const bool do_scale = true,
                        const bool do_log1p = false,
                        const std::size_t rseed = 1337,
                        const bool svd_init = true,
@@ -45,7 +47,12 @@ asap_fit_nmf_alternate(const Eigen::MatrixXf Y_,
     using model_t = asap_nmf_model_t<RNG>;
 
     log1p_op<Mat> log1p;
-    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+
+    if (do_scale) {
+        normalize_columns(Y_dn);
+        scale_columns(Y_dn);
+    }
 
     model_t model(model_t::ROW(Y_dn.rows()),
                   model_t::COL(Y_dn.cols()),

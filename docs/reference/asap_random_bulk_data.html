@@ -26,7 +26,7 @@
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -57,24 +57,24 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">asap_random_bulk_data</span><span class="op">(</span>
-  <span class="va">mtx_file</span>,
-  <span class="va">mtx_idx_file</span>,
-  <span class="va">num_factors</span>,
-  r_covar <span class="op">=</span> <span class="cn">NULL</span>,
-  r_batch <span class="op">=</span> <span class="cn">NULL</span>,
-  rseed <span class="op">=</span> <span class="fl">42L</span>,
-  verbose <span class="op">=</span> <span class="cn">FALSE</span>,
-  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,
-  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,
-  do_normalize <span class="op">=</span> <span class="cn">FALSE</span>,
-  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,
-  do_row_std <span class="op">=</span> <span class="cn">FALSE</span>,
-  KNN_CELL <span class="op">=</span> <span class="fl">10L</span>,
-  BATCH_ADJ_ITER <span class="op">=</span> <span class="fl">100L</span>,
-  a0 <span class="op">=</span> <span class="fl">1</span>,
-  b0 <span class="op">=</span> <span class="fl">1</span>
-<span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">asap_random_bulk_data</span><span class="op">(</span></span>
+<span>  <span class="va">mtx_file</span>,</span>
+<span>  <span class="va">mtx_idx_file</span>,</span>
+<span>  <span class="va">num_factors</span>,</span>
+<span>  r_covar <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  r_batch <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  rseed <span class="op">=</span> <span class="fl">42L</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  do_scale <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  do_row_std <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  KNN_CELL <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  BATCH_ADJ_ITER <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  b0 <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -115,8 +115,8 @@
 <dd><p>disk I/O block size (number of columns)</p></dd>
 
 
-<dt>do_normalize</dt>
-<dd><p>normalize each column after random projection</p></dd>
+<dt>do_scale</dt>
+<dd><p>scale each column by standard deviation (default: TRUE)</p></dd>
 
 
 <dt>do_log1p</dt>

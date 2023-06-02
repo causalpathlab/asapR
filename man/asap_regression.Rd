@@ -11,6 +11,7 @@ asap_regression(
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
+  do_scale = FALSE,
   do_log1p = FALSE,
   verbose = TRUE,
   do_stdize_x = FALSE
@@ -25,7 +26,9 @@ asap_regression(
 
 \item{b0}{gamma(a0, b0) (default: 1)}
 
-\item{do_log1p}{do log(1+y) transformation}
+\item{do_scale}{scale each column by standard deviation (default: TRUE)}
+
+\item{do_log1p}{do log(1+y) transformation (default: FALSE)}
 
 \item{verbose}{verbosity (default: false)}
 

@@ -7,7 +7,8 @@
 //' @param r_batch_effect D x B batch effect matrix (default: NULL)
 //' @param a0 gamma(a0, b0) (default: 1)
 //' @param b0 gamma(a0, b0) (default: 1)
-//' @param do_log1p do log(1+y) transformation
+//' @param do_scale scale each column by standard deviation (default: TRUE)
+//' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity (default: false)
 //' @param do_stdize do the standardization of log_x
 //'
@@ -20,6 +21,7 @@ asap_regression(
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
+    const bool do_scale = false,
     const bool do_log1p = false,
     const bool verbose = true,
     const bool do_stdize_x = false)
@@ -33,7 +35,11 @@ asap_regression(
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    if (do_scale) {
+        normalize_columns(Y_dn);
+        scale_columns(Y_dn);
+    }
 
     const Index D = Y_dn.rows();  // number of features
     const Index N = Y_dn.cols();  // number of samples
@@ -109,11 +115,11 @@ asap_regression(
 //' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
+//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param max_depth maximum depth per column
 //' @param do_stdize do the standardization of log_x
 //'
 // [[Rcpp::export]]
@@ -129,11 +135,11 @@ asap_regression_mtx(
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
+    const bool do_scale = false,
     const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
-    const double max_depth = 1e4,
     const bool do_stdize_x = false)
 {
 
@@ -312,15 +318,16 @@ asap_regression_mtx(
         // normalize matrix //
         //////////////////////
 
-        const Mat yy = Mat(y); // D x n
-        const Mat ynorm =
-            ((yy.array().rowwise() / yy.colwise().sum().array()) * max_depth)
-                .matrix();
+        Mat Y_dn = do_log1p ? y.unaryExpr(log1p) : y;
+
+        if (do_scale) {
+            normalize_columns(Y_dn);
+            scale_columns(Y_dn);
+        }
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
-        const Mat Y_dn = do_log1p ? ynorm.unaryExpr(log1p) : ynorm;
         const Index n = Y_dn.cols();
         using RNG = dqrng::xoshiro256plus;
         using gamma_t = gamma_param_t<Mat, RNG>;

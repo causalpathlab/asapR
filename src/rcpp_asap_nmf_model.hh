@@ -172,7 +172,7 @@ public:
     {
         const std::size_t lu_iter = 5;      // this should be good
         RandomizedSVD<Mat> svd(K, lu_iter); //
-        const Mat yy = standardize(Y_dn.unaryExpr(log1p));
+        const Mat yy = standardize_columns(Y_dn.unaryExpr(log1p));
         svd.compute(yy);
         randomize_auxiliaries();
     }
@@ -228,7 +228,7 @@ public:
     std::tuple<Mat, Mat>
     log_topic_correlation(const Eigen::MatrixBase<Derived> &Y_dn)
     {
-        Mat log_x = standardize(beta_dk.log_mean());
+        Mat log_x = standardize_columns(beta_dk.log_mean());
         Mat R_nk = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
         return std::make_tuple(log_x, R_nk);
     }

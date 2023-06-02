@@ -14,7 +14,7 @@ asap_random_bulk_data(
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
-  do_normalize = FALSE,
+  do_scale = FALSE,
   do_log1p = FALSE,
   do_row_std = FALSE,
   KNN_CELL = 10L,
@@ -42,7 +42,7 @@ asap_random_bulk_data(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
-\item{do_normalize}{normalize each column after random projection}
+\item{do_scale}{scale each column by standard deviation (default: TRUE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
