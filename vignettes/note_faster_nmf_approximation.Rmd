@@ -89,6 +89,7 @@ vv <- .rnorm(n, 3)
 Y <- apply(uu %*% t(vv), 2, scale) + .rnorm(d, n)
 Y[Y < 0] <- 0
 
+Y <- stretch_matrix_columns(Y)
 out <- asap_fit_nmf_alternate(Y, 5)
 ```
 

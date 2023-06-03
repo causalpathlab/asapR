@@ -12,7 +12,6 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
@@ -32,7 +31,6 @@ asap_random_bulk_data(
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
-    const bool do_scale = false,
     const bool do_log1p = false,
     const bool do_row_std = false,
     const std::size_t KNN_CELL = 10,
@@ -120,11 +118,6 @@ asap_random_bulk_data(
         Mat yy = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
                             matched_data.read(lb, ub);
 
-        if (do_scale) {
-            normalize_columns(yy);
-            scale_columns(yy);
-        }
-
         Mat temp(K, yy.cols());
 
         if (do_row_std) {
@@ -167,10 +160,9 @@ asap_random_bulk_data(
     Mat random_dict = standardize_columns(vv); // N x K
     TLOG(random_dict.rows() << " x " << random_dict.cols());
 
-    if (verbose) {
-        TLOG("SVD on the projected: " << random_dict.rows() << " x "
-                                      << random_dict.cols());
-    }
+    TLOG_(verbose,
+          "SVD on the projected: " << random_dict.rows() << " x "
+                                   << random_dict.cols());
 
     ////////////////////////////////////////////////
     // Step 3. sorting in an implicit binary tree //
@@ -186,7 +178,7 @@ asap_random_bulk_data(
         bb += random_dict.col(k).unaryExpr(binary_shift);
     }
 
-    TLOG("Assigned random membership: [0, " << bb.maxCoeff() << ")");
+    TLOG_(verbose, "Assigned random membership: [0, " << bb.maxCoeff() << ")");
 
     const std::vector<Index> membership = std_vector(bb);
 
@@ -200,10 +192,7 @@ asap_random_bulk_data(
     }
 
     const Index S = pb_position.size();
-
-    if (verbose) {
-        TLOG("Identified " << S << " pseudo-bulk samples");
-    }
+    TLOG_(verbose, "Identified " << S << " pseudo-bulk samples");
 
     ///////////////////////////////////////
     // Step 4. create pseudoubulk matrix //
@@ -231,10 +220,9 @@ asap_random_bulk_data(
     const std::vector<std::vector<Index>> pb_cells =
         make_index_vec_vec(positions);
 
-    if (verbose) {
-        TLOG("Start collecting statistics... "
-             << " for " << pb_cells.size() << " samples");
-    }
+    TLOG_(verbose,
+          "Start collecting statistics... "
+              << " for " << pb_cells.size() << " samples");
 
     Mat mu_ds = Mat::Ones(D, S);
     Mat log_mu_ds = Mat::Ones(D, S);
@@ -276,10 +264,9 @@ asap_random_bulk_data(
         delta_db.resize(D, B); // gene x batch
         delta_db.setOnes();
 
-        if (verbose) {
-            TLOG("Random pseudo-bulk estimation while "
-                 << "accounting for " << B << " batch effects");
-        }
+        TLOG_(verbose,
+              "Random pseudo-bulk estimation while "
+                  << "accounting for " << B << " batch effects");
 
         Mat delta_num_db = Mat::Zero(D, B);   // gene x batch numerator
         Mat delta_denom_db = Mat::Zero(D, B); // gene x batch denominator
@@ -295,9 +282,7 @@ asap_random_bulk_data(
         // Step a. precalculation //
         ////////////////////////////
 
-        if (verbose) {
-            TLOG("Start collecting sufficient statistics");
-        }
+        TLOG_(verbose, "Start collecting sufficient statistics");
 
         Mat zsum_ds = Mat::Zero(D, S); // gene x PB mean
 
@@ -317,13 +302,6 @@ asap_random_bulk_data(
             Mat zz = do_log1p ?
                 matched_data.read_counterfactual(_cells_s).unaryExpr(log1p) :
                 matched_data.read_counterfactual(_cells_s);
-
-            if (do_scale) {
-                normalize_columns(yy);
-                scale_columns(yy);
-                normalize_columns(zz);
-                scale_columns(zz);
-            }
 
             prob_bs.col(s).setZero();
             n_bs.col(s).setZero();
@@ -351,10 +329,7 @@ asap_random_bulk_data(
         }
 
         Rcpp::Rcerr << std::endl;
-
-        if (verbose) {
-            TLOG("Collected sufficient statistics");
-        }
+        TLOG_(verbose, "Collected sufficient statistics");
 
         gamma_param_t<Mat, RNG> delta_param(D, B, a0, b0, rng);
         gamma_param_t<Mat, RNG> mu_param(D, S, a0, b0, rng);
@@ -363,6 +338,12 @@ asap_random_bulk_data(
         ///////////////////////////////
         // Step b. Iterative updates //
         ///////////////////////////////
+
+        Eigen::setNbThreads(NUM_THREADS);
+        TLOG_(verbose,
+              "Iterative optimization "
+                  << " with " << Eigen::nbThreads()
+                  << " Eigen library threads");
 
         Mat gamma_ds = Mat::Ones(D, S); // bias on the side of CF
 
@@ -377,9 +358,6 @@ asap_random_bulk_data(
             mu_param.calibrate();
             mu_ds = mu_param.mean();
 
-            // mu_ds = (ybar_ds + zbar_ds).array() /
-            //     ((delta_db * prob_bs).array() + gamma_ds.array() + eps);
-
             ////////////////////
             // residual for z //
             ////////////////////
@@ -390,8 +368,6 @@ asap_random_bulk_data(
             gamma_param.calibrate();
             gamma_ds = gamma_param.mean();
 
-            // gamma_ds = zbar_ds.array() / (mu_ds.array() + eps);
-
             ///////////////////////////////
             // batch-specific components //
             ///////////////////////////////
@@ -399,10 +375,23 @@ asap_random_bulk_data(
             delta_param.update(delta_num_db, delta_denom_db);
             delta_param.calibrate();
             delta_db = delta_param.mean();
-            delta_sd_db = delta_param.sd();
-            log_delta_db = delta_param.log_mean();
-            log_delta_sd_db = delta_param.log_sd();
+
+            TLOG_(verbose,
+                  "Batch optimization [ " << (t + 1) << " / "
+                                          << (BATCH_ADJ_ITER + 1) << " ]");
+
+            if (!verbose) {
+                Rcpp::Rcerr << "+ " << std::flush;
+                if (t > 0 && t % 10 == 0) {
+                    Rcpp::Rcerr << "\r" << std::flush;
+                }
+            }
         }
+        Rcpp::Rcerr << "\r" << std::flush;
+
+        delta_sd_db = delta_param.sd();
+        log_delta_db = delta_param.log_mean();
+        log_delta_sd_db = delta_param.log_sd();
 
         delta_ds = delta_db * prob_bs;
 
@@ -417,15 +406,14 @@ asap_random_bulk_data(
         // Pseudobulk without considering batch effects //
         //////////////////////////////////////////////////
 
-        if (verbose)
-            TLOG("Pseudobulk estimation in a vanilla mode");
+        TLOG_(verbose, "Pseudobulk estimation in a vanilla mode");
 
         mu_ds = ysum_ds.array().rowwise() / size_s.array();
     }
 
-    if (verbose)
-        TLOG("Finished populating the PB matrix: " << mu_ds.rows() << " x "
-                                                   << mu_ds.cols());
+    TLOG_(verbose,
+          "Finished populating the PB matrix: " << mu_ds.rows() << " x "
+                                                << mu_ds.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = mu_ds,
                               Rcpp::_["PB.batch"] = delta_ds,

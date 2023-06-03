@@ -7,15 +7,15 @@
 #' @param maxK maximum number of factors
 #' @param max_iter max number of optimization steps
 #' @param min_iter min number of optimization steps
-#' @param burnin number of initiation steps
+#' @param burnin number of initiation steps (default: 50)
 #' @param verbose verbosity
 #' @param a0 gamma(a0, b0) default: a0 = 1
 #' @param b0 gamma(a0, b0) default: b0 = 1
 #' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: TRUE)
-#' @param EPS (default: 1e-4)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
 #'
 #' @return a list that contains:
 #'  \itemize{
@@ -29,8 +29,8 @@
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verbose = TRUE, a0 = 1, b0 = 1, do_scale = TRUE, do_log1p = FALSE, rseed = 1337L, svd_init = TRUE, EPS = 1e-4) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_scale, do_log1p, rseed, svd_init, EPS)
+asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -44,7 +44,6 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_row_std rowwise standardization (default: FALSE)
 #' @param KNN_CELL k-NN matching between cells (default: 10)
@@ -52,8 +51,8 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 10L, verb
 #' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #'
-asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_scale = FALSE, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_scale, do_log1p, do_row_std, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
+asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_row_std, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
 }
 
 #' Poisson regression to estimate factor loading
@@ -63,13 +62,12 @@ asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar =
 #' @param r_batch_effect D x B batch effect matrix (default: NULL)
 #' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
-#' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation (default: FALSE)
 #' @param verbose verbosity (default: false)
 #' @param do_stdize do the standardization of log_x
 #'
-asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_scale = FALSE, do_log1p = FALSE, verbose = TRUE, do_stdize_x = FALSE) {
-    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, r_batch_effect, a0, b0, max_iter, do_scale, do_log1p, verbose, do_stdize_x)
+asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = TRUE, do_stdize_x = FALSE) {
+    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, r_batch_effect, a0, b0, max_iter, do_log1p, verbose, do_stdize_x)
 }
 
 #' Poisson regression to estimate factor loading
@@ -82,15 +80,27 @@ asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., 
 #' @param r_mtx_row_names (default: NULL)
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
-#' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_stdize do the standardization of log_x
 #'
-asap_regression_mtx <- function(mtx_file, mtx_idx_file, log_x, r_batch_effect = NULL, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_scale = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, mtx_idx_file, log_x, r_batch_effect, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_scale, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
+asap_regression_mtx <- function(mtx_file, mtx_idx_file, log_x, r_batch_effect = NULL, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, mtx_idx_file, log_x, r_batch_effect, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
+}
+
+#' Stretch non-negative matrix
+#'
+#' @param Y non-negative data matrix(gene x sample)
+#' @param qq_min min quantile (default: 0.01)
+#' @param qq_max min quantile (default: 0.99)
+#' @param std_min min after standardization of log (default: -8)
+#' @param std_max max after standardization of log (default: 8)
+#' @param verbose speak more (default: TRUE)
+#'
+stretch_matrix_columns <- function(Y, qq_min = 0.01, qq_max = 0.99, std_min = -8, std_max = 8, verbose = TRUE) {
+    .Call('_asapR_stretch_matrix_columns', PACKAGE = 'asapR', Y, qq_min, qq_max, std_min, std_max, verbose)
 }
 
 #' Clustering the rows of a count data matrix

@@ -671,24 +671,16 @@ standardize_columns(const Eigen::MatrixBase<Derived> &Xraw,
 }
 
 template <typename Derived>
-Eigen::Matrix<typename Derived::Scalar,
-              Eigen::Dynamic,
-              Eigen::Dynamic,
-              Eigen::ColMajor>
-scale_columns(const Eigen::MatrixBase<Derived> &Xraw,
-              const typename Derived::Scalar EPS = 1e-8)
+void
+scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
+                      const typename Derived::Scalar EPS = 1e-8)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
-    using mat_t =
-        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
-    using RowVec = typename Eigen::internal::plain_row_type<Derived>::type;
 
-    mat_t X(Xraw.rows(), Xraw.cols());
-    X = Xraw;
-    stdizer_t<mat_t> std_op(X);
+    Derived X = X_.derived();
+    stdizer_t<Derived> std_op(X);
     std_op.colwise_scale(EPS);
-    return X;
 }
 
 template <typename Derived, typename Derived2>
@@ -743,7 +735,7 @@ residual_columns(Eigen::MatrixBase<Derived> &_yy,
 
 template <typename Derived>
 void
-normalize_columns(Eigen::MatrixBase<Derived> &_mat)
+normalize_columns_inplace(Eigen::MatrixBase<Derived> &_mat)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
@@ -759,7 +751,7 @@ normalize_columns(Eigen::MatrixBase<Derived> &_mat)
 
 template <typename Derived>
 void
-normalize_columns(Eigen::SparseMatrixBase<Derived> &_mat)
+normalize_columns_inplace(Eigen::SparseMatrixBase<Derived> &_mat)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
@@ -931,6 +923,15 @@ struct log1p_op {
 };
 
 template <typename T>
+struct log_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const
+    {
+        return x < 0. ? 0. : fasterlog(x);
+    }
+};
+
+template <typename T>
 struct safe_sqrt_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const
@@ -943,6 +944,12 @@ template <typename T>
 struct at_least_one_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const { return (x < 1.) ? 1. : x; }
+};
+
+template <typename T>
+struct at_least_zero_op {
+    using Scalar = typename T::Scalar;
+    const Scalar operator()(const Scalar &x) const { return (x < 0.) ? 0. : x; }
 };
 
 template <typename T>

@@ -64,10 +64,10 @@
 <span>  num.proj <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  em.step <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  max.pb.size <span class="op">=</span> <span class="fl">1000</span>,</span>
-<span>  .burnin <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  .burnin <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  .reg.steps <span class="op">=</span> <span class="fl">10</span>,</span>
 <span>  .reg.stdize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  .scale.cols <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  .scale.cols <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  index.file <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">mtx.file</span>, <span class="st">".index"</span><span class="op">)</span>,</span>
@@ -76,7 +76,7 @@
 <span>  block.size <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  .rand.seed <span class="op">=</span> <span class="fl">42</span>,</span>
 <span>  .eps <span class="op">=</span> <span class="fl">1e-06</span>,</span>
-<span>  svd.init <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  svd.init <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  do.log1p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  covar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  batch <span class="op">=</span> <span class="cn">NULL</span></span>
@@ -106,7 +106,7 @@
 
 
 <dt>.burnin</dt>
-<dd><p>burn-in period in the record keeping (default: 10)</p></dd>
+<dd><p>burn-in period in the record keeping (default: 0)</p></dd>
 
 
 <dt>.reg.steps</dt>
@@ -115,10 +115,6 @@
 
 <dt>.reg.stdize</dt>
 <dd><p>standardize X in regression (default: TRUE)</p></dd>
-
-
-<dt>.scale.cols</dt>
-<dd><p>scale columns by standard deviation (default: TRUE)</p></dd>
 
 
 <dt>a0</dt>
@@ -150,7 +146,7 @@
 
 
 <dt>svd.init</dt>
-<dd><p>(default: TRUE)</p></dd>
+<dd><p>(default: FALSE)</p></dd>
 
 
 <dt>do.log1p</dt>
@@ -163,6 +159,10 @@
 
 <dt>batch</dt>
 <dd><p>batch information for each sample (default: NULL)</p></dd>
+
+
+<dt>.stdize.cols</dt>
+<dd><p>standardize columns after log (default: TRUE)</p></dd>
 
 
 <dt>eval.llik</dt>

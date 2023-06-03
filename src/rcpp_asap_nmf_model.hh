@@ -73,6 +73,7 @@ struct asap_nmf_model_t {
         , phi_dk(D, K)
         , logRho_nk(N, K)
         , rho_nk(N, K)
+        , std_ln_phi_dk(logPhi_dk, 1, 1)
         , std_ln_rho_nk(logRho_nk, 1, 1)
     {
 
@@ -91,7 +92,8 @@ private:
 public:
     template <typename Derived>
     void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const bool stoch = false)
+                       const bool stoch = false,
+                       const bool do_stdize = false)
     {
         //////////////////////////////////////////////
         // Estimation of auxiliary variables (i,k)  //
@@ -100,6 +102,15 @@ public:
         logPhi_dk = Y_dn * theta_nk.log_mean();
         logPhi_dk.array().colwise() /= Y_d1.array();
         logPhi_dk += beta_dk.log_mean();
+
+        ///////////////////////////////////
+        // this helps spread the columns //
+        ///////////////////////////////////
+
+        if (do_stdize) {
+            std_ln_phi_dk.colwise();
+        }
+
         for (Index ii = 0; ii < D; ++ii) {
             tempK = logPhi_dk.row(ii);
             logPhi_dk.row(ii) = softmax.log_row(tempK);
@@ -108,8 +119,8 @@ public:
         if (stoch) {
             phi_dk.setZero();
             for (Index ii = 0; ii < D; ++ii) {
-                Index k = sampler(logPhi_dk.row(ii).unaryExpr(exp));
-                phi_dk(ii, k) = 1.;
+                Index kk = sampler(logPhi_dk.unaryExpr(exp));
+                phi_dk(ii, kk) = 1;
             }
         } else {
             phi_dk = logPhi_dk.unaryExpr(exp);
@@ -128,7 +139,8 @@ public:
 
     template <typename Derived>
     void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const Scalar eps = 1e-4)
+                       const bool stoch = false,
+                       const bool do_stdize = true)
     {
         //////////////////////////////////////////////
         // Estimation of auxiliary variables (j,k)  //
@@ -142,14 +154,24 @@ public:
         // this helps spread the columns //
         ///////////////////////////////////
 
-        std_ln_rho_nk.colwise(eps);
+        if (do_stdize) {
+            std_ln_rho_nk.colwise();
+        }
 
         for (Index jj = 0; jj < N; ++jj) {
             tempK = logRho_nk.row(jj);
             logRho_nk.row(jj) = softmax.log_row(tempK);
         }
 
-        rho_nk = logRho_nk.unaryExpr(exp);
+        if (stoch) {
+            rho_nk.setZero();
+            for (Index jj = 0; jj < N; ++jj) {
+                Index kk = sampler(logRho_nk.row(jj).unaryExpr(exp));
+                rho_nk(jj, kk) = 1;
+            }
+        } else {
+            rho_nk = logRho_nk.unaryExpr(exp);
+        }
 
         ///////////////////////
         // update parameters //
@@ -168,12 +190,32 @@ public:
 
 public:
     template <typename Derived>
-    void initialize_by_svd(const Eigen::MatrixBase<Derived> &Y_dn)
+    void initialize_by_svd(const Eigen::MatrixBase<Derived> &Y_dn,
+                           const Scalar lb = -8,
+                           const Scalar ub = 8)
     {
-        const std::size_t lu_iter = 5;      // this should be good
-        RandomizedSVD<Mat> svd(K, lu_iter); //
-        const Mat yy = standardize_columns(Y_dn.unaryExpr(log1p));
-        svd.compute(yy);
+        clamp_op<Mat> clamp_(lb, ub);
+        Mat yy = standardize_columns(Y_dn.unaryExpr(log1p));
+        yy = yy.unaryExpr(clamp_).eval();
+        // const std::size_t lu_iter = 5;      // this should be good
+        // RandomizedSVD<Mat> svd(K, lu_iter); //
+        // svd.compute(yy);
+        Eigen::BDCSVD<Mat> svd;
+        svd.compute(yy, Eigen::ComputeThinU | Eigen::ComputeThinV);
+
+        {
+            Mat a = svd.matrixU().unaryExpr(at_least_zero);
+            Mat b = Mat::Ones(D, K) / static_cast<Scalar>(D);
+            beta_dk.update(a, b);
+        }
+        {
+            Mat a = svd.matrixV().unaryExpr(at_least_zero);
+            Mat b = Mat::Ones(N, K) / static_cast<Scalar>(N);
+            theta_nk.update(a, b);
+        }
+
+        beta_dk.calibrate();
+        theta_nk.calibrate();
         randomize_auxiliaries();
     }
 
@@ -189,6 +231,8 @@ public:
             Mat b = Mat::Ones(N, K);
             theta_nk.update(a / static_cast<Scalar>(N), b);
         }
+        beta_dk.calibrate();
+        theta_nk.calibrate();
         randomize_auxiliaries();
     }
 
@@ -228,7 +272,8 @@ public:
     std::tuple<Mat, Mat>
     log_topic_correlation(const Eigen::MatrixBase<Derived> &Y_dn)
     {
-        Mat log_x = standardize_columns(beta_dk.log_mean());
+        Mat log_x = beta_dk.log_mean();
+        standardize_columns(log_x);
         Mat R_nk = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
         return std::make_tuple(log_x, R_nk);
     }
@@ -257,6 +302,7 @@ public:
     Mat logRho_nk, rho_nk; // column to topic latent assignment
 
 private:
+    stdizer_t<Mat> std_ln_phi_dk;
     stdizer_t<Mat> std_ln_rho_nk;
 
     ColVec ones_n;
@@ -270,6 +316,7 @@ private: // functors
     exp_op<Mat> exp;
     log1p_op<Mat> log1p;
     at_least_one_op<Mat> at_least_one;
+    at_least_zero_op<Mat> at_least_zero;
     softmax_op_t<Mat> softmax;
 };
 

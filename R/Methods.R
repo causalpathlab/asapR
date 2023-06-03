@@ -7,10 +7,10 @@
 #' @param max.pb.size maximum pseudobulk size (default: 1000)
 #' @param covar sample x var covariate matrix (default: NULL)
 #' @param batch batch information for each sample (default: NULL)
-#' @param .burnin burn-in period in the record keeping (default: 10)
+#' @param .burnin burn-in period in the record keeping (default: 0)
 #' @param .reg.steps number of steps in regression analysis (default: 10)
 #' @param .reg.stdize standardize X in regression (default: TRUE)
-#' @param .scale.cols scale columns by standard deviation (default: TRUE)
+#' @param .stdize.cols standardize columns after log (default: TRUE)
 #' @param a0 Gamma(a0, b0) prior (default: 1)
 #' @param b0 Gamma(a0, b0) prior (default: 1)
 #' @param index.file a file for column indexes (default: "{mtx.file}.index")
@@ -18,7 +18,7 @@
 #' @param num.threads number of threads (default: 1)
 #' @param block.size a block size for disk I/O (default: 100)
 #' @param eval.llik evaluate log-likelihood trace in PMF (default: TRUE)
-#' @param svd.init (default: TRUE)
+#' @param svd.init (default: FALSE)
 #' @param do.log1p (default: FALSE)
 #' @param .rand.seed random seed (default: 42)
 #'
@@ -53,10 +53,10 @@ fit.topic.asap <- function(mtx.file,
                            num.proj = 1,
                            em.step = 100,
                            max.pb.size = 1000,
-                           .burnin = 10,
+                           .burnin = 0,
                            .reg.steps = 10,
                            .reg.stdize = TRUE,
-                           .scale.cols = TRUE,
+                           .scale.cols = FALSE,
                            a0 = 1,
                            b0 = 1,
                            index.file = paste0(mtx.file, ".index"),
@@ -65,7 +65,7 @@ fit.topic.asap <- function(mtx.file,
                            block.size = 100,
                            .rand.seed = 42,
                            .eps = 1e-6,
-                           svd.init = TRUE,
+                           svd.init = FALSE,
                            do.log1p = FALSE,
                            covar = NULL,
                            batch = NULL){
@@ -91,7 +91,6 @@ fit.topic.asap <- function(mtx.file,
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     do_scale = .scale.cols,
                                      do_log1p = do.log1p,
                                      do_row_std = FALSE)
 
@@ -104,12 +103,17 @@ fit.topic.asap <- function(mtx.file,
         if(nrow(.pb$log.batch.effect) == nrow(Y)){
             batch.effect <- cbind(batch.effect, .pb$log.batch.effect)
         }
-        message("random pseudo-bulk: Y ", nrow(Y), " x ", ncol(Y))
+        message("Constructed random pseudo-bulk samples: Y ", nrow(Y), " x ", ncol(Y))
     }
 
     if(ncol(Y) > max.pb.size){
         .cols <- sample(ncol(Y), max.pb.size)
         Y <- Y[, .cols, drop = FALSE]
+    }
+
+    if(.stdize.cols){
+        message("Stretching out each columns by log-standardization")
+        Y <- stretch_matrix_columns(Y)
     }
 
     message("Phase II: Perform Poisson matrix factorization on the Y")
@@ -121,11 +125,11 @@ fit.topic.asap <- function(mtx.file,
                                    verbose = verbose,
                                    a0 = a0,
                                    b0 = b0,
-                                   do_scale = .scale.cols,
                                    do_log1p = do.log1p,
                                    rseed = .rand.seed,
                                    svd_init = svd.init,
-                                   EPS = .eps)
+                                   EPS = .eps,
+                                   NUM_THREADS = num.threads)
 
     .multinom <- pmf2topic(.nmf$beta, .nmf$theta)
     .nmf$beta.rescaled <- .multinom$beta
@@ -145,7 +149,6 @@ fit.topic.asap <- function(mtx.file,
                                 r_taboo_names = NULL,
                                 a0 = a0, b0 = b0,
                                 max_iter = .reg.steps,
-                                do_scale = .scale.cols,
                                 do_log1p = do.log1p,
                                 verbose = verbose,
                                 NUM_THREADS = num.threads,

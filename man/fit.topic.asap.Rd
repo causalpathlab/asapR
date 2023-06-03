@@ -11,10 +11,10 @@ fit.topic.asap(
   num.proj = 1,
   em.step = 100,
   max.pb.size = 1000,
-  .burnin = 10,
+  .burnin = 0,
   .reg.steps = 10,
   .reg.stdize = TRUE,
-  .scale.cols = TRUE,
+  .scale.cols = FALSE,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -23,7 +23,7 @@ fit.topic.asap(
   block.size = 100,
   .rand.seed = 42,
   .eps = 1e-06,
-  svd.init = TRUE,
+  svd.init = FALSE,
   do.log1p = FALSE,
   covar = NULL,
   batch = NULL
@@ -40,13 +40,11 @@ fit.topic.asap(
 
 \item{max.pb.size}{maximum pseudobulk size (default: 1000)}
 
-\item{.burnin}{burn-in period in the record keeping (default: 10)}
+\item{.burnin}{burn-in period in the record keeping (default: 0)}
 
 \item{.reg.steps}{number of steps in regression analysis (default: 10)}
 
 \item{.reg.stdize}{standardize X in regression (default: TRUE)}
-
-\item{.scale.cols}{scale columns by standard deviation (default: TRUE)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
@@ -62,13 +60,15 @@ fit.topic.asap(
 
 \item{.rand.seed}{random seed (default: 42)}
 
-\item{svd.init}{(default: TRUE)}
+\item{svd.init}{(default: FALSE)}
 
 \item{do.log1p}{(default: FALSE)}
 
 \item{covar}{sample x var covariate matrix (default: NULL)}
 
 \item{batch}{batch information for each sample (default: NULL)}
+
+\item{.stdize.cols}{standardize columns after log (default: TRUE)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

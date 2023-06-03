@@ -8,15 +8,15 @@ asap_fit_nmf_alternate(
   Y_,
   maxK,
   max_iter = 100L,
-  burnin = 10L,
+  burnin = 0L,
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
-  do_scale = TRUE,
   do_log1p = FALSE,
   rseed = 1337L,
-  svd_init = TRUE,
-  EPS = 1e-04
+  svd_init = FALSE,
+  EPS = 1e-08,
+  NUM_THREADS = 1L
 )
 }
 \arguments{
@@ -26,7 +26,7 @@ asap_fit_nmf_alternate(
 
 \item{max_iter}{max number of optimization steps}
 
-\item{burnin}{number of initiation steps}
+\item{burnin}{number of initiation steps (default: 50)}
 
 \item{verbose}{verbosity}
 
@@ -34,17 +34,17 @@ asap_fit_nmf_alternate(
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
 
-\item{do_scale}{scale each column by standard deviation (default: TRUE)}
-
 \item{do_log1p}{do log(1+y) transformation}
 
 \item{rseed}{random seed (default: 1337)}
 
-\item{svd_init}{initialize by SVD (default: TRUE)}
+\item{svd_init}{initialize by SVD (default: FALSE)}
 
-\item{EPS}{(default: 1e-4)}
+\item{EPS}{(default: 1e-8)}
 
 \item{min_iter}{min number of optimization steps}
+
+\item{do_scale}{scale each column by standard deviation (default: TRUE)}
 }
 \value{
 a list that contains:

@@ -7,7 +7,6 @@
 //' @param r_batch_effect D x B batch effect matrix (default: NULL)
 //' @param a0 gamma(a0, b0) (default: 1)
 //' @param b0 gamma(a0, b0) (default: 1)
-//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity (default: false)
 //' @param do_stdize do the standardization of log_x
@@ -21,7 +20,6 @@ asap_regression(
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
-    const bool do_scale = false,
     const bool do_log1p = false,
     const bool verbose = true,
     const bool do_stdize_x = false)
@@ -36,10 +34,6 @@ asap_regression(
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
-    if (do_scale) {
-        normalize_columns(Y_dn);
-        scale_columns(Y_dn);
-    }
 
     const Index D = Y_dn.rows();  // number of features
     const Index N = Y_dn.cols();  // number of samples
@@ -100,6 +94,7 @@ asap_regression(
     return Rcpp::List::create(Rcpp::_["beta"] = logX_dk.unaryExpr(exp),
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
+                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
                               Rcpp::_["corr"] = R_nk,
                               Rcpp::_["latent"] = rho_nk,
                               Rcpp::_["log.latent"] = logRho_nk);
@@ -115,7 +110,6 @@ asap_regression(
 //' @param r_mtx_row_names (default: NULL)
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
-//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -135,7 +129,6 @@ asap_regression_mtx(
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
-    const bool do_scale = false,
     const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
@@ -319,11 +312,6 @@ asap_regression_mtx(
         //////////////////////
 
         Mat Y_dn = do_log1p ? y.unaryExpr(log1p) : y;
-
-        if (do_scale) {
-            normalize_columns(Y_dn);
-            scale_columns(Y_dn);
-        }
 
         ///////////////////////////////////////
         // do log1p transformation if needed //

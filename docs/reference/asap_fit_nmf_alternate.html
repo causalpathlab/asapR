@@ -61,15 +61,15 @@
 <span>  <span class="va">Y_</span>,</span>
 <span>  <span class="va">maxK</span>,</span>
 <span>  max_iter <span class="op">=</span> <span class="fl">100L</span>,</span>
-<span>  burnin <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  burnin <span class="op">=</span> <span class="fl">0L</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  do_scale <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  rseed <span class="op">=</span> <span class="fl">1337L</span>,</span>
-<span>  svd_init <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  EPS <span class="op">=</span> <span class="fl">1e-04</span></span>
+<span>  svd_init <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  EPS <span class="op">=</span> <span class="fl">1e-08</span>,</span>
+<span>  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -88,7 +88,7 @@
 
 
 <dt>burnin</dt>
-<dd><p>number of initiation steps</p></dd>
+<dd><p>number of initiation steps (default: 50)</p></dd>
 
 
 <dt>verbose</dt>
@@ -103,10 +103,6 @@
 <dd><p>gamma(a0, b0) default: b0 = 1</p></dd>
 
 
-<dt>do_scale</dt>
-<dd><p>scale each column by standard deviation (default: TRUE)</p></dd>
-
-
 <dt>do_log1p</dt>
 <dd><p>do log(1+y) transformation</p></dd>
 
@@ -116,15 +112,19 @@
 
 
 <dt>svd_init</dt>
-<dd><p>initialize by SVD (default: TRUE)</p></dd>
+<dd><p>initialize by SVD (default: FALSE)</p></dd>
 
 
 <dt>EPS</dt>
-<dd><p>(default: 1e-4)</p></dd>
+<dd><p>(default: 1e-8)</p></dd>
 
 
 <dt>min_iter</dt>
 <dd><p>min number of optimization steps</p></dd>
+
+
+<dt>do_scale</dt>
+<dd><p>scale each column by standard deviation (default: TRUE)</p></dd>
 
 </dl></div>
     <div id="value">

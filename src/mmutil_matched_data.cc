@@ -149,7 +149,7 @@ data_loader_t::build_annoy_index(const Mat _Q_kn)
 {
     Q_kn.resize(_Q_kn.rows(), _Q_kn.cols());
     Q_kn = _Q_kn;
-    normalize_columns(Q_kn);
+    normalize_columns_inplace(Q_kn);
     const std::size_t rank = Q_kn.rows();
 
     for (Index tt = 0; tt < Nexposure; ++tt) {
