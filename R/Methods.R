@@ -4,7 +4,7 @@
 #' @param k number of topics
 #' @param num.proj the number of pseudobulk projection steps (default: 1)
 #' @param em.step Monte Carlo EM steps (default: 100)
-#' @param max.pb.size maximum pseudobulk size (default: 1000)
+#' @param max.pb.size maximum pseudobulk size (default: 5000)
 #' @param covar sample x var covariate matrix (default: NULL)
 #' @param batch batch information for each sample (default: NULL)
 #' @param .burnin burn-in period in the record keeping (default: 0)
@@ -52,7 +52,7 @@ fit.topic.asap <- function(mtx.file,
                            pb.factors = 10,
                            num.proj = 1,
                            em.step = 100,
-                           max.pb.size = 1000,
+                           max.pb.size = 5000,
                            .burnin = 0,
                            .reg.steps = 10,
                            .reg.stdize = TRUE,
@@ -67,7 +67,7 @@ fit.topic.asap <- function(mtx.file,
                            .eps = 1e-6,
                            svd.init = FALSE,
                            do.log1p = FALSE,
-                           covar = NULL,
+                           covar.n = NULL,
                            batch = NULL){
 
     if(!file.exists(index.file)){
@@ -79,29 +79,33 @@ fit.topic.asap <- function(mtx.file,
     Y <- NULL
     rand.proj <- NULL
     rand.positions <- NULL
-    batch.effect <- NULL
+    log.batch.effect <- NULL
+
+    covar.d <- NULL
 
     for(r in 1:num.proj){
         .pb <- asap_random_bulk_data(mtx_file = mtx.file,
                                      mtx_idx_file = index.file,
                                      num_factors = pb.factors,
-                                     r_covar = covar,
+                                     r_covar_n = covar.n,
+                                     r_covar_d = covar.d,
                                      r_batch = batch,
                                      rseed = .rand.seed + (r - 1),
                                      verbose = verbose,
                                      NUM_THREADS = num.threads,
                                      BLOCK_SIZE = block.size,
-                                     do_log1p = do.log1p,
-                                     do_row_std = FALSE)
+                                     do_log1p = do.log1p)
 
         stopifnot(!is.null(.pb$PB))
 
-        Y <- cbind(Y, .pb$PB)
+        Y <- cbind(Y, .pb$PB) # combine Y matrix
+        # this will be used for the next round
+        covar.d <- cbind(covar.d, .pb$log.PB)
 
         rand.proj <- cbind(rand.proj, .pb$rand.proj)
         rand.positions <- c(rand.positions, .pb$positions)
         if(nrow(.pb$log.batch.effect) == nrow(Y)){
-            batch.effect <- cbind(batch.effect, .pb$log.batch.effect)
+            log.batch.effect <- cbind(log.batch.effect, .pb$log.batch.effect)
         }
         message("Constructed random pseudo-bulk samples: Y ", nrow(Y), " x ", ncol(Y))
     }
@@ -143,7 +147,7 @@ fit.topic.asap <- function(mtx.file,
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 mtx_idx_file = index.file,
                                 log_x = log.x,
-                                r_batch_effect = batch.effect,
+                                r_batch_effect = log.batch.effect,
                                 r_x_row_names = NULL,
                                 r_mtx_row_names = NULL,
                                 r_taboo_names = NULL,
@@ -167,7 +171,7 @@ fit.topic.asap <- function(mtx.file,
 
     asap$rand.proj <- rand.proj
     asap$rand.positions <- rand.positions
-    asap$batch.effect <- batch.effect
+    asap$log.batch.effect <- log.batch.effect
 
     return(asap)
 }

@@ -6,14 +6,14 @@
 //' @param mtx_file matrix-market-formatted data file (bgzip)
 //' @param mtx_idx_file matrix-market colum index file
 //' @param num_factors a desired number of random factors
-//' @param r_covar covariates (default: NULL)
+//' @param r_covar_n N x r covariates (default: NULL)
+//' @param r_covar_d D x r covariates (default: NULL)
 //' @param r_batch batch information (default: NULL)
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
-//' @param do_row_std rowwise standardization (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1)
@@ -25,14 +25,14 @@ asap_random_bulk_data(
     const std::string mtx_file,
     const std::string mtx_idx_file,
     const std::size_t num_factors,
-    const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar = R_NilValue,
+    const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_n = R_NilValue,
+    const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_d = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> r_batch = R_NilValue,
     const std::size_t rseed = 42,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
     const bool do_log1p = false,
-    const bool do_row_std = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t BATCH_ADJ_ITER = 100,
     const double a0 = 1,
@@ -60,12 +60,19 @@ asap_random_bulk_data(
     const Index N = info.max_col; // number of cells
     const Index K = num_factors;  // tree depths in implicit bisection
     const Index block_size = BLOCK_SIZE;
-    const Mat X = r_covar.isNotNull() ?
-        Rcpp::as<Mat>(Rcpp::NumericMatrix(r_covar)) :
-        Mat::Ones(N, 1);
+
+    Mat X_nr;
+    if (r_covar_n.isNotNull()) {
+        X_nr = Rcpp::as<Mat>(Rcpp::NumericMatrix(r_covar_n));
+        TLOG_(verbose,
+              "Read some covariates "
+                  << " X_nr " << X_nr.rows() << " x " << X_nr.cols() << ",");
+        TLOG_(verbose, "of which effects will be removed ");
+        TLOG_(verbose, "from random projection data.");
+        ASSERT_RETL(X_nr.rows() == N, "incompatible covariate matrix");
+    }
 
     const Scalar eps = 1e-8;
-    ASSERT_RETL(X.rows() == N, "incompatible covariate matrix");
 
     if (verbose) {
         TLOG(D << " x " << N << " single cell matrix");
@@ -84,27 +91,33 @@ asap_random_bulk_data(
     norm_dist_t norm_dist(0., 1.);
 
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
-    Mat R = Mat::NullaryExpr(K, D, rnorm);
+    Mat R_kd = Mat::NullaryExpr(K, D, rnorm);
 
     if (verbose) {
-        TLOG("Random projection: " << R.rows() << " x " << R.cols());
+        TLOG("Random aggregator matrix: " << R_kd.rows() << " x "
+                                          << R_kd.cols());
     }
 
-    Mat Q = Mat::Zero(K, N);
-    ColVec mu = ColVec::Zero(D), sig = ColVec::Ones(D);
-
-    if (do_row_std) {
-
-        std::tie(mu, sig) = compute_row_stat(mtx_file,
-                                             mtx_idx,
-                                             block_size,
-                                             do_log1p,
-                                             NUM_THREADS,
-                                             verbose);
+    Mat X_dr;
+    if (r_covar_d.isNotNull()) {
+        X_dr = Rcpp::as<Mat>(Rcpp::NumericMatrix(r_covar_d));
+        TLOG_(verbose,
+              "Read some covariates "
+                  << " X_dr " << X_dr.rows() << " x " << X_dr.cols() << ",");
+        TLOG_(verbose, "of which effects will be removed ");
+        TLOG_(verbose, "from the random aggregator matrix.");
+        ASSERT_RETL(X_dr.rows() == D, "incompatible covariate matrix");
     }
 
-    if (verbose) {
-        TLOG("Collecting random projection data");
+    Mat Q_kn = Mat::Zero(K, N);
+
+    TLOG_(verbose, "Collecting random projection data");
+
+    Mat YtX_nr;
+
+    if (X_dr.rows() == D && X_dr.cols() > 0) {
+        YtX_nr.resize(N, X_dr.cols());
+        YtX_nr.setZero();
     }
 
 #if defined(_OPENMP)
@@ -115,46 +128,77 @@ asap_random_bulk_data(
 
         const Index ub = std::min(N, block_size + lb);
 
-        Mat yy = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
-                            matched_data.read(lb, ub);
+        //////////////////////
+        // random aggregate //
+        //////////////////////
 
-        Mat temp(K, yy.cols());
+        Mat _y_dn = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
+                               matched_data.read(lb, ub);
 
-        if (do_row_std) {
-            temp = R *
-                ((yy.array().colwise() - mu.array()) / sig.array()).matrix();
-        } else {
-            temp = R * yy;
+        {
+            Mat temp_kn = R_kd * _y_dn;
+            for (Index i = 0; i < temp_kn.cols(); ++i) {
+                const Index j = i + lb;
+                Q_kn.col(j) = temp_kn.col(i);
+            }
         }
 
-        for (Index i = 0; i < temp.cols(); ++i) {
-            const Index j = i + lb;
-            Q.col(j) = temp.col(i);
+        ///////////////////////////////
+        // correlation with the X_dr //
+        ///////////////////////////////
+
+        if (X_dr.rows() == D && X_dr.cols() > 0) {
+            Mat temp_rn = X_dr.transpose() * _y_dn;
+            for (Index i = 0; i < temp_rn.cols(); ++i) {
+                const Index j = i + lb;
+                YtX_nr.row(j) = temp_rn.col(i).transpose();
+            }
         }
     }
 
-    if (verbose) {
-        TLOG("Finished random matrix projection");
+    TLOG_(verbose, "Finished random matrix projection");
+
+    // Regress out X_nr
+    if (X_nr.cols() > 0 && X_nr.rows() == N) {
+        Mat Qt = Q_kn.transpose(); // N x K
+        residual_columns(Qt, X_nr);
+        standardize_columns_inplace(Qt);
+        Q_kn = Qt.transpose();
+
+        TLOG_(verbose,
+              "Regressed out X_nr from Q: " << Q_kn.rows() << " x "
+                                            << Q_kn.cols());
     }
 
-    // Regress out
-    if (X.cols() > 0) {
-        Mat Qt = Q.transpose(); // N x K
-        residual_columns(Qt, X);
-        Q = Qt.transpose();
-    }
+    // Regress out YtX_nr
+    if (YtX_nr.cols() > 0 && YtX_nr.rows() == N) {
+        Mat Qt = Q_kn.transpose(); // N x K
+        residual_columns(Qt, YtX_nr);
+        standardize_columns_inplace(Qt);
+        Q_kn = Qt.transpose();
 
-    if (verbose) {
-        TLOG("Regressed out Q: " << Q.rows() << " x " << Q.cols());
+        TLOG_(verbose,
+              "Regressed out YtX_nr from Q: " << Q_kn.rows() << " x "
+                                              << Q_kn.cols());
     }
 
     /////////////////////////////////////////////////
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    Eigen::BDCSVD<Mat> svd;
-    svd.compute(Q, Eigen::ComputeThinU | Eigen::ComputeThinV);
-    Mat vv = svd.matrixV();
+    Mat vv;
+
+    if (Q_kn.cols() < 1000) {
+        Eigen::BDCSVD<Mat> svd;
+        svd.compute(Q_kn, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        vv = svd.matrixV();
+    } else {
+        const std::size_t lu_iter = 5;
+        RandomizedSVD<Mat> svd(Q_kn.rows(), lu_iter);
+        svd.compute(Q_kn);
+        vv = svd.matrixV();
+    }
+
     ASSERT_RETL(vv.rows() == N, " failed SVD for Q");
 
     Mat random_dict = standardize_columns(vv); // N x K
@@ -274,9 +318,9 @@ asap_random_bulk_data(
         prob_bs = Mat::Zero(B, S); // batch x PB prob
         n_bs = Mat::Zero(B, S);    // batch x PB freq
 
-        CHK_RETL_(matched_data.build_annoy_index(Q),
-                  "Failed to build Annoy Indexes: " << Q.rows() << " x "
-                                                    << Q.cols());
+        CHK_RETL_(matched_data.build_annoy_index(Q_kn),
+                  "Failed to build Annoy Indexes: " << Q_kn.rows() << " x "
+                                                    << Q_kn.cols());
 
         ////////////////////////////
         // Step a. precalculation //
@@ -408,12 +452,15 @@ asap_random_bulk_data(
 
         TLOG_(verbose, "Pseudobulk estimation in a vanilla mode");
 
-        mu_ds = ysum_ds.array().rowwise() / size_s.array();
+        gamma_param_t<Mat, RNG> mu_param(D, S, a0, b0, rng);
+        Mat temp_ds = Mat::Ones(D, S).array().rowwise() * size_s.array();
+        mu_param.update(ysum_ds, temp_ds);
+        mu_param.calibrate();
+        mu_ds = mu_param.mean();
+        log_mu_ds = mu_param.log_mean();
     }
 
-    TLOG_(verbose,
-          "Finished populating the PB matrix: " << mu_ds.rows() << " x "
-                                                << mu_ds.cols());
+    TLOG_(verbose, "Final RPB: " << mu_ds.rows() << " x " << mu_ds.cols());
 
     return Rcpp::List::create(Rcpp::_["PB"] = mu_ds,
                               Rcpp::_["PB.batch"] = delta_ds,
@@ -431,10 +478,7 @@ asap_random_bulk_data(
                               Rcpp::_["batch.names"] =
                                   matched_data.get_exposure_names(),
                               Rcpp::_["positions"] = r_positions,
-                              Rcpp::_["rand.proj"] = R,
-                              Rcpp::_["Q"] = Q,
-                              Rcpp::_["rand.dict"] = random_dict,
-                              Rcpp::_["svd.u"] = svd.matrixU(),
-                              Rcpp::_["svd.d"] = svd.singularValues(),
-                              Rcpp::_["svd.v"] = svd.matrixV());
+                              Rcpp::_["rand.proj"] = R_kd,
+                              Rcpp::_["Q"] = Q_kn,
+                              Rcpp::_["rand.dict"] = random_dict);
 }

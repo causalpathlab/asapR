@@ -10,11 +10,11 @@ fit.topic.asap(
   pb.factors = 10,
   num.proj = 1,
   em.step = 100,
-  max.pb.size = 1000,
+  max.pb.size = 5000,
   .burnin = 0,
   .reg.steps = 10,
   .reg.stdize = TRUE,
-  .scale.cols = FALSE,
+  .stdize.cols = FALSE,
   a0 = 1,
   b0 = 1,
   index.file = paste0(mtx.file, ".index"),
@@ -25,7 +25,7 @@ fit.topic.asap(
   .eps = 1e-06,
   svd.init = FALSE,
   do.log1p = FALSE,
-  covar = NULL,
+  covar.n = NULL,
   batch = NULL
 )
 }
@@ -38,13 +38,15 @@ fit.topic.asap(
 
 \item{em.step}{Monte Carlo EM steps (default: 100)}
 
-\item{max.pb.size}{maximum pseudobulk size (default: 1000)}
+\item{max.pb.size}{maximum pseudobulk size (default: 5000)}
 
 \item{.burnin}{burn-in period in the record keeping (default: 0)}
 
 \item{.reg.steps}{number of steps in regression analysis (default: 10)}
 
 \item{.reg.stdize}{standardize X in regression (default: TRUE)}
+
+\item{.stdize.cols}{standardize columns after log (default: TRUE)}
 
 \item{a0}{Gamma(a0, b0) prior (default: 1)}
 
@@ -64,11 +66,9 @@ fit.topic.asap(
 
 \item{do.log1p}{(default: FALSE)}
 
-\item{covar}{sample x var covariate matrix (default: NULL)}
-
 \item{batch}{batch information for each sample (default: NULL)}
 
-\item{.stdize.cols}{standardize columns after log (default: TRUE)}
+\item{covar}{sample x var covariate matrix (default: NULL)}
 
 \item{eval.llik}{evaluate log-likelihood trace in PMF (default: TRUE)}
 }

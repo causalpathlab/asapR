@@ -38,21 +38,21 @@ asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbo
 #' @param mtx_file matrix-market-formatted data file (bgzip)
 #' @param mtx_idx_file matrix-market colum index file
 #' @param num_factors a desired number of random factors
-#' @param r_covar covariates (default: NULL)
+#' @param r_covar_n N x r covariates (default: NULL)
+#' @param r_covar_d D x r covariates (default: NULL)
 #' @param r_batch batch information (default: NULL)
 #' @param rseed random seed
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
-#' @param do_row_std rowwise standardization (default: FALSE)
 #' @param KNN_CELL k-NN matching between cells (default: 10)
 #' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #'
-asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_row_std = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_row_std, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
+asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar_n, r_covar_d, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
 }
 
 #' Poisson regression to estimate factor loading

@@ -5,6 +5,7 @@
 
 #include "math.hh"
 #include "util.hh"
+#include "svd.hh"
 
 #include <boost/random/normal_distribution.hpp>
 #include <boost/random/binomial_distribution.hpp>
@@ -661,7 +662,6 @@ standardize_columns(const Eigen::MatrixBase<Derived> &Xraw,
     using Scalar = typename Derived::Scalar;
     using mat_t =
         Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
-    using RowVec = typename Eigen::internal::plain_row_type<Derived>::type;
 
     mat_t X(Xraw.rows(), Xraw.cols());
     X = Xraw;
@@ -672,10 +672,21 @@ standardize_columns(const Eigen::MatrixBase<Derived> &Xraw,
 
 template <typename Derived>
 void
+standardize_columns_inplace(Eigen::MatrixBase<Derived> &X_,
+                            const typename Derived::Scalar EPS = 1e-8)
+{
+    using Scalar = typename Derived::Scalar;
+
+    Derived X = X_.derived();
+    stdizer_t<Derived> std_op(X);
+    std_op.colwise(EPS);
+}
+
+template <typename Derived>
+void
 scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
                       const typename Derived::Scalar EPS = 1e-8)
 {
-    using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
 
     Derived X = X_.derived();
@@ -712,12 +723,22 @@ residual_columns(Eigen::MatrixBase<Derived> &_yy,
 
     } else {
         const std::size_t r = std::min(X.cols(), Yraw.cols());
-        Eigen::BDCSVD<Derived> svd_x;
-        svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-        const ColVec d = svd_x.singularValues();
+        ColVec d;
+        Derived u;
 
-        Derived u = svd_x.matrixU();
+        if (X.rows() < 1000) {
+            Eigen::BDCSVD<Derived> svd_x;
+            svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
+            d = svd_x.singularValues();
+            u = svd_x.matrixU();
+        } else {
+            const std::size_t lu_iter = 5;
+            RandomizedSVD<Derived> svd_x(r, lu_iter);
+            svd_x.compute(X);
+            d = svd_x.singularValues();
+            u = svd_x.matrixU();
+        }
 
         for (Index k = 0; k < r; ++k) {
             if (d(k) < eps)

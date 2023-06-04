@@ -8,14 +8,14 @@ asap_random_bulk_data(
   mtx_file,
   mtx_idx_file,
   num_factors,
-  r_covar = NULL,
+  r_covar_n = NULL,
+  r_covar_d = NULL,
   r_batch = NULL,
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   do_log1p = FALSE,
-  do_row_std = FALSE,
   KNN_CELL = 10L,
   BATCH_ADJ_ITER = 100L,
   a0 = 1,
@@ -29,7 +29,9 @@ asap_random_bulk_data(
 
 \item{num_factors}{a desired number of random factors}
 
-\item{r_covar}{covariates (default: NULL)}
+\item{r_covar_n}{N x r covariates (default: NULL)}
+
+\item{r_covar_d}{D x r covariates (default: NULL)}
 
 \item{r_batch}{batch information (default: NULL)}
 
@@ -42,8 +44,6 @@ asap_random_bulk_data(
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
-
-\item{do_row_std}{rowwise standardization (default: FALSE)}
 
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
 
