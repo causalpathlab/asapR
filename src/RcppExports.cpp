@@ -11,13 +11,13 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// asap_fit_nmf_alternate
-Rcpp::List asap_fit_nmf_alternate(const Eigen::MatrixXf Y_, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
-RcppExport SEXP _asapR_asap_fit_nmf_alternate(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
+// asap_fit_nmf
+Rcpp::List asap_fit_nmf(const Eigen::MatrixXf& Y_, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_nmf(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_(Y_SEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type Y_(Y_SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
@@ -29,7 +29,30 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type svd_init(svd_initSEXP);
     Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_alternate(Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf(Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
+    return rcpp_result_gen;
+END_RCPP
+}
+// asap_fit_nmf_network
+Rcpp::List asap_fit_nmf_network(const Eigen::MatrixXf& Y_, const Eigen::SparseMatrix<float, Eigen::ColMajor>& A_dd, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_nmf_network(SEXP Y_SEXP, SEXP A_ddSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type Y_(Y_SEXP);
+    Rcpp::traits::input_parameter< const Eigen::SparseMatrix<float, Eigen::ColMajor>& >::type A_dd(A_ddSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const bool >::type svd_init(svd_initSEXP);
+    Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_nmf_network(Y_, A_dd, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -134,6 +157,20 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     rcpp_result_gen = Rcpp::wrap(fit_poisson_cluster_rows(X, Ltrunc, alpha, a0, b0, rseed, mcmc, burnin, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// decompose_network
+Rcpp::List decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor>& A_dd, const Eigen::MatrixXd& beta_dt, const double cutoff, const bool verbose);
+RcppExport SEXP _asapR_decompose_network(SEXP A_ddSEXP, SEXP beta_dtSEXP, SEXP cutoffSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::SparseMatrix<double, Eigen::ColMajor>& >::type A_dd(A_ddSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXd& >::type beta_dt(beta_dtSEXP);
+    Rcpp::traits::input_parameter< const double >::type cutoff(cutoffSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(decompose_network(A_dd, beta_dt, cutoff, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -272,12 +309,14 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_asapR_asap_fit_nmf_alternate", (DL_FUNC) &_asapR_asap_fit_nmf_alternate, 12},
+    {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 12},
+    {"_asapR_asap_fit_nmf_network", (DL_FUNC) &_asapR_asap_fit_nmf_network, 13},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 15},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 9},
     {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 15},
     {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
+    {"_asapR_decompose_network", (DL_FUNC) &_asapR_decompose_network, 4},
     {"_asapR_mmutil_build_index", (DL_FUNC) &_asapR_mmutil_build_index, 2},
     {"_asapR_mmutil_read_index", (DL_FUNC) &_asapR_mmutil_read_index, 1},
     {"_asapR_mmutil_check_index", (DL_FUNC) &_asapR_mmutil_check_index, 2},

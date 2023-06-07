@@ -29,8 +29,41 @@
 #' }
 #'
 #'
-asap_fit_nmf_alternate <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_alternate', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+}
+
+#' Estimate NMF dictionary with some adjacency matrix (gene x gene)
+#'
+#' @param Y_ non-negative data matrix (gene x sample)
+#' @param A_ sparse adjacency matrix gene x gene
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log-dictionary (gene x factor)
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.phi auxiliary variables (gene x factor)
+#'   \item log.rho auxiliary variables (sample x factor)
+#' }
+#'
+#'
+asap_fit_nmf_network <- function(Y_, A_dd, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf_network', PACKAGE = 'asapR', Y_, A_dd, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -117,6 +150,17 @@ stretch_matrix_columns <- function(Y, qq_min = 0.01, qq_max = 0.99, std_min = -8
 #'
 fit_poisson_cluster_rows <- function(X, Ltrunc, alpha = 1, a0 = 1e-2, b0 = 1e-4, rseed = 42L, mcmc = 100L, burnin = 10L, verbose = TRUE) {
     .Call('_asapR_fit_poisson_cluster_rows', PACKAGE = 'asapR', X, Ltrunc, alpha, a0, b0, rseed, mcmc, burnin, verbose)
+}
+
+#' Assign best topic membership for the edges
+#'
+#' @param A_dd D x D adjacency matrix
+#' @param beta_dt D x T node propensity matrix
+#' @param cutoff A[i,j] cutoff (default: 1e-8)
+#' @param verbose verbosity
+#'
+decompose_network <- function(A_dd, beta_dt, cutoff = 1e-8, verbose = TRUE) {
+    .Call('_asapR_decompose_network', PACKAGE = 'asapR', A_dd, beta_dt, cutoff, verbose)
 }
 
 #' Create an index file for a given MTX

@@ -122,27 +122,27 @@ fit.topic.asap <- function(mtx.file,
 
     message("Phase II: Perform Poisson matrix factorization on the Y")
 
-    .nmf <- asap_fit_nmf_alternate(Y,
-                                   maxK = k,
-                                   max_iter = em.step,
-                                   burnin = .burnin,
-                                   verbose = verbose,
-                                   a0 = a0,
-                                   b0 = b0,
-                                   do_log1p = do.log1p,
-                                   rseed = .rand.seed,
-                                   svd_init = svd.init,
-                                   EPS = .eps,
-                                   NUM_THREADS = num.threads)
+    .nmf <- asap_fit_nmf(Y,
+                         maxK = k,
+                         max_iter = em.step,
+                         burnin = .burnin,
+                         verbose = verbose,
+                         a0 = a0,
+                         b0 = b0,
+                         do_log1p = do.log1p,
+                         rseed = .rand.seed,
+                         svd_init = svd.init,
+                         EPS = .eps,
+                         NUM_THREADS = num.threads)
 
-    .multinom <- pmf2topic(.nmf$beta, .nmf$theta)
+    .multinom <- pmf2topic(.nmf$model$beta, .nmf$model$theta)
     .nmf$beta.rescaled <- .multinom$beta
     .nmf$theta.rescaled <- .multinom$prop
     .nmf$depth <- .multinom$depth
 
     message("Phase III: Topic proportions of the columns in the original data")
 
-    log.x <- .nmf$log.beta
+    log.x <- .nmf$log_x
 
     asap <- asap_regression_mtx(mtx_file = mtx.file,
                                 mtx_idx_file = index.file,

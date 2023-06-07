@@ -53,6 +53,22 @@ struct asap_nmf_model_t {
         }
     };
 
+    struct STOCH {
+        explicit STOCH(const bool v)
+            : val(v)
+        {
+        }
+        const bool val;
+    };
+
+    struct STD {
+        explicit STD(const bool v)
+            : val(v)
+        {
+        }
+        const bool val;
+    };
+
     explicit asap_nmf_model_t(const ROW &row,
                               const COL &col,
                               const FACT &fact,
@@ -69,12 +85,15 @@ struct asap_nmf_model_t {
         , sampler(rng, K)
         , beta_dk(D, K, a0, b0, rng)
         , theta_nk(N, K, a0, b0, rng)
-        , logPhi_dk(D, K)
-        , phi_dk(D, K)
-        , logRho_nk(N, K)
-        , rho_nk(N, K)
-        , std_ln_phi_dk(logPhi_dk, 1, 1)
-        , std_ln_rho_nk(logRho_nk, 1, 1)
+        , logRow_aux_dk(D, K)
+        , row_aux_dk(D, K)
+        , logCol_aux_nk(N, K)
+        , col_aux_nk(N, K)
+        , logNet_row_aux_dk(D, K)
+        , net_row_aux_dk(D, K)
+        , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
+        , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
+        , std_log_net_row_aux_dk(logNet_row_aux_dk, 1, 1)
     {
 
         ones_n = ColVec::Ones(N);
@@ -89,102 +108,173 @@ public:
 private:
     RowVec tempK;
 
-public:
     template <typename Derived>
-    void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const bool stoch = false,
-                       const bool do_stdize = false)
+    void _normalize_aux_cols(stdizer_t<Derived> &std_log_aux,
+                             Eigen::MatrixBase<Derived> &log_aux,
+                             Eigen::MatrixBase<Derived> &aux,
+                             const bool stoch,
+                             const bool do_stdize)
     {
-        //////////////////////////////////////////////
-        // Estimation of auxiliary variables (i,k)  //
-        //////////////////////////////////////////////
-
-        logPhi_dk = Y_dn * theta_nk.log_mean();
-        logPhi_dk.array().colwise() /= Y_d1.array();
-        logPhi_dk += beta_dk.log_mean();
-
         ///////////////////////////////////
         // this helps spread the columns //
         ///////////////////////////////////
 
         if (do_stdize) {
-            std_ln_phi_dk.colwise();
+            std_log_aux.colwise();
         }
 
-        for (Index ii = 0; ii < D; ++ii) {
-            tempK = logPhi_dk.row(ii);
-            logPhi_dk.row(ii) = softmax.log_row(tempK);
+        for (Index ii = 0; ii < aux.rows(); ++ii) {
+            tempK = log_aux.row(ii);
+            log_aux.row(ii) = softmax.log_row(tempK);
         }
+
+        //////////////////////////////////////
+        // stochastic sampling or normalize //
+        //////////////////////////////////////
 
         if (stoch) {
-            phi_dk.setZero();
-            for (Index ii = 0; ii < D; ++ii) {
-                Index kk = sampler(logPhi_dk.unaryExpr(exp));
-                phi_dk(ii, kk) = 1;
+            aux.setZero();
+            for (Index ii = 0; ii < aux.rows(); ++ii) {
+                Index kk = sampler(log_aux.unaryExpr(exp));
+                aux(ii, kk) = 1;
             }
         } else {
-            phi_dk = logPhi_dk.unaryExpr(exp);
+            aux = log_aux.unaryExpr(exp);
         }
+    }
+
+    void _row_factor_aux(const bool stoch, const bool do_stdize)
+    {
+        _normalize_aux_cols(std_log_row_aux_dk,
+                            logRow_aux_dk,
+                            row_aux_dk,
+                            stoch,
+                            do_stdize);
+    }
+
+    void _net_row_factor_aux(const bool stoch, const bool do_stdize)
+    {
+        _normalize_aux_cols(std_log_net_row_aux_dk,
+                            logNet_row_aux_dk,
+                            net_row_aux_dk,
+                            stoch,
+                            do_stdize);
+    }
+
+    void _col_factor_aux(const bool stoch, const bool do_stdize)
+    {
+        _normalize_aux_cols(std_log_col_aux_nk,
+                            logCol_aux_nk,
+                            col_aux_nk,
+                            stoch,
+                            do_stdize);
+    }
+
+public:
+    template <typename Derived>
+    void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+
+        const bool stoch = stoch_.val;
+        const bool do_stdize = std_.val;
+
+        //////////////////////////////////////////////
+        // Estimation of auxiliary variables (i,k)  //
+        //////////////////////////////////////////////
+
+        logRow_aux_dk = Y_dn * theta_nk.log_mean();
+        logRow_aux_dk.array().colwise() /= Y_d1.array();
+        logRow_aux_dk += beta_dk.log_mean();
+
+        _row_factor_aux(stoch, do_stdize);
 
         // Update column topic factors, theta(j, k)
-        theta_nk.update(rho_nk.cwiseProduct(Y_dn.transpose() * phi_dk), //
-                        ones_n * beta_dk.mean().colwise().sum());       //
+        theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() * row_aux_dk),
+                        ones_n * beta_dk.mean().colwise().sum());
         theta_nk.calibrate();
 
         // Update row topic factors
-        beta_dk.update((phi_dk.array().colwise() * Y_d.array()).matrix(), //
-                       ones_d * theta_nk.mean().colwise().sum());         //
+        beta_dk.update((row_aux_dk.array().colwise() * Y_d.array()).matrix(),
+                       ones_d * theta_nk.mean().colwise().sum());
+        beta_dk.calibrate();
+    }
+
+    template <typename Derived, typename Derived2>
+    void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const Eigen::SparseMatrixBase<Derived2> &A_dd,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+
+        const bool stoch = stoch_.val;
+        const bool do_stdize = std_.val;
+
+        //////////////////////////////////////////////
+        // Estimation of auxiliary variables (i,k)  //
+        //////////////////////////////////////////////
+
+        logNet_row_aux_dk = A_dd * beta_dk.log_mean();
+        logNet_row_aux_dk.array().colwise() /= A_d1.array();
+        logNet_row_aux_dk += beta_dk.log_mean();
+
+        _net_row_factor_aux(stoch, true);
+
+        logRow_aux_dk = Y_dn * theta_nk.log_mean() + A_dd * beta_dk.log_mean();
+        logRow_aux_dk.array().colwise() /= (Y_d1.array() + A_d.array());
+        logRow_aux_dk += beta_dk.log_mean();
+
+        _row_factor_aux(stoch, do_stdize);
+
+        // Update column topic factors, theta(j, k)
+        theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() * row_aux_dk),
+                        ones_n * beta_dk.mean().colwise().sum());
+        theta_nk.calibrate();
+
+        // Update row topic factors
+        beta_dk.update((row_aux_dk.array().colwise() * Y_d.array() +
+                        net_row_aux_dk.array().colwise() * A_d.array())
+                           .matrix(),
+                       ones_d * theta_nk.mean().colwise().sum() +
+                           (ones_d * beta_dk.mean().colwise().sum() -
+                            beta_dk.mean())
+                               .unaryExpr(at_least_zero));
         beta_dk.calibrate();
     }
 
     template <typename Derived>
     void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const bool stoch = false,
-                       const bool do_stdize = true)
+                       const STOCH &stoch_,
+                       const STD &std_)
     {
+
+        const bool stoch = stoch_.val;
+        const bool do_stdize = std_.val;
+
         //////////////////////////////////////////////
         // Estimation of auxiliary variables (j,k)  //
         //////////////////////////////////////////////
 
-        logRho_nk = Y_dn.transpose() * beta_dk.log_mean();
-        logRho_nk.array().colwise() /= Y_n1.array();
-        logRho_nk += theta_nk.log_mean();
+        logCol_aux_nk = Y_dn.transpose() * beta_dk.log_mean();
+        logCol_aux_nk.array().colwise() /= Y_n1.array();
+        logCol_aux_nk += theta_nk.log_mean();
 
-        ///////////////////////////////////
-        // this helps spread the columns //
-        ///////////////////////////////////
-
-        if (do_stdize) {
-            std_ln_rho_nk.colwise();
-        }
-
-        for (Index jj = 0; jj < N; ++jj) {
-            tempK = logRho_nk.row(jj);
-            logRho_nk.row(jj) = softmax.log_row(tempK);
-        }
-
-        if (stoch) {
-            rho_nk.setZero();
-            for (Index jj = 0; jj < N; ++jj) {
-                Index kk = sampler(logRho_nk.row(jj).unaryExpr(exp));
-                rho_nk(jj, kk) = 1;
-            }
-        } else {
-            rho_nk = logRho_nk.unaryExpr(exp);
-        }
+        _col_factor_aux(stoch, do_stdize);
 
         ///////////////////////
         // update parameters //
         ///////////////////////
 
         // Update row topic factors
-        beta_dk.update(phi_dk.cwiseProduct(Y_dn * rho_nk),        //
-                       ones_d * theta_nk.mean().colwise().sum()); //
-        beta_dk.calibrate();
+        // beta_dk.update(row_aux_dk.cwiseProduct(Y_dn * col_aux_nk),        //
+        //                ones_d * theta_nk.mean().colwise().sum()); //
+        // beta_dk.calibrate();
 
         // Update column topic factors
-        theta_nk.update((rho_nk.array().colwise() * Y_n.array()).matrix(), //
-                        ones_n * beta_dk.mean().colwise().sum());          //
+        theta_nk
+            .update((col_aux_nk.array().colwise() * Y_n.array()).matrix(), //
+                    ones_n * beta_dk.mean().colwise().sum());              //
         theta_nk.calibrate();
     }
 
@@ -246,23 +336,29 @@ public:
     }
 
     template <typename Derived>
+    void precompute_A(const Eigen::SparseMatrixBase<Derived> &A_dd)
+    {
+        A_d = A_dd.transpose() * ColVec::Ones(A_dd.rows());
+        A_d1 = A_d.unaryExpr(at_least_one);
+    }
+
+    template <typename Derived>
     Scalar log_likelihood(const Eigen::MatrixBase<Derived> &Y_dn)
     {
         Scalar llik = 0;
         const Scalar denom = N * D;
 
-        llik +=
-            (phi_dk.cwiseProduct(beta_dk.log_mean()).transpose() * Y_dn).sum() /
+        llik += (row_aux_dk.cwiseProduct(beta_dk.log_mean()).transpose() * Y_dn)
+                    .sum() /
             denom;
 
-        llik += (phi_dk.cwiseProduct(Y_dn * theta_nk.log_mean())).sum() / denom;
+        llik +=
+            (Y_dn * col_aux_nk.cwiseProduct(theta_nk.log_mean())).sum() / denom;
 
         llik -=
-            (phi_dk.cwiseProduct(logPhi_dk).transpose() * Y_dn).sum() / denom;
-
-        llik -= (ones_d.transpose() * beta_dk.mean() *
-                 theta_nk.mean().transpose() * ones_n)
-                    .sum() /
+            ((ones_d.transpose() * row_aux_dk.cwiseProduct(beta_dk.mean())) *
+             (col_aux_nk.cwiseProduct(theta_nk.mean()).transpose() * ones_n))
+                .sum() /
             denom;
 
         return llik;
@@ -281,14 +377,14 @@ public:
 private:
     void randomize_auxiliaries()
     {
-        logPhi_dk = Mat::Random(D, K);
+        logRow_aux_dk = Mat::Random(D, K);
         for (Index ii = 0; ii < D; ++ii) {
-            phi_dk.row(ii) = softmax.apply_row(logPhi_dk.row(ii));
+            row_aux_dk.row(ii) = softmax.apply_row(logRow_aux_dk.row(ii));
         }
 
-        logRho_nk = Mat::Random(N, K);
+        logCol_aux_nk = Mat::Random(N, K);
         for (Index jj = 0; jj < N; ++jj) {
-            rho_nk.row(jj) = softmax.apply_row(logRho_nk.row(jj));
+            col_aux_nk.row(jj) = softmax.apply_row(logCol_aux_nk.row(jj));
         }
     }
 
@@ -296,14 +392,18 @@ private:
     rowvec_sampler_t<Mat, RNG> sampler;
 
 public:
-    gamma_t beta_dk;       // dictionary
-    gamma_t theta_nk;      // scaling for all the factor loading
-    Mat logPhi_dk, phi_dk; // row to topic latent assignment
-    Mat logRho_nk, rho_nk; // column to topic latent assignment
+    gamma_t beta_dk;  // dictionary
+    gamma_t theta_nk; // scaling for all the factor loading
 
 private:
-    stdizer_t<Mat> std_ln_phi_dk;
-    stdizer_t<Mat> std_ln_rho_nk;
+    Mat logRow_aux_dk, row_aux_dk; // row to topic latent assignment
+    Mat logCol_aux_nk, col_aux_nk; // column to topic latent assignment
+    Mat logNet_row_aux_dk,
+        net_row_aux_dk; // row to topic based on row's network
+
+    stdizer_t<Mat> std_log_row_aux_dk;
+    stdizer_t<Mat> std_log_col_aux_nk;
+    stdizer_t<Mat> std_log_net_row_aux_dk;
 
     ColVec ones_n;
     ColVec ones_d;
@@ -311,6 +411,8 @@ private:
     ColVec Y_d;
     ColVec Y_n1;
     ColVec Y_d1;
+    ColVec A_d;
+    ColVec A_d1;
 
 private: // functors
     exp_op<Mat> exp;
@@ -319,5 +421,20 @@ private: // functors
     at_least_zero_op<Mat> at_least_zero;
     softmax_op_t<Mat> softmax;
 };
+
+//////////////////////
+// helper functions //
+//////////////////////
+
+template <typename RNG>
+Rcpp::List
+rcpp_list_out(const asap_nmf_model_t<RNG> &model)
+{
+    return Rcpp::List::create(Rcpp::_["beta"] = model.beta_dk.mean(),
+                              Rcpp::_["log.beta"] = model.beta_dk.log_mean(),
+                              Rcpp::_["log.beta.sd"] = model.beta_dk.log_sd(),
+                              Rcpp::_["theta"] = model.theta_nk.mean(),
+                              Rcpp::_["log.theta"] = model.theta_nk.log_mean());
+}
 
 #endif

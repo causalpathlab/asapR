@@ -47,7 +47,7 @@ extern "C" {
 #define MMUTIL_HH_
 
 using Scalar = float;
-using SpMat = Eigen::SparseMatrix<Scalar, Eigen::RowMajor, std::ptrdiff_t>;
+using SpMat = Eigen::SparseMatrix<Scalar, Eigen::RowMajor>;
 using Index = SpMat::Index;
 using MSpMat = Eigen::MappedSparseMatrix<Scalar>;
 
