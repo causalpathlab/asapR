@@ -69,6 +69,9 @@ struct asap_nmf_model_t {
         const bool val;
     };
 
+    struct NULL_DATA {
+    };
+
     explicit asap_nmf_model_t(const ROW &row,
                               const COL &col,
                               const FACT &fact,
@@ -95,7 +98,6 @@ struct asap_nmf_model_t {
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , std_log_net_row_aux_dk(logNet_row_aux_dk, 1, 1)
     {
-
         ones_n = ColVec::Ones(N);
         ones_d = ColVec::Ones(D);
     }
@@ -199,6 +201,15 @@ public:
         beta_dk.update((row_aux_dk.array().colwise() * Y_d.array()).matrix(),
                        ones_d * theta_nk.mean().colwise().sum());
         beta_dk.calibrate();
+    }
+
+    template <typename Derived>
+    void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const NULL_DATA &_null,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+        update_by_row(Y_dn, stoch_, std_);
     }
 
     template <typename Derived, typename Derived2>
@@ -327,10 +338,24 @@ public:
     }
 
     template <typename Derived>
-    void precompute(const Eigen::MatrixBase<Derived> &Y_dn)
+    void precompute(const Eigen::MatrixBase<Derived> &Y_dn, const NULL_DATA &)
+    {
+        precompute_Y(Y_dn);
+    }
+
+    template <typename Derived, typename Derived2>
+    void precompute(const Eigen::MatrixBase<Derived> &Y_dn,
+                    const Eigen::SparseMatrixBase<Derived2> &A_dd)
+    {
+        precompute_Y(Y_dn);
+        precompute_A(A_dd);
+    }
+
+    template <typename Derived>
+    void precompute_Y(const Eigen::MatrixBase<Derived> &Y_dn)
     {
         Y_n = Y_dn.colwise().sum().transpose();
-        Y_d = Y_dn.transpose().colwise().sum();
+        Y_d = Y_dn.rowwise().sum();
         Y_n1 = Y_n.unaryExpr(at_least_one);
         Y_d1 = Y_d.unaryExpr(at_least_one);
     }
@@ -434,7 +459,9 @@ rcpp_list_out(const asap_nmf_model_t<RNG> &model)
                               Rcpp::_["log.beta"] = model.beta_dk.log_mean(),
                               Rcpp::_["log.beta.sd"] = model.beta_dk.log_sd(),
                               Rcpp::_["theta"] = model.theta_nk.mean(),
-                              Rcpp::_["log.theta"] = model.theta_nk.log_mean());
+                              Rcpp::_["log.theta"] = model.theta_nk.log_mean(),
+                              Rcpp::_["log.theta.sd"] =
+                                  model.theta_nk.log_sd());
 }
 
 #endif

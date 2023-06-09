@@ -8,6 +8,7 @@ struct gamma_param_t {
 
     using Scalar = typename T::Scalar;
     using Index = typename T::Index;
+    using Type = T;
 
     explicit gamma_param_t(const Index r,
                            const Index c,
@@ -44,7 +45,7 @@ struct gamma_param_t {
     const T &log_mean() const { return estimate_log; }
     const T &log_sd() const { return estimate_log_sd; }
 
-    void reset()
+    void reset_stat_only()
     {
         a_stat.setConstant(a0);
         b_stat.setConstant(b0);
