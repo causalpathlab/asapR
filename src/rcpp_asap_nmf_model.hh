@@ -94,12 +94,17 @@ struct asap_nmf_model_t {
         , col_aux_nk(N, K)
         , logNet_row_aux_dk(D, K)
         , net_row_aux_dk(D, K)
+        , logNet_col_aux_nk(N, K)
+        , net_col_aux_nk(N, K)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , std_log_net_row_aux_dk(logNet_row_aux_dk, 1, 1)
+        , std_log_net_col_aux_nk(logNet_col_aux_nk, 1, 1)
     {
         ones_n = ColVec::Ones(N);
         ones_d = ColVec::Ones(D);
+        has_row_net = false;
+        has_col_net = false;
     }
 
 public:
@@ -172,6 +177,15 @@ private:
                             do_stdize);
     }
 
+    void _net_col_factor_aux(const bool stoch, const bool do_stdize)
+    {
+        _normalize_aux_cols(std_log_net_col_aux_nk,
+                            logNet_col_aux_nk,
+                            net_col_aux_nk,
+                            stoch,
+                            do_stdize);
+    }
+
 public:
     template <typename Derived>
     void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
@@ -193,9 +207,12 @@ public:
         _row_factor_aux(stoch, do_stdize);
 
         // Update column topic factors, theta(j, k)
-        theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() * row_aux_dk),
-                        ones_n * beta_dk.mean().colwise().sum());
-        theta_nk.calibrate();
+        if (!has_col_net) {
+            theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() *
+                                                    row_aux_dk),
+                            ones_n * beta_dk.mean().colwise().sum());
+            theta_nk.calibrate();
+        }
 
         // Update row topic factors
         beta_dk.update((row_aux_dk.array().colwise() * Y_d.array()).matrix(),
@@ -239,9 +256,12 @@ public:
         _row_factor_aux(stoch, do_stdize);
 
         // Update column topic factors, theta(j, k)
-        theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() * row_aux_dk),
-                        ones_n * beta_dk.mean().colwise().sum());
-        theta_nk.calibrate();
+        if (!has_col_net) {
+            theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() *
+                                                    row_aux_dk),
+                            ones_n * beta_dk.mean().colwise().sum());
+            theta_nk.calibrate();
+        }
 
         // Update row topic factors
         beta_dk.update((row_aux_dk.array().colwise() * Y_d.array() +
@@ -278,14 +298,75 @@ public:
         ///////////////////////
 
         // Update row topic factors
-        // beta_dk.update(row_aux_dk.cwiseProduct(Y_dn * col_aux_nk),        //
-        //                ones_d * theta_nk.mean().colwise().sum()); //
-        // beta_dk.calibrate();
+        if (!has_row_net) {
+            beta_dk.update(row_aux_dk.cwiseProduct(Y_dn * col_aux_nk), //
+                           ones_d * theta_nk.mean().colwise().sum());  //
+            beta_dk.calibrate();
+        }
 
         // Update column topic factors
         theta_nk
             .update((col_aux_nk.array().colwise() * Y_n.array()).matrix(), //
                     ones_n * beta_dk.mean().colwise().sum());              //
+        theta_nk.calibrate();
+    }
+
+    template <typename Derived>
+    void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const NULL_DATA &_null,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+        update_by_col(Y_dn, stoch_, std_);
+    }
+
+    template <typename Derived, typename Derived2>
+    void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const Eigen::SparseMatrixBase<Derived2> &A_nn,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+
+        const bool stoch = stoch_.val;
+        const bool do_stdize = std_.val;
+
+        //////////////////////////////////////////////
+        // Estimation of auxiliary variables (j,k)  //
+        //////////////////////////////////////////////
+
+        logNet_col_aux_nk = A_nn * theta_nk.log_mean();
+        logNet_col_aux_nk.array().colwise() /= A_n1.array();
+        logNet_col_aux_nk += theta_nk.log_mean();
+
+        _net_col_factor_aux(stoch, true);
+
+        logCol_aux_nk =
+            Y_dn.transpose() * beta_dk.log_mean() + A_nn * theta_nk.log_mean();
+        logCol_aux_nk.array().colwise() /= (Y_n1.array() + A_n.array());
+        logCol_aux_nk += theta_nk.log_mean();
+
+        _col_factor_aux(stoch, do_stdize);
+
+        ///////////////////////
+        // update parameters //
+        ///////////////////////
+
+        // Update row topic factors
+        if (!has_row_net) {
+            beta_dk.update(row_aux_dk.cwiseProduct(Y_dn * col_aux_nk),
+                           ones_d * theta_nk.mean().colwise().sum());
+            beta_dk.calibrate();
+        }
+
+        // Update column topic factors
+        theta_nk.update((col_aux_nk.array().colwise() * Y_n.array() +
+                         net_col_aux_nk.array() * A_n.array())
+                            .matrix(),
+                        ones_n * beta_dk.mean().colwise().sum() +
+                            (ones_n * theta_nk.mean().colwise().sum() -
+                             theta_nk.mean())
+
+        );
         theta_nk.calibrate();
     }
 
@@ -337,20 +418,44 @@ public:
         randomize_auxiliaries();
     }
 
+public:
     template <typename Derived>
-    void precompute(const Eigen::MatrixBase<Derived> &Y_dn, const NULL_DATA &)
+    void precompute(const Eigen::MatrixBase<Derived> &Y_dn,
+                    const NULL_DATA &,
+                    const NULL_DATA &)
     {
         precompute_Y(Y_dn);
     }
 
     template <typename Derived, typename Derived2>
     void precompute(const Eigen::MatrixBase<Derived> &Y_dn,
-                    const Eigen::SparseMatrixBase<Derived2> &A_dd)
+                    const NULL_DATA &,
+                    const Eigen::SparseMatrixBase<Derived2> &A_nn)
     {
         precompute_Y(Y_dn);
-        precompute_A(A_dd);
+        precompute_A_col(A_nn);
     }
 
+    template <typename Derived, typename Derived2>
+    void precompute(const Eigen::MatrixBase<Derived> &Y_dn,
+                    const Eigen::SparseMatrixBase<Derived2> &A_dd,
+                    const NULL_DATA &)
+    {
+        precompute_Y(Y_dn);
+        precompute_A_row(A_dd);
+    }
+
+    template <typename Derived, typename Derived2, typename Derived3>
+    void precompute(const Eigen::MatrixBase<Derived> &Y_dn,
+                    const Eigen::SparseMatrixBase<Derived2> &A_dd,
+                    const Eigen::SparseMatrixBase<Derived3> &A_nn)
+    {
+        precompute_Y(Y_dn);
+        precompute_A_row(A_dd);
+        precompute_A_col(A_nn);
+    }
+
+private:
     template <typename Derived>
     void precompute_Y(const Eigen::MatrixBase<Derived> &Y_dn)
     {
@@ -361,12 +466,22 @@ public:
     }
 
     template <typename Derived>
-    void precompute_A(const Eigen::SparseMatrixBase<Derived> &A_dd)
+    void precompute_A_row(const Eigen::SparseMatrixBase<Derived> &A_dd)
     {
         A_d = A_dd.transpose() * ColVec::Ones(A_dd.rows());
         A_d1 = A_d.unaryExpr(at_least_one);
+        has_row_net = true;
     }
 
+    template <typename Derived>
+    void precompute_A_col(const Eigen::SparseMatrixBase<Derived> &A_nn)
+    {
+        A_n = A_nn.transpose() * ColVec::Ones(A_nn.rows());
+        A_n1 = A_n.unaryExpr(at_least_one);
+        has_col_net = true;
+    }
+
+public:
     template <typename Derived>
     Scalar log_likelihood(const Eigen::MatrixBase<Derived> &Y_dn)
     {
@@ -421,14 +536,15 @@ public:
     gamma_t theta_nk; // scaling for all the factor loading
 
 private:
-    Mat logRow_aux_dk, row_aux_dk; // row to topic latent assignment
-    Mat logCol_aux_nk, col_aux_nk; // column to topic latent assignment
-    Mat logNet_row_aux_dk,
-        net_row_aux_dk; // row to topic based on row's network
+    Mat logRow_aux_dk, row_aux_dk;         // row to topic latent assignment
+    Mat logCol_aux_nk, col_aux_nk;         // column to topic latent assignment
+    Mat logNet_row_aux_dk, net_row_aux_dk; // based on row's network
+    Mat logNet_col_aux_nk, net_col_aux_nk; // based on col's network
 
     stdizer_t<Mat> std_log_row_aux_dk;
     stdizer_t<Mat> std_log_col_aux_nk;
     stdizer_t<Mat> std_log_net_row_aux_dk;
+    stdizer_t<Mat> std_log_net_col_aux_nk;
 
     ColVec ones_n;
     ColVec ones_d;
@@ -438,6 +554,8 @@ private:
     ColVec Y_d1;
     ColVec A_d;
     ColVec A_d1;
+    ColVec A_n;
+    ColVec A_n1;
 
 private: // functors
     exp_op<Mat> exp;
@@ -445,6 +563,9 @@ private: // functors
     at_least_one_op<Mat> at_least_one;
     at_least_zero_op<Mat> at_least_zero;
     softmax_op_t<Mat> softmax;
+
+    bool has_row_net;
+    bool has_col_net;
 };
 
 //////////////////////

@@ -11,11 +11,12 @@ struct train_nmf_options_t {
     bool verbose;
 };
 
-template <typename MODEL, typename YDATA, typename ROWNET>
+template <typename MODEL, typename YDATA, typename ROWNET, typename COLNET>
 void
 train_nmf(MODEL &model,
           const YDATA &y,
           const ROWNET &rownet,
+          const COLNET &colnet,
           std::vector<Scalar> &llik_trace,
           const train_nmf_options_t &options)
 {
@@ -25,7 +26,7 @@ train_nmf(MODEL &model,
     const bool verbose = options.verbose;
     const bool svd_init = options.svd_init;
 
-    model.precompute(y, rownet);
+    model.precompute(y, rownet, colnet);
     TLOG_(verbose, "pre-computation");
 
     if (svd_init) {
@@ -41,8 +42,10 @@ train_nmf(MODEL &model,
     for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
 
         model.update_by_col(y,
+                            colnet,
                             typename MODEL::STOCH(tt < burnin),
                             typename MODEL::STD(true));
+
         model.update_by_row(y,
                             rownet,
                             typename MODEL::STOCH(tt < burnin),

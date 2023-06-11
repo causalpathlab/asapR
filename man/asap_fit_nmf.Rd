@@ -8,6 +8,8 @@ asap_fit_nmf(
   Y_,
   maxK,
   max_iter = 100L,
+  r_A_dd_list = NULL,
+  r_A_nn_list = NULL,
   burnin = 0L,
   verbose = TRUE,
   a0 = 1,
