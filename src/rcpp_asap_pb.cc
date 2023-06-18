@@ -135,6 +135,7 @@ asap_random_bulk_data(
         Mat _y_dn = do_log1p ? matched_data.read(lb, ub).unaryExpr(log1p) :
                                matched_data.read(lb, ub);
 
+#pragma omp critical
         {
             Mat temp_kn = R_kd * _y_dn;
             for (Index i = 0; i < temp_kn.cols(); ++i) {
@@ -280,11 +281,14 @@ asap_random_bulk_data(
     for (Index lb = 0; lb < N; lb += block_size) {
         const Index ub = std::min(N, block_size + lb);
         Mat y = matched_data.read(lb, ub);
-        for (Index i = 0; i < (ub - lb); ++i) {
-            const Index j = i + lb;
-            const Index s = positions.at(j);
-            ysum_ds.col(s) += y.col(i);
-            size_s(s) += 1.;
+#pragma omp critical
+        {
+            for (Index i = 0; i < (ub - lb); ++i) {
+                const Index j = i + lb;
+                const Index s = positions.at(j);
+                ysum_ds.col(s) += y.col(i);
+                size_s(s) += 1.;
+            }
         }
     }
 

@@ -82,6 +82,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// asap_random_bulk_data_multi
+Rcpp::List asap_random_bulk_data_multi(const std::vector<std::string> mtx_files, const std::vector<std::string> row_files, const std::vector<std::string> idx_files, const std::size_t num_factors, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const bool do_log1p, const std::size_t KNN_CELL, const std::size_t BATCH_ADJ_ITER, const double a0, const double b0);
+RcppExport SEXP _asapR_asap_random_bulk_data_multi(SEXP mtx_filesSEXP, SEXP row_filesSEXP, SEXP idx_filesSEXP, SEXP num_factorsSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP do_log1pSEXP, SEXP KNN_CELLSEXP, SEXP BATCH_ADJ_ITERSEXP, SEXP a0SEXP, SEXP b0SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<std::string> >::type mtx_files(mtx_filesSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::string> >::type row_files(row_filesSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::string> >::type idx_files(idx_filesSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type num_factors(num_factorsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type KNN_CELL(KNN_CELLSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type BATCH_ADJ_ITER(BATCH_ADJ_ITERSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_data_multi(mtx_files, row_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0));
+    return rcpp_result_gen;
+END_RCPP
+}
 // asap_regression
 Rcpp::List asap_regression(const Eigen::MatrixXf Y_, const Eigen::MatrixXf log_x, const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose, const bool do_stdize_x);
 RcppExport SEXP _asapR_asap_regression(SEXP Y_SEXP, SEXP log_xSEXP, SEXP r_batch_effectSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP do_stdize_xSEXP) {
@@ -313,6 +336,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_fit_nmf_shared_dict", (DL_FUNC) &_asapR_asap_fit_nmf_shared_dict, 12},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 15},
+    {"_asapR_asap_random_bulk_data_multi", (DL_FUNC) &_asapR_asap_random_bulk_data_multi, 13},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 9},
     {"_asapR_asap_regression_mtx", (DL_FUNC) &_asapR_asap_regression_mtx, 15},
     {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},

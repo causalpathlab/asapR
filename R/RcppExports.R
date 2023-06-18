@@ -87,6 +87,25 @@ asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar_n
     .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, mtx_idx_file, num_factors, r_covar_n, r_covar_d, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
 }
 
+#' Generate approximate pseudo-bulk data by random projections
+#'
+#' @param mtx_files matrix-market-formatted data files (bgzip)
+#' @param row_files row names (gene/feature names)
+#' @param mtx_idx_files matrix-market colum index files
+#' @param rseed random seed
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_log1p log(x + 1) transformation (default: FALSE)
+#' @param KNN_CELL k-NN matching between cells (default: 10)
+#' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
+#'
+asap_random_bulk_data_multi <- function(mtx_files, row_files, idx_files, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
+}
+
 #' Poisson regression to estimate factor loading
 #'
 #' @param Y D x N data matrix
