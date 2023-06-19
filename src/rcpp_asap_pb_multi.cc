@@ -537,6 +537,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     TLOG_(verbose, "Final RPB: " << mu_ds.rows() << " x " << mu_ds.cols());
 
+    using namespace rcpp::util;
+    using namespace Rcpp;
+
     // convert zero-based to 1-based for R
     std::vector<Index> r_positions(positions.size());
     convert_r_index(positions, r_positions);
@@ -549,9 +552,6 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     for (std::size_t s = 1; s <= S; ++s)
         s_.push_back(std::to_string(s));
     std::vector<std::string> b_ = mtx_files;
-
-    using namespace rcpp::util;
-    using namespace Rcpp;
 
     return List::create(_["PB"] = named(mu_ds, d_, s_),
                         _["PB.batch"] = named(delta_ds, d_, s_),

@@ -32,6 +32,15 @@ named(const Eigen::MatrixBase<Derived> &xx,
     return x;
 }
 
+template <typename T>
+void
+convert_r_index(const std::vector<T> &cvec, std::vector<T> &rvec)
+{
+    rvec.resize(cvec.size());
+    auto r_index = [](const T x) -> T { return x + 1; };
+    std::transform(cvec.begin(), cvec.end(), rvec.begin(), r_index);
+}
+
 }} // namespace rcpp::util
 
 #endif
