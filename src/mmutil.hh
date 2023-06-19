@@ -2,7 +2,6 @@
 #include <Rcpp.h>
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
-// [[Rcpp::depends(RcppProgress)]]
 
 // [[Rcpp::plugins(openmp)]]
 #include <omp.h>

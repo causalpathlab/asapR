@@ -164,6 +164,22 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                                     << " / " << offset << " cells");
     }
 
+    if (B > 1) {
+        Mat X_nr(Ntot, B);
+        X_nr.setZero();
+        for (Index j = 0; j < batch_membership.size(); ++j)
+            X_nr(j, batch_membership.at(j)) = 1;
+
+        Mat Qt = Q_kn.transpose(); // N x K
+        residual_columns(Qt, X_nr);
+        standardize_columns_inplace(Qt);
+        Q_kn = Qt.transpose();
+
+        TLOG_(verbose,
+              "Regressed out X_nr from Q: " << Q_kn.rows() << " x "
+                                            << Q_kn.cols());
+    }
+
     /////////////////////////////////////////////////
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
@@ -519,6 +535,8 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         log_mu_ds = mu_param.log_mean();
     }
 
+    TLOG_(verbose, "Final RPB: " << mu_ds.rows() << " x " << mu_ds.cols());
+
     // convert zero-based to 1-based for R
     std::vector<Index> r_positions(positions.size());
     convert_r_index(positions, r_positions);
@@ -526,23 +544,32 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     std::vector<Index> r_batch(batch_membership.size());
     convert_r_index(batch_membership, r_batch);
 
-    return Rcpp::List::create(Rcpp::_["PB"] = mu_ds,
-                              Rcpp::_["PB.batch"] = delta_ds,
-                              Rcpp::_["log.PB"] = log_mu_ds,
-                              Rcpp::_["sum"] = ysum_ds,
-                              Rcpp::_["batch.sum"] = delta_num_db,
-                              Rcpp::_["size"] = size_s,
-                              Rcpp::_["prob.batch.sample"] = prob_bs,
-                              Rcpp::_["size.batch.sample"] = n_bs,
-                              Rcpp::_["batch.effect"] = delta_db,
-                              Rcpp::_["batch.sd"] = delta_sd_db,
-                              Rcpp::_["log.batch.effect"] = log_delta_db,
-                              Rcpp::_["log.batch.sd"] = log_delta_sd_db,
-                              Rcpp::_["mtx.files"] = mtx_files,
-                              Rcpp::_["batch.membership"] = r_batch,
-                              Rcpp::_["positions"] = r_positions,
-                              Rcpp::_["rand.proj"] = R_kd,
-                              Rcpp::_["Q"] = Q_kn,
-                              Rcpp::_["rand.dict"] = RD,
-                              Rcpp::_["rownames"] = pos2row);
+    std::vector<std::string> d_ = pos2row;
+    std::vector<std::string> s_;
+    for (std::size_t s = 1; s <= S; ++s)
+        s_.push_back(std::to_string(s));
+    std::vector<std::string> b_ = mtx_files;
+
+    using namespace rcpp::util;
+    using namespace Rcpp;
+
+    return List::create(_["PB"] = named(mu_ds, d_, s_),
+                        _["PB.batch"] = named(delta_ds, d_, s_),
+                        _["log.PB"] = named(log_mu_ds, d_, s_),
+                        _["sum"] = named(ysum_ds, d_, s_),
+                        _["sum_db"] = named(delta_num_db, d_, b_),
+                        _["size"] = size_s,
+                        _["prob_bs"] = named(prob_bs, b_, s_),
+                        _["size_bs"] = named(n_bs, b_, s_),
+                        _["batch.effect"] = named(delta_db, d_, b_),
+                        _["batch.sd"] = named(delta_sd_db, d_, b_),
+                        _["log.batch.effect"] = named(log_delta_db, d_, b_),
+                        _["log.batch.sd"] = named(log_delta_sd_db, d_, b_),
+                        _["mtx.files"] = mtx_files,
+                        _["batch.membership"] = r_batch,
+                        _["positions"] = r_positions,
+                        _["rand.proj"] = R_kd,
+                        _["Q"] = Q_kn,
+                        _["rand.dict"] = RD,
+                        _["rownames"] = pos2row);
 }
