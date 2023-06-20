@@ -426,7 +426,7 @@ asap_random_bulk_data(
 
             TLOG_(verbose,
                   "Batch optimization [ " << (t + 1) << " / "
-                                          << (BATCH_ADJ_ITER + 1) << " ]");
+                                          << (BATCH_ADJ_ITER) << " ]");
 
             if (!verbose) {
                 Rcpp::Rcerr << "+ " << std::flush;

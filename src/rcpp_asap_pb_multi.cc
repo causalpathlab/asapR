@@ -33,7 +33,6 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 {
 
     log1p_op<Mat> log1p;
-    at_least_one_op<Mat> at_least_one;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
@@ -51,12 +50,15 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     // first read global rows //
     ////////////////////////////
 
+    TLOG_(verbose, "Checked the files");
+
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
 
     {
         std::unordered_set<std::string> _rows; // Take a unique set
-        auto _insert = [&_rows](std::string f) {
+        auto _insert = [&](std::string f) {
+            TLOG_(verbose, "Populating rows in " << f << "...");
             std::vector<std::string> temp;
             CHECK(read_vector_file(f, temp));
             for (auto r : temp)
@@ -159,25 +161,44 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         }
 
         offset += Nb;
+
         TLOG_(verbose,
-              "processed file set " << b << " for random projection of " << Nb
-                                    << " / " << offset << " cells");
+              "processed file set #" << (b + 1) << " for random projection of "
+                                     << Nb << " / " << offset << " cells");
     }
 
     if (B > 1) {
-        Mat X_nr(Ntot, B);
-        X_nr.setZero();
-        for (Index j = 0; j < batch_membership.size(); ++j)
-            X_nr(j, batch_membership.at(j)) = 1;
 
-        Mat Qt = Q_kn.transpose(); // N x K
-        residual_columns(Qt, X_nr);
-        standardize_columns_inplace(Qt);
-        Q_kn = Qt.transpose();
+        at_least_one_op<Mat> at_least_one;
+        at_least_zero_op<Mat> at_least_zero;
+        const Scalar tol = 1e-4;
+
+        Mat s1_kb = Mat::Zero(K, B);
+        Mat s2_kb = Mat::Zero(K, B);
+        Mat n_kb = Mat::Zero(K, B);
+        for (Index j = 0; j < batch_membership.size(); ++j) {
+            const Index b = batch_membership.at(j);
+            s1_kb.col(b) += Q_kn.col(j);
+            s1_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
+            n_kb.col(b).array() += 1.;
+        }
+
+        Mat mu_kb = s1_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one));
+        Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
+                      mu_kb.cwiseProduct(mu_kb))
+                         .unaryExpr(at_least_zero)
+                         .cwiseSqrt();
+
+        for (Index j = 0; j < batch_membership.size(); ++j) {
+            const Index b = batch_membership.at(j);
+            Q_kn.col(j) -= mu_kb.col(b);
+            Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
+        }
 
         TLOG_(verbose,
-              "Regressed out X_nr from Q: " << Q_kn.rows() << " x "
-                                            << Q_kn.cols());
+              "Regressed out "
+                  << "batch info from Q: " << Q_kn.rows() << " x "
+                  << Q_kn.cols());
     }
 
     /////////////////////////////////////////////////
@@ -279,6 +300,8 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                         mtx_data_t::IDX(idx_files.at(b)));
 
         const Index Nb = data.info.max_col;
+
+        TLOG_(verbose, Nb << " samples");
         data.relocate_rows(row2pos);
 
 #if defined(_OPENMP)
@@ -291,8 +314,10 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
             const Mat y = data.read_reloc(lb, ub);
 
             for (Index loc = 0; loc < (ub - lb); ++loc) {
+
                 const Index glob = loc + lb + offset;
                 const Index s = positions.at(glob);
+
                 size_s(s) += 1.;
                 ysum_ds.col(s) += y.col(loc);
                 n_bs(b, s) = n_bs(b, s) + 1.;
@@ -301,8 +326,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         }
 
         offset += Nb;
+
         TLOG_(verbose,
-              "processed file set [" << b << "] for pseudobulk for " << Nb
+              "processed file set [" << (b + 1) << "] for pseudobulk for " << Nb
                                      << " / " << offset << " cells");
     }
 
@@ -352,14 +378,14 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
             }
 
             CHECK(mtx_ptr[b]->build_index(Q, verbose));
-            TLOG_(verbose, "Built annoy index [" << b << "]");
+            TLOG_(verbose, "Built annoy index [" << (b + 1) << "]");
         }
 
         ////////////////////////////
         // Step a. precalculation //
         ////////////////////////////
 
-        TLOG_(verbose, "Precalculating sufficient statistics...");
+        TLOG_(verbose, "Collecting sufficient statistics...");
 
         zsum_ds = Mat::Zero(D, S); // gene x PB counterfactual
 
@@ -456,8 +482,8 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
         Eigen::setNbThreads(NUM_THREADS);
         TLOG_(verbose,
-              "Iterative optimization "
-                  << " with " << Eigen::nbThreads()
+              "Iterative optimization"
+                  << " using " << Eigen::nbThreads()
                   << " Eigen library threads");
 
         Mat gamma_ds = Mat::Ones(D, S); // bias on the side of CF
@@ -496,7 +522,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
             TLOG_(verbose,
                   "Batch optimization [ " << (t + 1) << " / "
-                                          << (BATCH_ADJ_ITER + 1) << " ]");
+                                          << (BATCH_ADJ_ITER) << " ]");
 
             if (!verbose) {
                 Rcpp::Rcerr << "+ " << std::flush;
