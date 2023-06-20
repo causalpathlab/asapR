@@ -1,12 +1,9 @@
 #include "rcpp_asap.hh"
+#include "rcpp_util.hh"
 #include "rcpp_asap_nmf_train.hh"
 
 using RNG = dqrng::xoshiro256plus;
 using model_t = asap_nmf_model_t<RNG>;
-
-SpMat _sparse_mat(const Rcpp::List &in_list,
-                  const std::size_t nrow,
-                  const std::size_t ncol);
 
 //' A quick NMF estimation based on alternating Poisson regressions
 //'
@@ -38,7 +35,7 @@ SpMat _sparse_mat(const Rcpp::List &in_list,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf(const Eigen::MatrixXf &Y_,
+asap_fit_nmf(Rcpp::NumericMatrix &Y_,
              const std::size_t maxK,
              const std::size_t max_iter = 100,
              const Rcpp::Nullable<Rcpp::List> r_A_dd_list = R_NilValue,
@@ -57,7 +54,8 @@ asap_fit_nmf(const Eigen::MatrixXf &Y_,
     TLOG_(verbose, Eigen::nbThreads() << " threads");
 
     log1p_op<Mat> log1p;
-    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    Mat Y_dn =
+        do_log1p ? Rcpp::as<Mat>(Y_).unaryExpr(log1p) : Rcpp::as<Mat>(Y_);
 
     TLOG_(verbose, "Data: " << Y_dn.rows() << " x " << Y_dn.cols());
 
@@ -81,12 +79,18 @@ asap_fit_nmf(const Eigen::MatrixXf &Y_,
     SpMat A_dd, A_nn;
 
     if (r_A_dd_list.isNotNull()) {
-        A_dd = _sparse_mat(Rcpp::List(r_A_dd_list), Y_dn.rows(), Y_dn.rows());
+        rcpp::util::build_sparse_mat(Rcpp::List(r_A_dd_list),
+                                     Y_dn.rows(),
+                                     Y_dn.rows(),
+                                     A_dd);
         TLOG_(verbose, "Row Network: " << A_dd.rows() << " x " << A_dd.cols());
     }
 
     if (r_A_nn_list.isNotNull()) {
-        A_nn = _sparse_mat(Rcpp::List(r_A_nn_list), Y_dn.cols(), Y_dn.cols());
+        rcpp::util::build_sparse_mat<SpMat>(Rcpp::List(r_A_nn_list),
+                                            Y_dn.cols(),
+                                            Y_dn.cols(),
+                                            A_nn);
         TLOG_(verbose, "Col Network: " << A_nn.rows() << " x " << A_nn.cols());
     }
 
@@ -109,57 +113,57 @@ asap_fit_nmf(const Eigen::MatrixXf &Y_,
                               Rcpp::_["model"] = rcpp_list_out(model));
 }
 
-SpMat
-_sparse_mat(const Rcpp::List &in_list,
-            const std::size_t nrow,
-            const std::size_t ncol)
-{
-    SpMat ret(nrow, ncol);
-    std::vector<Eigen::Triplet<Scalar>> triples;
+// SpMat
+// _sparse_mat(const Rcpp::List &in_list,
+//             const std::size_t nrow,
+//             const std::size_t ncol)
+// {
+//     SpMat ret(nrow, ncol);
+//     std::vector<Eigen::Triplet<Scalar>> triples;
 
-    if (in_list.size() == 3) {
-        const std::vector<std::size_t> &ii = in_list[0];
-        const std::vector<std::size_t> &jj = in_list[1];
-        const std::vector<Scalar> &kk = in_list[2];
-        const std::size_t m = ii.size();
+//     if (in_list.size() == 3) {
+//         const std::vector<std::size_t> &ii = in_list[0];
+//         const std::vector<std::size_t> &jj = in_list[1];
+//         const std::vector<Scalar> &kk = in_list[2];
+//         const std::size_t m = ii.size();
 
-        if (jj.size() == m && kk.size() == m) {
-            triples.reserve(m);
-            for (std::size_t e = 0; e < m; ++e) {
-                const std::size_t i = ii.at(e), j = jj.at(e);
-                if (i <= nrow && j <= ncol) {
-                    // 1-based -> 0-based
-                    triples.emplace_back(
-                        Eigen::Triplet<Scalar>(i - 1, j - 1, kk.at(e)));
-                }
-            }
-        } else {
-            WLOG("input list sizes don't match");
-        }
-    } else if (in_list.size() == 2) {
+//         if (jj.size() == m && kk.size() == m) {
+//             triples.reserve(m);
+//             for (std::size_t e = 0; e < m; ++e) {
+//                 const std::size_t i = ii.at(e), j = jj.at(e);
+//                 if (i <= nrow && j <= ncol) {
+//                     // 1-based -> 0-based
+//                     triples.emplace_back(
+//                         Eigen::Triplet<Scalar>(i - 1, j - 1, kk.at(e)));
+//                 }
+//             }
+//         } else {
+//             WLOG("input list sizes don't match");
+//         }
+//     } else if (in_list.size() == 2) {
 
-        const std::vector<std::size_t> &ii = in_list[0];
-        const std::vector<std::size_t> &jj = in_list[1];
-        const std::size_t m = ii.size();
+//         const std::vector<std::size_t> &ii = in_list[0];
+//         const std::vector<std::size_t> &jj = in_list[1];
+//         const std::size_t m = ii.size();
 
-        if (jj.size() == m) {
-            triples.reserve(m);
-            for (std::size_t e = 0; e < m; ++e) {
-                const std::size_t i = ii.at(e), j = jj.at(e);
-                if (i <= nrow && j <= ncol) {
-                    // 1-based -> 0-based
-                    triples.emplace_back(
-                        Eigen::Triplet<Scalar>(i - 1, j - 1, 1.));
-                }
-            }
-        } else {
-            WLOG("input list sizes don't match");
-        }
-    } else {
-        WLOG("Need two or three vectors in the list");
-    }
+//         if (jj.size() == m) {
+//             triples.reserve(m);
+//             for (std::size_t e = 0; e < m; ++e) {
+//                 const std::size_t i = ii.at(e), j = jj.at(e);
+//                 if (i <= nrow && j <= ncol) {
+//                     // 1-based -> 0-based
+//                     triples.emplace_back(
+//                         Eigen::Triplet<Scalar>(i - 1, j - 1, 1.));
+//                 }
+//             }
+//         } else {
+//             WLOG("input list sizes don't match");
+//         }
+//     } else {
+//         WLOG("Need two or three vectors in the list");
+//     }
 
-    ret.reserve(triples.size());
-    ret.setFromTriplets(triples.begin(), triples.end());
-    return ret;
-}
+//     ret.reserve(triples.size());
+//     ret.setFromTriplets(triples.begin(), triples.end());
+//     return ret;
+// }

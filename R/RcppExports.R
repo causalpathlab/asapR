@@ -124,11 +124,12 @@ asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., 
 #' Poisson regression to estimate factor loading
 #'
 #' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
 #' @param mtx_idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
-#' @param r_batch_effect D x B batch effect matrix (default: NULL)
-#' @param r_x_row_names (default: NULL)
-#' @param r_mtx_row_names (default: NULL)
+#' @param x_row_names row names log_x (D vector)
+#' @param _log_batch_effect D x B batch effect matrix (default: NULL)
 #' @param a0 gamma(a0, b0)
 #' @param b0 gamma(a0, b0)
 #' @param do_log1p do log(1+y) transformation
@@ -137,8 +138,8 @@ asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., 
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_stdize do the standardization of log_x
 #'
-asap_regression_mtx <- function(mtx_file, mtx_idx_file, log_x, r_batch_effect = NULL, r_x_row_names = NULL, r_mtx_row_names = NULL, r_taboo_names = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, mtx_idx_file, log_x, r_batch_effect, r_x_row_names, r_mtx_row_names, r_taboo_names, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
+asap_regression_mtx <- function(mtx_file, row_file, col_file, mtx_idx_file, log_x, x_row_names, r_batch_effect = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, mtx_idx_file, log_x, x_row_names, r_batch_effect, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
 }
 
 #' Stretch non-negative matrix

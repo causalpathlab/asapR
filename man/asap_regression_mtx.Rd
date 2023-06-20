@@ -6,12 +6,12 @@
 \usage{
 asap_regression_mtx(
   mtx_file,
+  row_file,
+  col_file,
   mtx_idx_file,
   log_x,
+  x_row_names,
   r_batch_effect = NULL,
-  r_x_row_names = NULL,
-  r_mtx_row_names = NULL,
-  r_taboo_names = NULL,
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
@@ -25,15 +25,15 @@ asap_regression_mtx(
 \arguments{
 \item{mtx_file}{matrix-market-formatted data file (D x N, bgzip)}
 
+\item{row_file}{row names file (D x 1)}
+
+\item{col_file}{column names file (N x 1)}
+
 \item{mtx_idx_file}{matrix-market colum index file}
 
 \item{log_x}{D x K log dictionary/design matrix}
 
-\item{r_batch_effect}{D x B batch effect matrix (default: NULL)}
-
-\item{r_x_row_names}{(default: NULL)}
-
-\item{r_mtx_row_names}{(default: NULL)}
+\item{x_row_names}{row names log_x (D vector)}
 
 \item{a0}{gamma(a0, b0)}
 
@@ -46,6 +46,8 @@ asap_regression_mtx(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{_log_batch_effect}{D x B batch effect matrix (default: NULL)}
 
 \item{do_stdize}{do the standardization of log_x}
 }

@@ -103,11 +103,12 @@ asap_regression(
 //' Poisson regression to estimate factor loading
 //'
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+//' @param row_file row names file (D x 1)
+//' @param col_file column names file (N x 1)
 //' @param mtx_idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
-//' @param r_batch_effect D x B batch effect matrix (default: NULL)
-//' @param r_x_row_names (default: NULL)
-//' @param r_mtx_row_names (default: NULL)
+//' @param x_row_names row names log_x (D vector)
+//' @param _log_batch_effect D x B batch effect matrix (default: NULL)
 //' @param a0 gamma(a0, b0)
 //' @param b0 gamma(a0, b0)
 //' @param do_log1p do log(1+y) transformation
@@ -120,12 +121,12 @@ asap_regression(
 Rcpp::List
 asap_regression_mtx(
     const std::string mtx_file,
+    const std::string row_file,
+    const std::string col_file,
     const std::string mtx_idx_file,
     const Eigen::MatrixXf log_x,
+    const Rcpp::StringVector &x_row_names,
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
-    const Rcpp::Nullable<Rcpp::StringVector> r_x_row_names = R_NilValue,
-    const Rcpp::Nullable<Rcpp::StringVector> r_mtx_row_names = R_NilValue,
-    const Rcpp::Nullable<Rcpp::StringVector> r_taboo_names = R_NilValue,
     const double a0 = 1.,
     const double b0 = 1.,
     const std::size_t max_iter = 10,
@@ -139,51 +140,27 @@ asap_regression_mtx(
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
+    std::vector<std::string> pos2row;
+
+    rcpp::util::copy(x_row_names, pos2row);
+
     //////////////////////////////////////
     // take care of different row names //
     //////////////////////////////////////
 
-    std::vector<Index> x_row_idx;
-    std::vector<Index> mtx_row_idx;
-    bool take_row_subset = false;
+    const Index D = pos2row.size(); // dimensionality
 
-    std::unordered_map<Rcpp::String, Index> taboo;
-    if (r_taboo_names.isNotNull()) {
-        const Rcpp::StringVector taboo_names(r_taboo_names);
-        for (auto r : taboo_names) {
-            taboo[r] = 1;
-        }
+    ASSERT_RETL(log_x.rows() == D,
+                "#Rows in the log_x matrix !=  the size of x_row_names: "
+                    << log_x.rows() << " != " << D);
+
+    std::unordered_map<std::string, Index> row2pos;
+    for (Index r = 0; r < pos2row.size(); ++r) {
+        row2pos[pos2row.at(r)] = r;
     }
 
-    if (r_x_row_names.isNotNull() && r_mtx_row_names.isNotNull()) {
-
-        const Rcpp::StringVector x_row_names(r_x_row_names);
-        const Rcpp::StringVector mtx_row_names(r_mtx_row_names);
-
-        std::unordered_map<Rcpp::String, Index> mtx_row_pos;
-        {
-            Index mi = 0;
-            for (auto r : mtx_row_names) {
-                mtx_row_pos[r] = mi++;
-            }
-        }
-        Index xi = 0;
-        for (auto r : x_row_names) {
-            if (mtx_row_pos.count(r) > 0 && taboo.count(r) == 0) {
-                Index mi = mtx_row_pos[r];
-                mtx_row_idx.emplace_back(mi);
-                x_row_idx.emplace_back(xi);
-            }
-            ++xi;
-        }
-        if (verbose) {
-            TLOG(x_row_idx.size() << " rows matched between X and MTX");
-        }
-        ASSERT_RETL(x_row_idx.size() > 0,
-                    " At least one common name should be present "
-                        << " in both x_row_names and mtx_row_names");
-        take_row_subset = true;
-    }
+    ASSERT_RETL(row2pos.size() == D, "Redundant row names exist");
+    TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
     //////////////
     // functors //
@@ -205,10 +182,24 @@ asap_regression_mtx(
     CHK_RETL_(peek_bgzf_header(mtx_file, info),
               "Failed to read the size of this mtx file:" << mtx_file);
 
-    const Index D = info.max_row;        // dimensionality
     const Index N = info.max_col;        // number of cells
     const Index K = log_x.cols();        // number of topics
     const Index block_size = BLOCK_SIZE; // memory block size
+
+    std::vector<std::string> coln;
+    CHK_RETL_(read_vector_file(col_file, coln),
+              "Failed to read the column name file: " << col_file);
+
+    ASSERT_RETL(N == coln.size(),
+                "Different #columns: " << N << " vs. " << coln.size());
+
+    mtx_data_t data(mtx_data_t::MTX { mtx_file },
+                    mtx_data_t::ROW { row_file },
+                    mtx_data_t::IDX { mtx_idx_file });
+
+    ///////////////////////////////
+    // preprocess logX_dk matrix //
+    ///////////////////////////////
 
     if (verbose) {
         TLOG("Start recalibrating column-wise loading parameters...");
@@ -229,61 +220,26 @@ asap_regression_mtx(
             TLOG("Removed the batch effects");
     }
 
-    ///////////////////////////////
-    // preprocess logX_dk matrix //
-    ///////////////////////////////
-
-    eigen_triplet_reader_remapped_rows_cols_t::index_map_t mtx_row_loc;
-
-    if (!take_row_subset) {
-        ASSERT_RETL(log_x.rows() == D,
-                    "The log-X matrix contains different"
-                        << " numbers of rows from the one in " << mtx_file
-                        << ": " << log_x.rows() << " vs. " << D);
-    } else {
-        const Index d = x_row_idx.size();
-        Mat temp(d, logX_dk.cols());
-        for (Index r = 0; r < d; ++r) {
-            temp.row(r) = log_x.row(x_row_idx.at(r));
-        }
-        logX_dk = temp;
-
-        for (Index r = 0; r < d; ++r) {
-            mtx_row_loc[mtx_row_idx.at(r)] = r;
-        }
-    }
-
     stdizer_t<Mat> stdizer_x(logX_dk);
 
     if (do_stdize_x)
         stdizer_x.colwise();
 
-    if (verbose) {
-        TLOG("log.X: " << logX_dk.rows() << " x " << logX_dk.cols());
-    }
+    TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
 
-    Mat R_tot(N, K);
-    Mat Z_tot(N, K);
-    Mat logZ_tot(N, K);
-    Mat theta_tot(N, K);
-    Mat log_theta_tot(N, K);
+    Mat Rtot_nk(N, K);
+    Mat Ztot_nk(N, K);
+    Mat logZtot_nk(N, K);
+    Mat thetaTot_nk(N, K);
+    Mat logThetaTot_nk(N, K);
 
     Index Nprocessed = 0;
 
     if (verbose) {
-        Rcpp::Rcerr << "Calibrating total = " << N << " columns" << std::endl;
+        Rcpp::Rcerr << "Calibrating " << N << " columns..." << std::endl;
     }
 
-    std::vector<Index> mtx_idx;
-
-    CHK_RETL_(read_mmutil_index(mtx_idx_file, mtx_idx),
-              "Failed to read the index file:" << std::endl
-                                               << mtx_idx_file << std::endl
-                                               << "Consider rebuilding it."
-                                               << std::endl);
-
-    TLOG("Read the mtx index file: " << mtx_idx_file
-                                     << " n=" << mtx_idx.size());
+    data.relocate_rows(row2pos);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -291,21 +247,7 @@ asap_regression_mtx(
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
         Index ub = std::min(N, block_size + lb);
-        Index col_lb_mem = mtx_idx.at(lb);
-        Index col_ub_mem = ub < N ? mtx_idx.at(ub) : 0; // 0 = the end
-
-        const SpMat y = take_row_subset ?
-            (read_eigen_sparse_subset_row_col(mtx_file,
-                                              mtx_row_loc,
-                                              lb,
-                                              ub,
-                                              col_lb_mem,
-                                              col_ub_mem)) :
-            (read_eigen_sparse_subset_col(mtx_file,
-                                          lb,
-                                          ub,
-                                          col_lb_mem,
-                                          col_ub_mem));
+        const SpMat y = data.read_reloc(lb, ub);
 
         //////////////////////
         // normalize matrix //
@@ -357,11 +299,11 @@ asap_regression_mtx(
         {
             for (Index i = 0; i < (ub - lb); ++i) {
                 const Index j = i + lb;
-                Z_tot.row(j) = rho_nk.row(i);
-                logZ_tot.row(j) = logRho_nk.row(i);
-                R_tot.row(j) = R_nk.row(i);
-                theta_tot.row(j) = theta_b.mean().row(i);
-                log_theta_tot.row(j) = theta_b.log_mean().row(i);
+                Ztot_nk.row(j) = rho_nk.row(i);
+                logZtot_nk.row(j) = logRho_nk.row(i);
+                Rtot_nk.row(j) = R_nk.row(i);
+                thetaTot_nk.row(j) = theta_b.mean().row(i);
+                logThetaTot_nk.row(j) = theta_b.log_mean().row(i);
             }
 
             Nprocessed += Y_dn.cols();
@@ -375,13 +317,22 @@ asap_regression_mtx(
         } // end of omp critical
     }
 
-    Rcpp::Rcerr << std::endl;
+    if (!verbose)
+        Rcpp::Rcerr << std::endl;
     TLOG("Done");
 
-    return Rcpp::List::create(Rcpp::_["beta"] = logX_dk.unaryExpr(exp),
-                              Rcpp::_["theta"] = theta_tot,
-                              Rcpp::_["corr"] = R_tot,
-                              Rcpp::_["latent"] = Z_tot,
-                              Rcpp::_["log.latent"] = logZ_tot,
-                              Rcpp::_["log.theta"] = log_theta_tot);
+    using namespace rcpp::util;
+    using namespace Rcpp;
+
+    std::vector<std::string> d_ = pos2row;
+    std::vector<std::string> k_;
+    for (std::size_t k = 1; k <= K; ++k)
+        k_.push_back(std::to_string(k));
+
+    return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
+                        _["theta"] = named(thetaTot_nk, coln, k_),
+                        _["corr"] = named(Rtot_nk, coln, k_),
+                        _["latent"] = named(Ztot_nk, coln, k_),
+                        _["log.latent"] = named(logZtot_nk, coln, k_),
+                        _["log.theta"] = named(logThetaTot_nk, coln, k_));
 }
