@@ -173,25 +173,25 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         const Scalar tol = 1e-4;
 
         Mat s1_kb = Mat::Zero(K, B);
-        Mat s2_kb = Mat::Zero(K, B);
+        // Mat s2_kb = Mat::Zero(K, B);
         Mat n_kb = Mat::Zero(K, B);
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             s1_kb.col(b) += Q_kn.col(j);
-            s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
+            // s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
             n_kb.col(b).array() += 1.;
         }
 
         Mat mu_kb = s1_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one));
-        Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
-                      mu_kb.cwiseProduct(mu_kb))
-                         .unaryExpr(at_least_zero)
-                         .cwiseSqrt();
+        // Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
+        //               mu_kb.cwiseProduct(mu_kb))
+        //                  .unaryExpr(at_least_zero)
+        //                  .cwiseSqrt();
 
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             Q_kn.col(j) -= mu_kb.col(b);
-            Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
+            // Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
         }
 
         TLOG_(verbose,
@@ -219,6 +219,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     ASSERT_RETL(vv.rows() == Ntot, " failed SVD for Q");
 
+    Mat Q_nk = Q_kn.transpose();      // N x K
     Mat RD = standardize_columns(vv); // N x K
     TLOG(RD.rows() << " x " << RD.cols());
 
@@ -356,9 +357,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
         TLOG_(verbose,
               "Building annoy index using random proj. results "
-                  << RD.rows() << " x " << RD.cols());
+                  << Q_nk.rows() << " x " << Q_nk.cols());
 
-        const Index rank = RD.cols();
+        const Index rank = Q_nk.cols();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -373,7 +374,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
             for (Index loc = 0; loc < Nb; ++loc) {
                 const Index glob = batch_cells.at(loc);
-                Q.col(loc) = RD.row(glob).transpose();
+                Q.col(loc) = Q_nk.row(glob).transpose();
             }
 
             CHECK(mtx_ptr[b]->build_index(Q, verbose));
@@ -422,7 +423,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
                 nneigh = 0;
 
-                Eigen::Map<Mat>(query.data(), 1, rank) = RD.row(glob);
+                Eigen::Map<Mat>(query.data(), 1, rank) = Q_nk.row(glob);
 
                 for (Index b = 0; b < B; ++b) {
                     if (a != b) {
