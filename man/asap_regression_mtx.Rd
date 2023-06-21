@@ -8,7 +8,7 @@ asap_regression_mtx(
   mtx_file,
   row_file,
   col_file,
-  mtx_idx_file,
+  idx_file,
   log_x,
   x_row_names,
   r_batch_effect = NULL,
@@ -29,7 +29,7 @@ asap_regression_mtx(
 
 \item{col_file}{column names file (N x 1)}
 
-\item{mtx_idx_file}{matrix-market colum index file}
+\item{idx_file}{matrix-market colum index file}
 
 \item{log_x}{D x K log dictionary/design matrix}
 

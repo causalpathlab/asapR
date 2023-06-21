@@ -91,7 +91,10 @@ asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar_n
 #'
 #' @param mtx_files matrix-market-formatted data files (bgzip)
 #' @param row_files row names (gene/feature names)
+#' @param col_files row names (cell/column names)
 #' @param mtx_idx_files matrix-market colum index files
+#' @param num_factors a desired number of random factors
+#' @param take_union_rows take union of rows (default: FALSE)
 #' @param rseed random seed
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -102,8 +105,8 @@ asap_random_bulk_data <- function(mtx_file, mtx_idx_file, num_factors, r_covar_n
 #' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #'
-asap_random_bulk_data_multi <- function(mtx_files, row_files, idx_files, num_factors, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
+asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, KNN_CELL = 10L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, KNN_CELL, BATCH_ADJ_ITER, a0, b0)
 }
 
 #' Poisson regression to estimate factor loading
@@ -126,7 +129,7 @@ asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., 
 #' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 #' @param row_file row names file (D x 1)
 #' @param col_file column names file (N x 1)
-#' @param mtx_idx_file matrix-market colum index file
+#' @param idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
 #' @param x_row_names row names log_x (D vector)
 #' @param _log_batch_effect D x B batch effect matrix (default: NULL)
@@ -138,8 +141,8 @@ asap_regression <- function(Y_, log_x, r_batch_effect = NULL, a0 = 1., b0 = 1., 
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_stdize do the standardization of log_x
 #'
-asap_regression_mtx <- function(mtx_file, row_file, col_file, mtx_idx_file, log_x, x_row_names, r_batch_effect = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
-    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, mtx_idx_file, log_x, x_row_names, r_batch_effect, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
+asap_regression_mtx <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, r_batch_effect = NULL, a0 = 1., b0 = 1., max_iter = 10L, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_stdize_x = FALSE) {
+    .Call('_asapR_asap_regression_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, r_batch_effect, a0, b0, max_iter, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, do_stdize_x)
 }
 
 #' Stretch non-negative matrix

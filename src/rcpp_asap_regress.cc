@@ -105,7 +105,7 @@ asap_regression(
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 //' @param row_file row names file (D x 1)
 //' @param col_file column names file (N x 1)
-//' @param mtx_idx_file matrix-market colum index file
+//' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param x_row_names row names log_x (D vector)
 //' @param _log_batch_effect D x B batch effect matrix (default: NULL)
@@ -123,7 +123,7 @@ asap_regression_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,
-    const std::string mtx_idx_file,
+    const std::string idx_file,
     const Eigen::MatrixXf log_x,
     const Rcpp::StringVector &x_row_names,
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
@@ -195,7 +195,7 @@ asap_regression_mtx(
 
     mtx_data_t data(mtx_data_t::MTX { mtx_file },
                     mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { mtx_idx_file });
+                    mtx_data_t::IDX { idx_file });
 
     ///////////////////////////////
     // preprocess logX_dk matrix //

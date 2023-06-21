@@ -7,8 +7,10 @@
 asap_random_bulk_data_multi(
   mtx_files,
   row_files,
+  col_files,
   idx_files,
   num_factors,
+  take_union_rows = FALSE,
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -24,6 +26,12 @@ asap_random_bulk_data_multi(
 \item{mtx_files}{matrix-market-formatted data files (bgzip)}
 
 \item{row_files}{row names (gene/feature names)}
+
+\item{col_files}{row names (cell/column names)}
+
+\item{num_factors}{a desired number of random factors}
+
+\item{take_union_rows}{take union of rows (default: FALSE)}
 
 \item{rseed}{random seed}
 

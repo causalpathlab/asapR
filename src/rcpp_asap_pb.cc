@@ -40,7 +40,6 @@ asap_random_bulk_data(
 {
 
     log1p_op<Mat> log1p;
-    at_least_one_op<Mat> at_least_one;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
@@ -71,8 +70,6 @@ asap_random_bulk_data(
         TLOG_(verbose, "from random projection data.");
         ASSERT_RETL(X_nr.rows() == N, "incompatible covariate matrix");
     }
-
-    const Scalar eps = 1e-8;
 
     if (verbose) {
         TLOG(D << " x " << N << " single cell matrix");

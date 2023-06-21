@@ -4,7 +4,10 @@
 //'
 //' @param mtx_files matrix-market-formatted data files (bgzip)
 //' @param row_files row names (gene/feature names)
+//' @param col_files row names (cell/column names)
 //' @param mtx_idx_files matrix-market colum index files
+//' @param num_factors a desired number of random factors
+//' @param take_union_rows take union of rows (default: FALSE)
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -19,8 +22,10 @@
 Rcpp::List
 asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                             const std::vector<std::string> row_files,
+                            const std::vector<std::string> col_files,
                             const std::vector<std::string> idx_files,
                             const std::size_t num_factors,
+                            const bool take_union_rows = false,
                             const std::size_t rseed = 42,
                             const bool verbose = false,
                             const std::size_t NUM_THREADS = 1,
@@ -40,10 +45,12 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     ASSERT_RETL(B > 0, "Empty mtx file names");
     ASSERT_RETL(row_files.size() == B, "Need a row file for each batch");
+    ASSERT_RETL(col_files.size() == B, "Need a col file for each batch");
     ASSERT_RETL(idx_files.size() == B, "Need an index file for each batch");
 
     ERR_RET(!all_files_exist(mtx_files), "missing in the mtx files");
     ERR_RET(!all_files_exist(row_files), "missing in the row files");
+    ERR_RET(!all_files_exist(col_files), "missing in the col files");
     ERR_RET(!all_files_exist(idx_files), "missing in the idx files");
 
     ////////////////////////////
@@ -55,27 +62,10 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
 
-    {
-        std::unordered_set<std::string> _rows; // Take a unique set
-        auto _insert = [&](std::string f) {
-            TLOG_(verbose, "Populating rows in " << f << "...");
-            std::vector<std::string> temp;
-            CHECK(read_vector_file(f, temp));
-            for (auto r : temp)
-                _rows.insert(r);
-        };
+    take_row_names(row_files, pos2row, row2pos, take_union_rows);
+    TLOG_(verbose, "Found " << row2pos.size() << " row names");
 
-        std::for_each(row_files.begin(), row_files.end(), _insert);
-
-        pos2row.reserve(_rows.size());
-        std::copy(_rows.begin(), _rows.end(), std::back_inserter(pos2row));
-        std::sort(pos2row.begin(), pos2row.end());
-
-        for (Index r = 0; r < pos2row.size(); ++r) {
-            row2pos[pos2row.at(r)] = r;
-        }
-        TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
-    }
+    ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
 
     const Index D = pos2row.size(); // dimensionality
     const Index K = num_factors;    // tree depths in implicit bisection
@@ -92,6 +82,15 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
         CHK_RETL(convert_bgzip(mtx_files.at(b)));
+    }
+
+    std::vector<std::string> columns;
+    columns.reserve(Ntot);
+
+    for (Index b = 0; b < B; ++b) {
+        std::vector<std::string> col_b;
+        CHECK(read_vector_file(col_files.at(b), col_b))
+        std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
     }
 
     /////////////////////////////////////////////
@@ -179,7 +178,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             s1_kb.col(b) += Q_kn.col(j);
-            s1_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
+            s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
             n_kb.col(b).array() += 1.;
         }
 
@@ -594,6 +593,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                         _["mtx.files"] = mtx_files,
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
+                        _["colnames"] = columns,
                         _["rand.proj"] = R_kd,
                         _["Q"] = Q_kn,
                         _["rand.dict"] = RD,
