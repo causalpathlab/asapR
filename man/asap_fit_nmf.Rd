@@ -12,7 +12,7 @@ asap_fit_nmf(
   r_A_nn_list = NULL,
   burnin = 0L,
   verbose = TRUE,
-  a0 = 1,
+  a0 = 1e-08,
   b0 = 1,
   do_log1p = FALSE,
   rseed = 1337L,
@@ -32,7 +32,7 @@ asap_fit_nmf(
 
 \item{verbose}{verbosity}
 
-\item{a0}{gamma(a0, b0) default: a0 = 1}
+\item{a0}{gamma(a0, b0) default: a0 = 1e-8}
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
 
@@ -52,12 +52,9 @@ asap_fit_nmf(
 a list that contains:
 \itemize{
 \item log.likelihood log-likelihood trace
-\item beta dictionary (gene x factor)
-\item log.beta log-dictionary (gene x factor)
-\item theta loading (sample x factor)
-\item log.theta log-loading (sample x factor)
-\item log.phi auxiliary variables (gene x factor)
-\item log.rho auxiliary variables (sample x factor)
+\item std_log_x standardized log-dictionary (gene x factor)
+\item corr empirical correlation (sample x factor)
+\item model a list of beta (gene x factor) and theta (sample x factor)
 }
 }
 \description{

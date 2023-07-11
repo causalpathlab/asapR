@@ -22,6 +22,9 @@
     <loc>/articles/note_faster_nmf_approximation.html</loc>
   </url>
   <url>
+    <loc>/articles/note_multi_nmf.html</loc>
+  </url>
+  <url>
     <loc>/authors.html</loc>
   </url>
   <url>
@@ -37,16 +40,28 @@
     <loc>/reference/asap_fit_nmf_alternate.html</loc>
   </url>
   <url>
+    <loc>/reference/asap_fit_nmf_shared_dict.html</loc>
+  </url>
+  <url>
     <loc>/reference/asap_predict_mtx.html</loc>
   </url>
   <url>
     <loc>/reference/asap_random_bulk_data.html</loc>
   </url>
   <url>
+    <loc>/reference/asap_random_bulk_data_multi.html</loc>
+  </url>
+  <url>
     <loc>/reference/asap_regression.html</loc>
   </url>
   <url>
     <loc>/reference/asap_regression_mtx.html</loc>
+  </url>
+  <url>
+    <loc>/reference/asap_topic_stat.html</loc>
+  </url>
+  <url>
+    <loc>/reference/decompose_network.html</loc>
   </url>
   <url>
     <loc>/reference/fileset.list.html</loc>

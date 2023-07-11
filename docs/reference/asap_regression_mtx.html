@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.2</span>
       </span>
     </div>
 
@@ -36,6 +36,9 @@
     </li>
     <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
+    </li>
+    <li>
+      <a href="../articles/note_multi_nmf.html">Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -59,12 +62,12 @@
     <div id="ref-usage">
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">asap_regression_mtx</span><span class="op">(</span></span>
 <span>  <span class="va">mtx_file</span>,</span>
-<span>  <span class="va">mtx_idx_file</span>,</span>
+<span>  <span class="va">row_file</span>,</span>
+<span>  <span class="va">col_file</span>,</span>
+<span>  <span class="va">idx_file</span>,</span>
 <span>  <span class="va">log_x</span>,</span>
+<span>  <span class="va">x_row_names</span>,</span>
 <span>  r_batch_effect <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  r_x_row_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  r_mtx_row_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  r_taboo_names <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  a0 <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  max_iter <span class="op">=</span> <span class="fl">10L</span>,</span>
@@ -82,7 +85,15 @@
 <dd><p>matrix-market-formatted data file (D x N, bgzip)</p></dd>
 
 
-<dt>mtx_idx_file</dt>
+<dt>row_file</dt>
+<dd><p>row names file (D x 1)</p></dd>
+
+
+<dt>col_file</dt>
+<dd><p>column names file (N x 1)</p></dd>
+
+
+<dt>idx_file</dt>
 <dd><p>matrix-market colum index file</p></dd>
 
 
@@ -90,16 +101,8 @@
 <dd><p>D x K log dictionary/design matrix</p></dd>
 
 
-<dt>r_batch_effect</dt>
-<dd><p>D x B batch effect matrix (default: NULL)</p></dd>
-
-
-<dt>r_x_row_names</dt>
-<dd><p>(default: NULL)</p></dd>
-
-
-<dt>r_mtx_row_names</dt>
-<dd><p>(default: NULL)</p></dd>
+<dt>x_row_names</dt>
+<dd><p>row names log_x (D vector)</p></dd>
 
 
 <dt>a0</dt>
@@ -126,6 +129,10 @@
 <dd><p>disk I/O block size (number of columns)</p></dd>
 
 
+<dt>_log_batch_effect</dt>
+<dd><p>D x B batch effect matrix (default: NULL)</p></dd>
+
+
 <dt>do_stdize</dt>
 <dd><p>do the standardization of log_x</p></dd>
 
@@ -143,7 +150,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

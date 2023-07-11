@@ -206,7 +206,8 @@ public:
 
         _row_factor_aux(stoch, do_stdize);
 
-        // Update column topic factors, theta(j, k)
+        // Additionally update column topic factors, theta(j, k)
+        // based on this new row_aux and the previous col_aux
         if (!has_col_net) {
             theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() *
                                                     row_aux_dk),
@@ -214,7 +215,7 @@ public:
             theta_nk.calibrate();
         }
 
-        // Update row topic factors
+        // Update row topic factors based on this new row_aux
         beta_dk.update((row_aux_dk.array().colwise() * Y_d.array()).matrix(),
                        ones_d * theta_nk.mean().colwise().sum());
         beta_dk.calibrate();
@@ -222,7 +223,8 @@ public:
 
     template <typename Derived>
     void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const NULL_DATA &_null,
+                       const NULL_DATA &_null_counterfactual,
+                       const NULL_DATA &_null_network,
                        const STOCH &stoch_,
                        const STD &std_)
     {
@@ -231,6 +233,18 @@ public:
 
     template <typename Derived, typename Derived2>
     void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const Eigen::MatrixBase<Derived> &Y0_dn,
+                       const NULL_DATA &_null_network,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+        WLOG("Not implemented; will not use Y0");
+        update_by_row(Y_dn, stoch_, std_);
+    }
+
+    template <typename Derived, typename Derived2>
+    void update_by_row(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const NULL_DATA &_null_counterfactual,
                        const Eigen::SparseMatrixBase<Derived2> &A_dd,
                        const STOCH &stoch_,
                        const STD &std_)
@@ -255,7 +269,8 @@ public:
 
         _row_factor_aux(stoch, do_stdize);
 
-        // Update column topic factors, theta(j, k)
+        // Additionally update column topic factors, theta(j, k)
+        // based on this new row_aux and the previous col_aux
         if (!has_col_net) {
             theta_nk.update(col_aux_nk.cwiseProduct(Y_dn.transpose() *
                                                     row_aux_dk),
@@ -263,7 +278,7 @@ public:
             theta_nk.calibrate();
         }
 
-        // Update row topic factors
+        // Update row topic factors based on this new row_aux
         beta_dk.update((row_aux_dk.array().colwise() * Y_d.array() +
                         net_row_aux_dk.array().colwise() * A_d.array())
                            .matrix(),
@@ -274,6 +289,7 @@ public:
         beta_dk.calibrate();
     }
 
+public:
     template <typename Derived>
     void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
                        const STOCH &stoch_,
@@ -313,7 +329,8 @@ public:
 
     template <typename Derived>
     void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
-                       const NULL_DATA &_null,
+                       const NULL_DATA &_null_counterfactual,
+                       const NULL_DATA &_null_network,
                        const STOCH &stoch_,
                        const STD &std_)
     {
@@ -322,6 +339,18 @@ public:
 
     template <typename Derived, typename Derived2>
     void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const Eigen::MatrixBase<Derived> &Y0_dn,
+                       const NULL_DATA &_null_network,
+                       const STOCH &stoch_,
+                       const STD &std_)
+    {
+        WLOG("Not implemented; will not use Y0");
+        update_by_col(Y_dn, stoch_, std_);
+    }
+
+    template <typename Derived, typename Derived2>
+    void update_by_col(const Eigen::MatrixBase<Derived> &Y_dn,
+                       const NULL_DATA &_null_counterfactual,
                        const Eigen::SparseMatrixBase<Derived2> &A_nn,
                        const STOCH &stoch_,
                        const STD &std_)
@@ -509,7 +538,7 @@ public:
     log_topic_correlation(const Eigen::MatrixBase<Derived> &Y_dn)
     {
         Mat log_x = beta_dk.log_mean();
-        standardize_columns(log_x);
+        standardize_columns_inplace(log_x);
         Mat R_nk = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
         return std::make_tuple(log_x, R_nk);
     }

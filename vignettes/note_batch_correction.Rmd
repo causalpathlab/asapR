@@ -37,6 +37,7 @@ K <- 5
 .beta <- matrix(rgamma(m * K, 1), m, K)
 .theta <- matrix(rgamma(n * K, 1), n, K)
 lambda.true <- .beta %*% t(.theta)
+kk <- apply(.theta, 1, which.max)
 
 lambda <- lambda.true * exp(ln.delta)
 yy <- apply(lambda, 2, function(l) sapply(l, rpois, n=1))
@@ -307,3 +308,31 @@ legend("topleft", c("batch #1", "batch #2"), col=1:2, pch=19)
 plot(.tsne[,1], .tsne[,2], col=batch, pch=19, cex=.5, main="after batch adj",
      xlab = "tsne1", ylab = "tsne2")
 ```
+
+### Will these batch effects affect NMF?
+
+```{r}
+.nmf0 <- asapR::asap_fit_nmf(yy, maxK=5, svd_init = T)
+.nmf1 <- asapR::asap_fit_nmf(yy/.delta.db[,batch], maxK=5, svd_init = T)
+```
+
+Without any batch correction:
+
+```{r fig.width=5, fig.height=5}
+heatmap(.nmf0$model$theta[order(kk), ], Rowv=NA, Colv=NA)
+```
+
+```{r}
+table(kk, apply(.nmf0$model$theta, 1, which.max))
+```
+
+With batch correction:
+
+```{r fig.width=5, fig.height=5}
+heatmap(.nmf1$model$theta[order(kk), ], Rowv=NA, Colv=NA)
+```
+
+```{r}
+table(kk, apply(.nmf1$model$theta, 1, which.max))
+```
+

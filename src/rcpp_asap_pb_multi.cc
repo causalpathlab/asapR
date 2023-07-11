@@ -4,18 +4,21 @@
 //'
 //' @param mtx_files matrix-market-formatted data files (bgzip)
 //' @param row_files row names (gene/feature names)
-//' @param col_files row names (cell/column names)
-//' @param mtx_idx_files matrix-market colum index files
+//' @param col_files column names (cell/column names)
+//' @param idx_files matrix-market colum index files
 //' @param num_factors a desired number of random factors
 //' @param take_union_rows take union of rows (default: FALSE)
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_batch_adj (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
+//' @param do_down_sample down-sampling (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
+//' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
-//' @param a0 gamma(a0, b0) (default: 1)
+//' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
 //'
 // [[Rcpp::export]]
@@ -30,10 +33,13 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                             const bool verbose = false,
                             const std::size_t NUM_THREADS = 1,
                             const std::size_t BLOCK_SIZE = 100,
+                            const bool do_batch_adj = true,
                             const bool do_log1p = false,
+                            const bool do_down_sample = false,
                             const std::size_t KNN_CELL = 10,
+                            const std::size_t CELL_PER_SAMPLE = 100,
                             const std::size_t BATCH_ADJ_ITER = 100,
-                            const double a0 = 1,
+                            const double a0 = 1e-8,
                             const double b0 = 1)
 {
 
@@ -166,32 +172,32 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                                      << Nb << " / " << offset << " cells");
     }
 
-    if (B > 1) {
+    if (B > 1 && do_batch_adj) {
 
         at_least_one_op<Mat> at_least_one;
         at_least_zero_op<Mat> at_least_zero;
         const Scalar tol = 1e-4;
 
         Mat s1_kb = Mat::Zero(K, B);
-        // Mat s2_kb = Mat::Zero(K, B);
+        Mat s2_kb = Mat::Zero(K, B);
         Mat n_kb = Mat::Zero(K, B);
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             s1_kb.col(b) += Q_kn.col(j);
-            // s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
+            s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
             n_kb.col(b).array() += 1.;
         }
 
         Mat mu_kb = s1_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one));
-        // Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
-        //               mu_kb.cwiseProduct(mu_kb))
-        //                  .unaryExpr(at_least_zero)
-        //                  .cwiseSqrt();
+        Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
+                      mu_kb.cwiseProduct(mu_kb))
+                         .unaryExpr(at_least_zero)
+                         .cwiseSqrt();
 
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             Q_kn.col(j) -= mu_kb.col(b);
-            // Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
+            Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
         }
 
         TLOG_(verbose,
@@ -271,15 +277,24 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                    _pos_op);
 
     // Pseudobulk samples to cells
-    const std::vector<std::vector<Index>> pb_cells =
-        make_index_vec_vec(positions);
+    std::vector<std::vector<Index>> pb_cells = make_index_vec_vec(positions);
+
+    const Index NA_POS = S;
+    if (do_down_sample) {
+        TLOG_(verbose, "down-sampling to " << CELL_PER_SAMPLE << " per sample");
+        down_sample_vec_vec(pb_cells, CELL_PER_SAMPLE, rng);
+        std::fill(positions.begin(), positions.end(), NA_POS);
+        for (std::size_t s = 0; s < pb_cells.size(); ++s) {
+            for (auto x : pb_cells.at(s))
+                positions[x] = s;
+        }
+    }
 
     TLOG_(verbose,
           "Start collecting statistics... "
               << " for " << pb_cells.size() << " samples");
 
     Mat mu_ds = Mat::Ones(D, S);
-    Mat log_mu_ds = Mat::Ones(D, S);
     Mat ysum_ds = Mat::Zero(D, S);
     RowVec size_s = RowVec::Zero(S);
 
@@ -288,48 +303,51 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     Mat n_bs = Mat::Zero(B, S);           // batch x PB freq
     Mat prob_bs = Mat::Zero(B, S);        // batch x PB prob
 
-    Mat delta_db, delta_sd_db, log_delta_db, log_delta_sd_db, delta_ds;
+    Mat delta_db, log_delta_db;
 
-    offset = 0;
-    delta_num_db.setZero();
+    {
+        offset = 0;
+        delta_num_db.setZero();
 
-    for (Index b = 0; b < B; ++b) {
+        for (Index b = 0; b < B; ++b) { // each batch
 
-        mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
-                        mtx_data_t::ROW(row_files.at(b)),
-                        mtx_data_t::IDX(idx_files.at(b)));
+            mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
+                            mtx_data_t::ROW(row_files.at(b)),
+                            mtx_data_t::IDX(idx_files.at(b)));
 
-        const Index Nb = data.info.max_col;
+            const Index Nb = data.info.max_col;
 
-        TLOG_(verbose, Nb << " samples");
-        data.relocate_rows(row2pos);
+            TLOG_(verbose, Nb << " samples");
+            data.relocate_rows(row2pos);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index lb = 0; lb < Nb; lb += block_size) {
+            for (Index lb = 0; lb < Nb; lb += block_size) {
 
-            const Index ub = std::min(Nb, block_size + lb);
-            const Mat y = data.read_reloc(lb, ub);
+                const Index ub = std::min(Nb, block_size + lb);
+                const Mat y = data.read_reloc(lb, ub);
 
-            for (Index loc = 0; loc < (ub - lb); ++loc) {
+                for (Index loc = 0; loc < (ub - lb); ++loc) {
+                    const Index glob = loc + lb + offset;
+                    const Index s = positions.at(glob);
 
-                const Index glob = loc + lb + offset;
-                const Index s = positions.at(glob);
-
-                size_s(s) += 1.;
-                ysum_ds.col(s) += y.col(loc);
-                n_bs(b, s) = n_bs(b, s) + 1.;
+                    if (s < S) {
+                        size_s(s) += 1.;
+                        ysum_ds.col(s) += y.col(loc);
+                        n_bs(b, s) = n_bs(b, s) + 1.;
+                    }
+                }
+                delta_num_db.col(b) += y.rowwise().sum();
             }
-            delta_num_db.col(b) += y.rowwise().sum();
-        }
 
-        offset += Nb;
+            offset += Nb;
 
-        TLOG_(verbose,
-              "processed file set [" << (b + 1) << "] for pseudobulk for " << Nb
-                                     << " / " << offset << " cells");
+            TLOG_(verbose,
+                  "processed file set [" << (b + 1) << "] for pseudobulk for "
+                                         << Nb << " / " << offset << " cells");
+        } // for each batch
     }
 
     for (Index s = 0; s < S; ++s) {
@@ -340,11 +358,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     // Step 5. Batch adjustment //
     //////////////////////////////
 
-    offset = 0;
-
     Mat zsum_ds; // data x PB
 
-    if (B > 1) {
+    if (B > 1 && do_batch_adj) {
 
         std::vector<std::shared_ptr<mtx_data_t>> mtx_ptr;
         for (Index b = 0; b < B; ++b) {
@@ -357,9 +373,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
         TLOG_(verbose,
               "Building annoy index using random proj. results "
-                  << Q_nk.rows() << " x " << Q_nk.cols());
+                  << RD.rows() << " x " << RD.cols());
 
-        const Index rank = Q_nk.cols();
+        const Index rank = RD.cols();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -374,7 +390,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
             for (Index loc = 0; loc < Nb; ++loc) {
                 const Index glob = batch_cells.at(loc);
-                Q.col(loc) = Q_nk.row(glob).transpose();
+                Q.col(loc) = RD.row(glob).transpose();
             }
 
             CHECK(mtx_ptr[b]->build_index(Q, verbose));
@@ -423,7 +439,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
                 nneigh = 0;
 
-                Eigen::Map<Mat>(query.data(), 1, rank) = Q_nk.row(glob);
+                Eigen::Map<Mat>(query.data(), 1, rank) = RD.row(glob);
 
                 for (Index b = 0; b < B; ++b) {
                     if (a != b) {
@@ -534,16 +550,10 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
         Rcpp::Rcerr << "\r" << std::flush;
 
-        delta_sd_db = delta_param.sd();
+        delta_db = delta_param.mean();
         log_delta_db = delta_param.log_mean();
-        log_delta_sd_db = delta_param.log_sd();
 
-        delta_ds = delta_db * prob_bs;
-
-        mu_param.update(ysum_ds, delta_db * n_bs);
-        mu_param.calibrate();
         mu_ds = mu_param.mean();
-        log_mu_ds = mu_param.log_mean();
 
     } else {
 
@@ -558,7 +568,6 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         mu_param.update(ysum_ds, temp_ds);
         mu_param.calibrate();
         mu_ds = mu_param.mean();
-        log_mu_ds = mu_param.log_mean();
     }
 
     TLOG_(verbose, "Final RPB: " << mu_ds.rows() << " x " << mu_ds.cols());
@@ -573,30 +582,29 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     std::vector<Index> r_batch(batch_membership.size());
     convert_r_index(batch_membership, r_batch);
 
+    TLOG_(verbose, "position and batch names");
+
     std::vector<std::string> d_ = pos2row;
     std::vector<std::string> s_;
     for (std::size_t s = 1; s <= S; ++s)
         s_.push_back(std::to_string(s));
     std::vector<std::string> b_ = mtx_files;
 
+    TLOG_(verbose, "Done");
+
     return List::create(_["PB"] = named(mu_ds, d_, s_),
-                        _["PB.batch"] = named(delta_ds, d_, s_),
-                        _["log.PB"] = named(log_mu_ds, d_, s_),
                         _["sum"] = named(ysum_ds, d_, s_),
+                        _["matched.sum"] = named(zsum_ds, d_, s_),
                         _["sum_db"] = named(delta_num_db, d_, b_),
                         _["size"] = size_s,
                         _["prob_bs"] = named(prob_bs, b_, s_),
                         _["size_bs"] = named(n_bs, b_, s_),
                         _["batch.effect"] = named(delta_db, d_, b_),
-                        _["batch.sd"] = named(delta_sd_db, d_, b_),
                         _["log.batch.effect"] = named(log_delta_db, d_, b_),
-                        _["log.batch.sd"] = named(log_delta_sd_db, d_, b_),
                         _["mtx.files"] = mtx_files,
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
-                        _["colnames"] = columns,
                         _["rand.proj"] = R_kd,
-                        _["Q"] = Q_kn,
-                        _["rand.dict"] = RD,
+                        _["colnames"] = columns,
                         _["rownames"] = pos2row);
 }

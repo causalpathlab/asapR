@@ -94,11 +94,11 @@ out <- asap_fit_nmf(Y, 5)
 ```
 
 ```{r fig.width=5, fig.height=5}
-heatmap(out$beta)
+heatmap(out$model$beta)
 ```
 
 ```{r fig.width=5, fig.height=5}
 v.order <- order(apply(vv, 1, which.max))
-heatmap(out$theta[v.order, ], Rowv=NA, Colv=NA)
+heatmap(out$model$theta[v.order, ], Rowv=NA, Colv=NA)
 ```
 

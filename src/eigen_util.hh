@@ -962,6 +962,22 @@ struct safe_sqrt_op {
 };
 
 template <typename T>
+struct safe_div_op {
+    using Scalar = typename T::Scalar;
+    explicit safe_div_op(const Scalar _a0, const Scalar _b0)
+        : a0(_a0)
+        , b0(_b0)
+    {
+    }
+    const Scalar operator()(const Scalar &a, const Scalar &b) const
+    {
+        return (a + a0) / (b + b0);
+    }
+    const Scalar a0;
+    const Scalar b0;
+};
+
+template <typename T>
 struct at_least_one_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const { return (x < 1.) ? 1. : x; }
@@ -971,6 +987,17 @@ template <typename T>
 struct at_least_zero_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const { return (x < 0.) ? 0. : x; }
+};
+
+template <typename T>
+struct at_least_val_op {
+    using Scalar = typename T::Scalar;
+    explicit at_least_val_op(const Scalar _lb)
+        : lb(_lb)
+    {
+    }
+    const Scalar operator()(const Scalar &x) const { return (x < lb) ? lb : x; }
+    const Scalar lb;
 };
 
 template <typename T>

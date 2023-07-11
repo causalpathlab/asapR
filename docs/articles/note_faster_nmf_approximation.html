@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.2</span>
       </span>
     </div>
 
@@ -55,6 +55,9 @@
     <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
+    <li>
+      <a href="../articles/note_multi_nmf.html">Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
+    </li>
   </ul>
 </li>
       </ul>
@@ -68,7 +71,7 @@
 
       
 
-      </header><script src="note_faster_nmf_approximation_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>Expedite Poisson-NMF estimation via alternating regression models</h1>
@@ -155,13 +158,13 @@ b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 <span><span class="va">Y</span><span class="op">[</span><span class="va">Y</span> <span class="op">&lt;</span> <span class="fl">0</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span></span>
 <span></span>
 <span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/stretch_matrix_columns.html">stretch_matrix_columns</a></span><span class="op">(</span><span class="va">Y</span><span class="op">)</span></span>
-<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/asap_fit_nmf_alternate.html">asap_fit_nmf_alternate</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/asap_fit_nmf.html">asap_fit_nmf</a></span><span class="op">(</span><span class="va">Y</span>, <span class="fl">5</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">beta</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_faster_nmf_approximation_files/figure-html/unnamed-chunk-2-1.png" width="480"></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">v.order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">vv</span>, <span class="fl">1</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">v.order</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">out</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">v.order</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_faster_nmf_approximation_files/figure-html/unnamed-chunk-3-1.png" width="480"></p>
 </div>
   </div>
@@ -183,7 +186,7 @@ b_{0} + \sum_{j} \mathbb{E}\!\left[\theta_{jk}\right]
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

@@ -15,10 +15,13 @@ asap_random_bulk_data_multi(
   verbose = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
+  do_batch_adj = TRUE,
   do_log1p = FALSE,
+  do_down_sample = FALSE,
   KNN_CELL = 10L,
+  CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
-  a0 = 1,
+  a0 = 1e-08,
   b0 = 1
 )
 }
@@ -27,7 +30,9 @@ asap_random_bulk_data_multi(
 
 \item{row_files}{row names (gene/feature names)}
 
-\item{col_files}{row names (cell/column names)}
+\item{col_files}{column names (cell/column names)}
+
+\item{idx_files}{matrix-market colum index files}
 
 \item{num_factors}{a desired number of random factors}
 
@@ -41,17 +46,21 @@ asap_random_bulk_data_multi(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
+\item{do_batch_adj}{(default: TRUE)}
+
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
+
+\item{do_down_sample}{down-sampling (default: FALSE)}
 
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
 
+\item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
+
 \item{BATCH_ADJ_ITER}{batch Adjustment steps (default: 100)}
 
-\item{a0}{gamma(a0, b0) (default: 1)}
+\item{a0}{gamma(a0, b0) (default: 1e-8)}
 
 \item{b0}{gamma(a0, b0) (default: 1)}
-
-\item{mtx_idx_files}{matrix-market colum index files}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

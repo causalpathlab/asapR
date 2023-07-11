@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.2</span>
       </span>
     </div>
 
@@ -37,6 +37,9 @@
     <li>
       <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
+    <li>
+      <a href="../articles/note_multi_nmf.html">Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
+    </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -55,7 +58,11 @@
           <p class="section-desc"></p>
         </th>
       </tr></tbody><tbody><tr><td>
-          <p><code><a href="asap_fit_nmf_alternate.html">asap_fit_nmf_alternate()</a></code> </p>
+          <p><code><a href="asap_fit_nmf.html">asap_fit_nmf()</a></code> </p>
+        </td>
+        <td><p>A quick NMF estimation based on alternating Poisson regressions</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_fit_nmf_shared_dict.html">asap_fit_nmf_shared_dict()</a></code> </p>
         </td>
         <td><p>A quick NMF estimation based on alternating Poisson regressions</p></td>
       </tr><tr><td>
@@ -63,13 +70,21 @@
         </td>
         <td><p>Generate approximate pseudo-bulk data by random projections</p></td>
       </tr><tr><td>
+          <p><code><a href="asap_random_bulk_data_multi.html">asap_random_bulk_data_multi()</a></code> </p>
+        </td>
+        <td><p>Generate approximate pseudo-bulk data by random projections</p></td>
+      </tr><tr><td>
           <p><code><a href="asap_regression.html">asap_regression()</a></code> </p>
         </td>
         <td><p>Poisson regression to estimate factor loading</p></td>
       </tr><tr><td>
-          <p><code><a href="asap_regression_mtx.html">asap_regression_mtx()</a></code> </p>
+          <p><code><a href="asap_topic_stat.html">asap_topic_stat()</a></code> </p>
         </td>
-        <td><p>Poisson regression to estimate factor loading</p></td>
+        <td><p>Topic statistics to estimate factor loading</p></td>
+      </tr><tr><td>
+          <p><code><a href="decompose_network.html">decompose_network()</a></code> </p>
+        </td>
+        <td><p>Assign best topic membership for the edges</p></td>
       </tr><tr><td>
           <p><code><a href="fileset.list.html">fileset.list()</a></code> </p>
         </td>
@@ -164,7 +179,7 @@ The same idea was first coined by <code>fastTopics</code> paper.</p></td>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>

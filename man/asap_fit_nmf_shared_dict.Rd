@@ -10,7 +10,7 @@ asap_fit_nmf_shared_dict(
   max_iter = 100L,
   burnin = 0L,
   verbose = TRUE,
-  a0 = 1,
+  a0 = 1e-08,
   b0 = 1,
   do_log1p = FALSE,
   rseed = 1337L,
@@ -28,7 +28,7 @@ asap_fit_nmf_shared_dict(
 
 \item{verbose}{verbosity}
 
-\item{a0}{gamma(a0, b0) default: a0 = 1}
+\item{a0}{gamma(a0, b0) default: a0 = 1e-8}
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
 

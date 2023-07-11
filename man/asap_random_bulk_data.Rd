@@ -6,7 +6,9 @@
 \usage{
 asap_random_bulk_data(
   mtx_file,
-  mtx_idx_file,
+  row_file,
+  col_file,
+  idx_file,
   num_factors,
   r_covar_n = NULL,
   r_covar_d = NULL,
@@ -18,14 +20,18 @@ asap_random_bulk_data(
   do_log1p = FALSE,
   KNN_CELL = 10L,
   BATCH_ADJ_ITER = 100L,
-  a0 = 1,
+  a0 = 1e-08,
   b0 = 1
 )
 }
 \arguments{
 \item{mtx_file}{matrix-market-formatted data file (bgzip)}
 
-\item{mtx_idx_file}{matrix-market colum index file}
+\item{row_file}{row names (gene/feature names)}
+
+\item{col_file}{column names (cell/column names)}
+
+\item{idx_file}{matrix-market colum index file}
 
 \item{num_factors}{a desired number of random factors}
 
@@ -49,7 +55,7 @@ asap_random_bulk_data(
 
 \item{BATCH_ADJ_ITER}{batch Adjustment steps (default: 100)}
 
-\item{a0}{gamma(a0, b0) (default: 1)}
+\item{a0}{gamma(a0, b0) (default: 1e-8)}
 
 \item{b0}{gamma(a0, b0) (default: 1)}
 }

@@ -130,6 +130,9 @@ struct gamma_param_t {
             if (a > one)
                 return std::max(one / std::sqrt(a - one), zero);
 
+            if (a < zero)
+                return zero;
+
             return std::max(one / std::sqrt(a), zero);
         }
     };
@@ -138,6 +141,11 @@ struct gamma_param_t {
     struct estimate_sd_op_t {
         Scalar operator()(const Scalar &a, const Scalar &b) const
         {
+            const Scalar zero = 0.0;
+
+            if (a < zero)
+                return zero;
+
             return std::max(std::sqrt(a) / (b), static_cast<Scalar>(0.));
         }
     };

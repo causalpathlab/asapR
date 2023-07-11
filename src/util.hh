@@ -33,6 +33,14 @@ std::string zeropad(const int t, const int tmax);
                     << std::flush << std::endl;                    \
     }
 
+#define WLOG_(cond, msg)                                               \
+    {                                                                  \
+        if (cond) {                                                    \
+            Rcpp::Rcerr << "[" << curr_time() << "] [Warning] " << msg \
+                        << std::flush << std::endl;                    \
+        }                                                              \
+    }
+
 #define TLOG_(cond, msg)                                                   \
     {                                                                      \
         if (cond) {                                                        \

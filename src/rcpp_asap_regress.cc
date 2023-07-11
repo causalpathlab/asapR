@@ -4,31 +4,27 @@
 //'
 //' @param Y D x N data matrix
 //' @param log_x D x K log dictionary/design matrix
-//' @param r_batch_effect D x B batch effect matrix (default: NULL)
-//' @param a0 gamma(a0, b0) (default: 1)
+//' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity (default: false)
-//' @param do_stdize do the standardization of log_x
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_regression(
-    const Eigen::MatrixXf Y_,
-    const Eigen::MatrixXf log_x,
-    const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
-    const double a0 = 1.,
-    const double b0 = 1.,
-    const std::size_t max_iter = 10,
-    const bool do_log1p = false,
-    const bool verbose = true,
-    const bool do_stdize_x = false)
+asap_regression(const Eigen::MatrixXf Y_,
+                const Eigen::MatrixXf log_x,
+                const double a0 = 1e-8,
+                const double b0 = 1.0,
+                const std::size_t max_iter = 10,
+                const bool do_log1p = false,
+                const bool verbose = true)
 {
 
     exp_op<Mat> exp;
     at_least_one_op<Mat> at_least_one;
     softmax_op_t<Mat> softmax;
     log1p_op<Mat> log1p;
+    safe_div_op<Mat> safe_div(0, 1e-4);
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
@@ -39,18 +35,7 @@ asap_regression(
     const Index N = Y_dn.cols();  // number of samples
     const Index K = log_x.cols(); // number of topics
 
-    const Mat delta_db = r_batch_effect.isNotNull() ?
-        Rcpp::as<Mat>(Rcpp::NumericMatrix(r_batch_effect)) :
-        Mat::Ones(D, 1);
-
-    const Index B = delta_db.cols();
-    ASSERT_RETL(D == delta_db.rows(), "batch effect should be of D x r");
-
     Mat logX_dk = log_x;
-    stdizer_t<Mat> stdizer_x(logX_dk);
-    residual_columns(logX_dk, delta_db);
-    if (do_stdize_x)
-        stdizer_x.colwise();
 
     using RNG = dqrng::xoshiro256plus;
     using gamma_t = gamma_param_t<Mat, RNG>;
@@ -95,12 +80,10 @@ asap_regression(
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
-                              Rcpp::_["corr"] = R_nk,
-                              Rcpp::_["latent"] = rho_nk,
-                              Rcpp::_["log.latent"] = logRho_nk);
+                              Rcpp::_["corr"] = R_nk);
 }
 
-//' Poisson regression to estimate factor loading
+//' Topic statistics to estimate factor loading
 //'
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 //' @param row_file row names file (D x 1)
@@ -108,33 +91,30 @@ asap_regression(
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param x_row_names row names log_x (D vector)
-//' @param _log_batch_effect D x B batch effect matrix (default: NULL)
-//' @param a0 gamma(a0, b0)
-//' @param b0 gamma(a0, b0)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_stdize do the standardization of log_x
+//'
+//' @return a list that contains:
+//' \itemize{
+//'  \item beta dictionary matrix (row x factor)
+//'  \item corr empirical correlation (column x factor)
+//'  \item colsum the sum of each column (column x 1)
+//' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_regression_mtx(
-    const std::string mtx_file,
-    const std::string row_file,
-    const std::string col_file,
-    const std::string idx_file,
-    const Eigen::MatrixXf log_x,
-    const Rcpp::StringVector &x_row_names,
-    const Rcpp::Nullable<Rcpp::NumericMatrix> r_batch_effect = R_NilValue,
-    const double a0 = 1.,
-    const double b0 = 1.,
-    const std::size_t max_iter = 10,
-    const bool do_log1p = false,
-    const bool verbose = false,
-    const std::size_t NUM_THREADS = 1,
-    const std::size_t BLOCK_SIZE = 100,
-    const bool do_stdize_x = false)
+asap_topic_stat(const std::string mtx_file,
+                const std::string row_file,
+                const std::string col_file,
+                const std::string idx_file,
+                const Eigen::MatrixXf log_x,
+                const Rcpp::StringVector &x_row_names,
+                const bool do_log1p = false,
+                const bool verbose = false,
+                const std::size_t NUM_THREADS = 1,
+                const std::size_t BLOCK_SIZE = 100)
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -162,15 +142,6 @@ asap_regression_mtx(
     ASSERT_RETL(row2pos.size() == D, "Redundant row names exist");
     TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
-    //////////////
-    // functors //
-    //////////////
-
-    exp_op<Mat> exp;
-    at_least_one_op<Mat> at_least_one;
-    softmax_op_t<Mat> softmax;
-    log1p_op<Mat> log1p;
-
     ///////////////////////////////
     // read mtx data information //
     ///////////////////////////////
@@ -197,42 +168,11 @@ asap_regression_mtx(
                     mtx_data_t::ROW { row_file },
                     mtx_data_t::IDX { idx_file });
 
-    ///////////////////////////////
-    // preprocess logX_dk matrix //
-    ///////////////////////////////
-
-    if (verbose) {
-        TLOG("Start recalibrating column-wise loading parameters...");
-        TLOG("Theta: " << N << " x " << K);
-    }
-
-    const Mat delta_db = r_batch_effect.isNotNull() ?
-        Rcpp::as<Mat>(Rcpp::NumericMatrix(r_batch_effect)) :
-        Mat::Ones(D, 1);
-
-    const Index B = delta_db.cols();
-    ASSERT_RETL(D == delta_db.rows(), "batch effect should be of D x r");
-
     Mat logX_dk = log_x;
-    if (r_batch_effect.isNotNull()) {
-        residual_columns(logX_dk, delta_db);
-        if (verbose)
-            TLOG("Removed the batch effects");
-    }
-
-    stdizer_t<Mat> stdizer_x(logX_dk);
-
-    if (do_stdize_x)
-        stdizer_x.colwise();
-
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
 
     Mat Rtot_nk(N, K);
-    Mat Ztot_nk(N, K);
-    Mat logZtot_nk(N, K);
-    Mat thetaTot_nk(N, K);
-    Mat logThetaTot_nk(N, K);
-
+    Mat Ytot_n(N, 1);
     Index Nprocessed = 0;
 
     if (verbose) {
@@ -240,6 +180,11 @@ asap_regression_mtx(
     }
 
     data.relocate_rows(row2pos);
+
+    at_least_one_op<Mat> at_least_one;
+    at_least_zero_op<Mat> at_least_zero;
+    exp_op<Mat> exp;
+    log1p_op<Mat> log1p;
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -249,64 +194,33 @@ asap_regression_mtx(
         Index ub = std::min(N, block_size + lb);
         const SpMat y = data.read_reloc(lb, ub);
 
-        //////////////////////
-        // normalize matrix //
-        //////////////////////
-
-        Mat Y_dn = do_log1p ? y.unaryExpr(log1p) : y;
-
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
-        const Index n = Y_dn.cols();
-        using RNG = dqrng::xoshiro256plus;
-        using gamma_t = gamma_param_t<Mat, RNG>;
-        RNG rng;
 
-        const ColVec Y_n = Y_dn.colwise().sum().transpose(); // n x 1
-        const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1
-        const ColVec Y_d = Y_dn.rowwise().sum();             // d x 1
-        const ColVec Y_d1 = Y_d.unaryExpr(at_least_one);     // d x 1
-        gamma_t theta_b(Y_dn.cols(), K, a0, b0, rng);        // n x K
+        Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
 
-        Mat logRho_nk(Y_dn.cols(), K), rho_nk(Y_dn.cols(), K);
+        const Index n = y_dn.cols();
 
-        const Mat R_nk =
-            (Y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
+        ColVec Y_n = y_dn.colwise().sum().transpose(); // n x 1
+        ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1
 
-        // X[j,k] = sum_i X[i,k]
-        RowVec Xsum = logX_dk.unaryExpr(exp).colwise().sum();
-        Mat x_nk = ColVec::Ones(n) * Xsum; // n x K
+        ///////////////////////////
+        // parameter of interest //
+        ///////////////////////////
 
-        RowVec tempK(K);
-
-        for (std::size_t t = 0; t < max_iter; ++t) {
-
-            logRho_nk = R_nk + theta_b.log_mean();
-
-            for (Index jj = 0; jj < Y_dn.cols(); ++jj) {
-                tempK = logRho_nk.row(jj);
-                logRho_nk.row(jj) = softmax.log_row(tempK);
-            }
-            rho_nk = logRho_nk.unaryExpr(exp);
-
-            theta_b.update((rho_nk.array().colwise() * Y_n.array()).matrix(),
-                           x_nk);
-            theta_b.calibrate();
-        }
+        Mat R_nk =
+            (y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
 
 #pragma omp critical
         {
             for (Index i = 0; i < (ub - lb); ++i) {
                 const Index j = i + lb;
-                Ztot_nk.row(j) = rho_nk.row(i);
-                logZtot_nk.row(j) = logRho_nk.row(i);
                 Rtot_nk.row(j) = R_nk.row(i);
-                thetaTot_nk.row(j) = theta_b.mean().row(i);
-                logThetaTot_nk.row(j) = theta_b.log_mean().row(i);
+                Ytot_n(j, 0) = Y_n(i);
             }
 
-            Nprocessed += Y_dn.cols();
+            Nprocessed += n;
             if (verbose) {
                 Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
             } else {
@@ -328,11 +242,9 @@ asap_regression_mtx(
     std::vector<std::string> k_;
     for (std::size_t k = 1; k <= K; ++k)
         k_.push_back(std::to_string(k));
+    std::vector<std::string> file_ { mtx_file };
 
     return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
-                        _["theta"] = named(thetaTot_nk, coln, k_),
                         _["corr"] = named(Rtot_nk, coln, k_),
-                        _["latent"] = named(Ztot_nk, coln, k_),
-                        _["log.latent"] = named(logZtot_nk, coln, k_),
-                        _["log.theta"] = named(logThetaTot_nk, coln, k_));
+                        _["colsum"] = named(Ytot_n, coln, file_));
 }

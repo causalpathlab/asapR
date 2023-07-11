@@ -4,4 +4,7 @@
 ^.gz.index$
 ^.gz$
 ^temp*
-
+^.rds$
+^.RDS$
+^.rdata$
+^.Rdata$

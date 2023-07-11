@@ -105,6 +105,27 @@ make_index_vec_vec(const std::vector<IDX> &_id)
     return ret;
 }
 
+template <typename IDX, typename RNG>
+void
+down_sample_vec_vec(std::vector<std::vector<IDX>> &vec_vec,
+                    const std::size_t max_size,
+                    RNG &rng)
+{
+    std::vector<IDX> temp(max_size);
+    for (std::size_t s = 0; s < vec_vec.size(); ++s) {
+        std::vector<IDX> &vec_s = vec_vec.at(s);
+        if (vec_s.size() > max_size) {
+            std::shuffle(vec_s.begin(), vec_s.end(), rng);
+            for (std::size_t j = 0; j < max_size; ++j) {
+                temp[j] = vec_s.at(j);
+            }
+            vec_s.clear();
+            vec_s.reserve(max_size);
+            std::copy(temp.begin(), temp.end(), std::back_inserter(vec_s));
+        }
+    }
+}
+
 template <typename Iter, typename RandomGenerator>
 Iter
 select_randomly(Iter start, Iter end, RandomGenerator &g)

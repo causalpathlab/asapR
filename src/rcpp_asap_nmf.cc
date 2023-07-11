@@ -13,7 +13,7 @@ using model_t = asap_nmf_model_t<RNG>;
 //' @param min_iter min number of optimization steps
 //' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
-//' @param a0 gamma(a0, b0) default: a0 = 1
+//' @param a0 gamma(a0, b0) default: a0 = 1e-8
 //' @param b0 gamma(a0, b0) default: b0 = 1
 //' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
@@ -24,12 +24,9 @@ using model_t = asap_nmf_model_t<RNG>;
 //' @return a list that contains:
 //'  \itemize{
 //'   \item log.likelihood log-likelihood trace
-//'   \item beta dictionary (gene x factor)
-//'   \item log.beta log-dictionary (gene x factor)
-//'   \item theta loading (sample x factor)
-//'   \item log.theta log-loading (sample x factor)
-//'   \item log.phi auxiliary variables (gene x factor)
-//'   \item log.rho auxiliary variables (sample x factor)
+//'   \item std_log_x standardized log-dictionary (gene x factor)
+//'   \item corr empirical correlation (sample x factor)
+//'   \item model a list of beta (gene x factor) and theta (sample x factor)
 //' }
 //'
 //'
@@ -42,7 +39,7 @@ asap_fit_nmf(Rcpp::NumericMatrix &Y_,
              const Rcpp::Nullable<Rcpp::List> r_A_nn_list = R_NilValue,
              const std::size_t burnin = 0,
              const bool verbose = true,
-             const double a0 = 1,
+             const double a0 = 1e-8,
              const double b0 = 1,
              const bool do_log1p = false,
              const std::size_t rseed = 1337,
@@ -104,66 +101,11 @@ asap_fit_nmf(Rcpp::NumericMatrix &Y_,
         train_nmf(model, Y_dn, null_data, null_data, llik_trace, options);
     }
 
-    Mat log_x, R_nk;
-    std::tie(log_x, R_nk) = model.log_topic_correlation(Y_dn);
+    Mat std_log_x, R_nk;
+    std::tie(std_log_x, R_nk) = model.log_topic_correlation(Y_dn);
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
-                              Rcpp::_["log_x"] = log_x,
+                              Rcpp::_["std_log_x"] = std_log_x,
                               Rcpp::_["corr"] = R_nk,
                               Rcpp::_["model"] = rcpp_list_out(model));
 }
-
-// SpMat
-// _sparse_mat(const Rcpp::List &in_list,
-//             const std::size_t nrow,
-//             const std::size_t ncol)
-// {
-//     SpMat ret(nrow, ncol);
-//     std::vector<Eigen::Triplet<Scalar>> triples;
-
-//     if (in_list.size() == 3) {
-//         const std::vector<std::size_t> &ii = in_list[0];
-//         const std::vector<std::size_t> &jj = in_list[1];
-//         const std::vector<Scalar> &kk = in_list[2];
-//         const std::size_t m = ii.size();
-
-//         if (jj.size() == m && kk.size() == m) {
-//             triples.reserve(m);
-//             for (std::size_t e = 0; e < m; ++e) {
-//                 const std::size_t i = ii.at(e), j = jj.at(e);
-//                 if (i <= nrow && j <= ncol) {
-//                     // 1-based -> 0-based
-//                     triples.emplace_back(
-//                         Eigen::Triplet<Scalar>(i - 1, j - 1, kk.at(e)));
-//                 }
-//             }
-//         } else {
-//             WLOG("input list sizes don't match");
-//         }
-//     } else if (in_list.size() == 2) {
-
-//         const std::vector<std::size_t> &ii = in_list[0];
-//         const std::vector<std::size_t> &jj = in_list[1];
-//         const std::size_t m = ii.size();
-
-//         if (jj.size() == m) {
-//             triples.reserve(m);
-//             for (std::size_t e = 0; e < m; ++e) {
-//                 const std::size_t i = ii.at(e), j = jj.at(e);
-//                 if (i <= nrow && j <= ncol) {
-//                     // 1-based -> 0-based
-//                     triples.emplace_back(
-//                         Eigen::Triplet<Scalar>(i - 1, j - 1, 1.));
-//                 }
-//             }
-//         } else {
-//             WLOG("input list sizes don't match");
-//         }
-//     } else {
-//         WLOG("Need two or three vectors in the list");
-//     }
-
-//     ret.reserve(triples.size());
-//     ret.setFromTriplets(triples.begin(), triples.end());
-//     return ret;
-// }

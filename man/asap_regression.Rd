@@ -7,21 +7,17 @@
 asap_regression(
   Y_,
   log_x,
-  r_batch_effect = NULL,
-  a0 = 1,
+  a0 = 1e-08,
   b0 = 1,
   max_iter = 10L,
   do_log1p = FALSE,
-  verbose = TRUE,
-  do_stdize_x = FALSE
+  verbose = TRUE
 )
 }
 \arguments{
 \item{log_x}{D x K log dictionary/design matrix}
 
-\item{r_batch_effect}{D x B batch effect matrix (default: NULL)}
-
-\item{a0}{gamma(a0, b0) (default: 1)}
+\item{a0}{gamma(a0, b0) (default: 1e-8)}
 
 \item{b0}{gamma(a0, b0) (default: 1)}
 
@@ -30,8 +26,6 @@ asap_regression(
 \item{verbose}{verbosity (default: false)}
 
 \item{Y}{D x N data matrix}
-
-\item{do_stdize}{do the standardization of log_x}
 }
 \description{
 Poisson regression to estimate factor loading

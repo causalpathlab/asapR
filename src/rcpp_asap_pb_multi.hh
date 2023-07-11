@@ -16,9 +16,15 @@ take_row_names(const std::vector<S> &row_files,
         std::unordered_set<S> _rows; // Take a unique set
 
         auto _insert = [&](S f) {
-            std::vector<S> temp;
-            CHECK(read_vector_file(f, temp));
-            for (auto r : temp)
+            std::vector<S> vv;
+            CHECK(read_vector_file(f, vv));
+            const std::size_t sz = vv.size();
+
+            std::sort(vv.begin(), vv.end());
+            vv.erase(std::unique(vv.begin(), vv.end()), vv.end());
+            WLOG_(vv.size() < sz, "Duplicate in \"" << f << "\"");
+
+            for (auto r : vv)
                 _rows.insert(r);
         };
 
@@ -28,32 +34,40 @@ take_row_names(const std::vector<S> &row_files,
 
     } else {
 
+        const std::size_t B = row_files.size();
         std::unordered_map<S, std::size_t> nn;
 
-        for (std::size_t j = 0; j < row_files.size(); ++j) {
-            std::vector<S> temp;
-            CHECK(read_vector_file(row_files[j], temp));
+        for (std::size_t b = 0; b < B; ++b) {
+            std::vector<S> vv;
+            CHECK(read_vector_file(row_files[b], vv));
 
-            for (S x : temp) {
+            const std::size_t sz = vv.size();
+            std::sort(vv.begin(), vv.end());
+            vv.erase(std::unique(vv.begin(), vv.end()), vv.end());
+            WLOG_(vv.size() < sz, "Duplicate in \"" << row_files.at(b) << "\"");
+
+            for (S x : vv) {
                 if (nn.count(x) == 0) {
-                    nn[x] = 0;
+                    nn[x] = 1;
+                } else {
+                    nn[x] = nn[x] + 1;
                 }
-                nn[x]++;
             }
         }
 
-        const std::size_t B = row_files.size();
+        pos2row.reserve(nn.size());
 
         for (auto &it : nn) {
-            if (it.second == B)
+            if (it.second >= B) {
                 pos2row.emplace_back(it.first);
+            }
         }
     }
 
     std::sort(pos2row.begin(), pos2row.end());
-    std::unique(pos2row.begin(), pos2row.end());
     for (I r = 0; r < pos2row.size(); ++r) {
-        row2pos[pos2row.at(r)] = r;
+        const S &s = pos2row.at(r);
+        row2pos[s] = r;
     }
 }
 

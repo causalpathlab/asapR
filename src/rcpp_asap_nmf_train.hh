@@ -39,14 +39,18 @@ train_nmf(MODEL &model,
 
     llik_trace.reserve(max_iter + burnin);
 
+    typename MODEL::NULL_DATA null_data;
+
     for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
 
         model.update_by_col(y,
+			    null_data,
                             colnet,
                             typename MODEL::STOCH(tt < burnin),
                             typename MODEL::STD(true));
 
         model.update_by_row(y,
+			    null_data,
                             rownet,
                             typename MODEL::STOCH(tt < burnin),
                             typename MODEL::STD(false));
