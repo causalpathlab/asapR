@@ -12,7 +12,7 @@
 //' @param min_iter min number of optimization steps
 //' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
-//' @param a0 gamma(a0, b0) default: a0 = 1e-8
+//' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
 //' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
@@ -39,7 +39,7 @@ asap_fit_nmf_shared_dict(const Rcpp::List &y_dn_vec,
                          const std::size_t max_iter = 100,
                          const std::size_t burnin = 0,
                          const bool verbose = true,
-                         const double a0 = 1e-8,
+                         const double a0 = 1,
                          const double b0 = 1,
                          const bool do_log1p = false,
                          const std::size_t rseed = 1337,
@@ -78,7 +78,7 @@ asap_fit_nmf_shared_dict(const Rcpp::List &y_dn_vec,
 
     using model_t = factorization_t<gamma_t, gamma_t, RNG>;
 
-    RNG rng;
+    RNG rng(rseed);
 
     ////////////////////////////////////////////
     // We have:				      //
@@ -109,15 +109,19 @@ asap_fit_nmf_shared_dict(const Rcpp::List &y_dn_vec,
             std::make_shared<model_t>(beta_dk, theta_nk, RSEED(rseed)));
     }
 
+    using norm_dist_t = boost::random::normal_distribution<Scalar>;
+    norm_dist_t norm_dist(0., 1.);
+    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
+
     for (std::size_t m = 0; m < M; ++m) {
         model_t &model_dn = *model_dn_ptr_vec[m].get();
         gamma_t &theta_nk = *theta_nk_ptr_vec[m].get();
         const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
-        initialize_stat(model_dn, y_dn, DO_SVD(svd_init));
+        const std::size_t n = y_dn.cols();
+        const Mat temp_nk = Mat::NullaryExpr(n, K, rnorm);
+        exp_op<Mat> exp;
+        theta_nk.update(temp_nk.unaryExpr(exp), Mat::Ones(n, K));
         theta_nk.calibrate();
-        if (m == 0) {
-            beta_dk.calibrate();
-        }
     }
 
     Scalar llik = 0;

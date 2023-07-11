@@ -38,7 +38,7 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #' @param min_iter min number of optimization steps
 #' @param burnin number of initiation steps (default: 50)
 #' @param verbose verbosity
-#' @param a0 gamma(a0, b0) default: a0 = 1e-8
+#' @param a0 gamma(a0, b0) default: a0 = 1
 #' @param b0 gamma(a0, b0) default: b0 = 1
 #' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
@@ -58,7 +58,7 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #' }
 #'
 #'
-asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1e-8, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
     .Call('_asapR_asap_fit_nmf_shared_dict', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 

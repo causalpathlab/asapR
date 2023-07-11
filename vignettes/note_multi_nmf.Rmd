@@ -37,6 +37,7 @@ y3 <- apply(uu[,4:5, drop = F] %*% t(vv[, 4:5, drop = F]), 2, scale) + .rnorm(d,
 y1[y1 < 0] <- 0
 y2[y2 < 0] <- 0
 y3[y3 < 0] <- 0
+
 ```
 
 
@@ -44,7 +45,7 @@ y3[y3 < 0] <- 0
 
 ```{r}
 u0 <- cbind(pmax(uu, 0), -pmin(uu, 0))
-.out0 <- asap_fit_nmf(cbind(y1, y2, y3, u0), maxK=7)
+.out0 <- asap_fit_nmf(cbind(y1, y2, y3, u0) * 10, maxK=7)
 ```
 
 ```{r fig.width=5, fig.height=4}
@@ -68,23 +69,23 @@ heatmap(.out0$model$log.theta[kk + 2*n, ], Rowv=NA, Colv=NA, main = "theta3")
 
 ```{r}
 u0 <- cbind(pmax(uu, 0), -pmin(uu, 0))
-.out <-  asap_fit_nmf_shared_dict(list(y1, y2, y3, u0), maxK=7)
+.out <-  asap_fit_nmf_shared_dict(list(y1, y2, y3, u0), a0 = 1e-2, b0 = 1, maxK=7)
 ```
 
 ```{r fig.width=5, fig.height=4}
-heatmap(.out$log.beta[gg,], Rowv=NA, Colv=NA, main = "beta")
+heatmap(.out$beta[gg,], Rowv=NA, Colv=NA, main = "beta")
 ```
 
 ```{r fig.width=5, fig.height=4}
-heatmap(.out$log.theta[[1]][kk,], Rowv=NA, Colv=NA, main = "theta1")
+heatmap(.out$log.theta[[1]][kk,], Rowv=NA, Colv=NA, main = "theta1 (1 + 2)")
 ```
 
 ```{r fig.width=5, fig.height=4}
-heatmap(.out$log.theta[[2]][kk,], Rowv=NA, Colv=NA, main = "theta2")
+heatmap(.out$log.theta[[2]][kk,], Rowv=NA, Colv=NA, main = "theta2 (3 + 4)")
 ```
 
 ```{r fig.width=5, fig.height=4}
-heatmap(.out$log.theta[[3]][kk,], Rowv=NA, Colv=NA, main = "theta3")
+heatmap(.out$log.theta[[3]][kk,], Rowv=NA, Colv=NA, main = "theta3 (4 + 5)")
 ```
 
 

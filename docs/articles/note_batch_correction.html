@@ -366,12 +366,12 @@
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">kk</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.nmf0</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">theta</span>, <span class="fl">1</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##    </span></span>
-<span><span class="co">## kk   1  2  3  4  5</span></span>
-<span><span class="co">##   1 47 19 20 39 96</span></span>
-<span><span class="co">##   2 31 98 53  7  3</span></span>
-<span><span class="co">##   3  1 59 24 65 31</span></span>
-<span><span class="co">##   4  3 79  4 84 12</span></span>
-<span><span class="co">##   5  0 83 95  9 38</span></span></code></pre>
+<span><span class="co">## kk    1   2   3   4   5</span></span>
+<span><span class="co">##   1  47  35  18  41  80</span></span>
+<span><span class="co">##   2  30 101  53   8   0</span></span>
+<span><span class="co">##   3   0  74  17  73  16</span></span>
+<span><span class="co">##   4   1  76   5  85  15</span></span>
+<span><span class="co">##   5   0  93  97   7  28</span></span></code></pre>
 <p>With batch correction:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.nmf1</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="va">kk</span><span class="op">)</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span><span class="op">)</span></span></code></pre></div>
@@ -380,11 +380,11 @@
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">kk</span>, <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">.nmf1</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">theta</span>, <span class="fl">1</span>, <span class="va">which.max</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##    </span></span>
 <span><span class="co">## kk    1   2   3   4   5</span></span>
-<span><span class="co">##   1  17   4  18  19 163</span></span>
-<span><span class="co">##   2 117   6   0  67   2</span></span>
-<span><span class="co">##   3   7  26 118  11  18</span></span>
-<span><span class="co">##   4   5   4  57 112   4</span></span>
-<span><span class="co">##   5   2 207   5   6   5</span></span></code></pre>
+<span><span class="co">##   1  11   4  28   9 169</span></span>
+<span><span class="co">##   2 135   7   0  41   9</span></span>
+<span><span class="co">##   3   6  28  94  11  41</span></span>
+<span><span class="co">##   4   3   1  63 115   0</span></span>
+<span><span class="co">##   5   2 204   9   7   3</span></span></code></pre>
 </div>
   </div>
 

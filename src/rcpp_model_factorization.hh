@@ -193,12 +193,12 @@ _initialize_stat_random(const factorization_tag,
     {
         Mat a = fact.beta_dk.sample();
         Mat b = Mat::Ones(D, K);
-        fact.beta_dk.update(a / static_cast<Scalar>(D), b);
+        fact.beta_dk.update(a, b);
     }
     {
         Mat a = fact.theta_nk.sample();
         Mat b = Mat::Ones(N, K);
-        fact.theta_nk.update(a / static_cast<Scalar>(N), b);
+        fact.theta_nk.update(a, b);
     }
 }
 

@@ -435,12 +435,12 @@ public:
         {
             Mat a = beta_dk.sample();
             Mat b = Mat::Ones(D, K);
-            beta_dk.update(a / static_cast<Scalar>(D), b);
+            beta_dk.update(a, b);
         }
         {
             Mat a = theta_nk.sample();
             Mat b = Mat::Ones(N, K);
-            theta_nk.update(a / static_cast<Scalar>(N), b);
+            theta_nk.update(a, b);
         }
         beta_dk.calibrate();
         theta_nk.calibrate();
