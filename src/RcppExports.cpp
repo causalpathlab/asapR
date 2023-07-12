@@ -112,6 +112,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// asap_adjust_bbknn
+Rcpp::List asap_adjust_bbknn(const Rcpp::List& data_nk_vec, const std::size_t KNN_PER_BATCH, const std::size_t BLOCK_SIZE, const std::size_t NUM_THREADS, const bool verbose);
+RcppExport SEXP _asapR_asap_adjust_bbknn(SEXP data_nk_vecSEXP, SEXP KNN_PER_BATCHSEXP, SEXP BLOCK_SIZESEXP, SEXP NUM_THREADSSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type data_nk_vec(data_nk_vecSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type KNN_PER_BATCH(KNN_PER_BATCHSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_adjust_bbknn(data_nk_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // asap_regression
 Rcpp::List asap_regression(const Eigen::MatrixXf Y_, const Eigen::MatrixXf log_x, const double a0, const double b0, const std::size_t max_iter, const bool do_log1p, const bool verbose);
 RcppExport SEXP _asapR_asap_regression(SEXP Y_SEXP, SEXP log_xSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP) {
@@ -337,6 +352,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_nmf_shared_dict", (DL_FUNC) &_asapR_asap_fit_nmf_shared_dict, 12},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 17},
     {"_asapR_asap_random_bulk_data_multi", (DL_FUNC) &_asapR_asap_random_bulk_data_multi, 18},
+    {"_asapR_asap_adjust_bbknn", (DL_FUNC) &_asapR_asap_adjust_bbknn, 5},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 7},
     {"_asapR_asap_topic_stat", (DL_FUNC) &_asapR_asap_topic_stat, 10},
     {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},

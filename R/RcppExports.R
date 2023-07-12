@@ -32,7 +32,7 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 
 #' A quick NMF estimation based on alternating Poisson regressions
 #'
-#' @param Y_ a list of non-negative data matrices (gene x sample)
+#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
 #' @param maxK maximum number of factors
 #' @param max_iter max number of optimization steps
 #' @param min_iter min number of optimization steps
@@ -109,6 +109,25 @@ asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_fa
 #'
 asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1) {
     .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+}
+
+#' Reconcile multi-batch matrices by batch-balancing KNN
+#'
+#' @param data_nk_vec a list of sample x factor matrices
+#' @param KNN_PER_BATCH (default: 10)
+#' @param BLOCK_SIZE each parallel job size (default: 100)
+#' @param NUM_THREADS number of parallel threads (default: 1)
+#' @param verbose (default: TRUE)
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item adjusted (N x K) matrix
+#'  \item bbknn batch-balanced kNN adjacency matrix
+#'  \item batches batch membership
+#' }
+#'
+asap_adjust_bbknn <- function(data_nk_vec, KNN_PER_BATCH = 10L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, verbose = TRUE) {
+    .Call('_asapR_asap_adjust_bbknn', PACKAGE = 'asapR', data_nk_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
 }
 
 #' Poisson regression to estimate factor loading

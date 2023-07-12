@@ -55,4 +55,16 @@ normalize_weights(const Index deg_i,
     }
 }
 
+std::tuple<Index, Index, Scalar>
+parse_triplet(const std::tuple<Index, Index, Scalar> &tt)
+{
+    return tt;
+}
+
+std::tuple<Index, Index, Scalar>
+parse_triplet(const Eigen::Triplet<Scalar> &tt)
+{
+    return std::make_tuple(tt.row(), tt.col(), tt.value());
+}
+
 }} // namespace mmutil::match

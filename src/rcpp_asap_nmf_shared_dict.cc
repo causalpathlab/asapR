@@ -6,7 +6,7 @@
 
 //' A quick NMF estimation based on alternating Poisson regressions
 //'
-//' @param Y_ a list of non-negative data matrices (gene x sample)
+//' @param y_dn_vec a list of non-negative data matrices (gene x sample)
 //' @param maxK maximum number of factors
 //' @param max_iter max number of optimization steps
 //' @param min_iter min number of optimization steps

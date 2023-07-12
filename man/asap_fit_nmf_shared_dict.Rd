@@ -20,6 +20,8 @@ asap_fit_nmf_shared_dict(
 )
 }
 \arguments{
+\item{y_dn_vec}{a list of non-negative data matrices (gene x sample)}
+
 \item{maxK}{maximum number of factors}
 
 \item{max_iter}{max number of optimization steps}
@@ -39,8 +41,6 @@ asap_fit_nmf_shared_dict(
 \item{svd_init}{initialize by SVD (default: FALSE)}
 
 \item{EPS}{(default: 1e-8)}
-
-\item{Y_}{a list of non-negative data matrices (gene x sample)}
 
 \item{min_iter}{min number of optimization steps}
 
