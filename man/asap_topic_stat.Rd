@@ -14,7 +14,11 @@ asap_topic_stat(
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  BLOCK_SIZE = 100L,
+  MAX_ROW_WORD = 2L,
+  ROW_WORD_SEP = "_",
+  MAX_COL_WORD = 100L,
+  COL_WORD_SEP = "@"
 )
 }
 \arguments{
@@ -37,6 +41,14 @@ asap_topic_stat(
 \item{NUM_THREADS}{number of threads in data reading}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{MAX_ROW_WORD}{maximum words per line in \code{row_files[i]}}
+
+\item{ROW_WORD_SEP}{word separation character to replace white space}
+
+\item{MAX_COL_WORD}{maximum words per line in \code{col_files[i]}}
+
+\item{COL_WORD_SEP}{word separation character to replace white space}
 }
 \value{
 a list that contains:

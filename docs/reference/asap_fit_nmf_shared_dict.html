@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/introduction.html">We want cell topic estimation ASAP</a>
+    </li>
+    <li>
       <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
     </li>
     <li>
@@ -78,7 +81,11 @@
 
     <div id="arguments">
     <h2>Arguments</h2>
-    <dl><dt>maxK</dt>
+    <dl><dt>y_dn_vec</dt>
+<dd><p>a list of non-negative data matrices (gene x sample)</p></dd>
+
+
+<dt>maxK</dt>
 <dd><p>maximum number of factors</p></dd>
 
 
@@ -118,10 +125,6 @@
 <dd><p>(default: 1e-8)</p></dd>
 
 
-<dt>Y_</dt>
-<dd><p>a list of non-negative data matrices (gene x sample)</p></dd>
-
-
 <dt>min_iter</dt>
 <dd><p>min number of optimization steps</p></dd>
 
@@ -155,7 +158,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

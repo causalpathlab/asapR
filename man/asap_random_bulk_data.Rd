@@ -18,10 +18,16 @@ asap_random_bulk_data(
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   do_log1p = FALSE,
+  do_down_sample = FALSE,
   KNN_CELL = 10L,
+  CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
   a0 = 1e-08,
-  b0 = 1
+  b0 = 1,
+  MAX_ROW_WORD = 2L,
+  ROW_WORD_SEP = "_",
+  MAX_COL_WORD = 100L,
+  COL_WORD_SEP = "@"
 )
 }
 \arguments{
@@ -51,13 +57,44 @@ asap_random_bulk_data(
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
+\item{do_down_sample}{down-sampling (default: FALSE)}
+
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
+
+\item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
 
 \item{BATCH_ADJ_ITER}{batch Adjustment steps (default: 100)}
 
 \item{a0}{gamma(a0, b0) (default: 1e-8)}
 
 \item{b0}{gamma(a0, b0) (default: 1)}
+
+\item{MAX_ROW_WORD}{maximum words per line in \code{row_file}}
+
+\item{ROW_WORD_SEP}{word separation character to replace white space}
+
+\item{MAX_COL_WORD}{maximum words per line in \code{col_file}}
+
+\item{COL_WORD_SEP}{word separation character to replace white space}
+}
+\value{
+a list
+\itemize{
+\item \code{PB} pseudobulk (average) data (feature x sample)
+\item \code{sum} pseudobulk (sum) data (feature x sample)
+\item \code{matched.sum} kNN-matched pseudobulk data (feature x sample)
+\item \code{sum_db} batch-specific sum (feature x batch)
+\item \code{size} size per sample (sample x 1)
+\item \code{prob_bs} batch-specific frequency (batch x sample)
+\item \code{size_bs} batch-specific size (batch x sample)
+\item \code{batch.effect} batch effect (feature x batch)
+\item \code{log.batch.effect} log batch effect (feature x batch)
+\item \code{batch.names} batch names (batch x 1)
+\item \code{positions} pseudobulk sample positions (cell x 1)
+\item \code{rand.proj} random projection results (proj factor x feature)
+\item \code{colnames} column (cell) names
+\item \code{rownames} feature (gene) names
+}
 }
 \description{
 Generate approximate pseudo-bulk data by random projections

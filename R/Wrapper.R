@@ -1,3 +1,18 @@
+#' Create a list of MTX-related files
+#' @param .hdr file set header name
+#' @return a list of file names
+fileset.list <- function(.hdr){
+    .names <- c("mtx","row","col","idx")
+    .out <- paste0(.hdr, c(".mtx.gz",
+                           ".rows.gz",
+                           ".cols.gz",
+                           ".mtx.gz.index"))
+    .out <- as.list(.out)
+    names(.out) <- .names
+    .out$hdr <- .hdr
+    .out
+}
+
 #' A wrapper function to read a sparse submatrix
 #'
 #' @param mtx.file matrix market file
@@ -93,17 +108,6 @@ read.vec <- function(.file) {
         ret <- readLines(.file)
     }
     return(ret)
-}
-
-#' Create a list of MTX-related files
-#' @param .hdr file set header name
-#' @return a list of file names
-fileset.list <- function(.hdr){
-    .names <- c("mtx","row","col","idx")
-    .out <- paste0(.hdr, c(".mtx.gz", ".rows.gz", ".cols.gz", ".mtx.gz.index"))
-    .out <- as.list(.out)
-    names(.out) <- .names
-    .out
 }
 
 #' Write matrix market file set

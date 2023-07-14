@@ -23,10 +23,10 @@ using model_t = asap_nmf_model_t<RNG>;
 //'
 //' @return a list that contains:
 //'  \itemize{
-//'   \item log.likelihood log-likelihood trace
-//'   \item std_log_x standardized log-dictionary (gene x factor)
-//'   \item corr empirical correlation (sample x factor)
-//'   \item model a list of beta (gene x factor) and theta (sample x factor)
+//'   \item `log.likelihood` Log-likelihood trace
+//'   \item `std_log_x` Standardized log-dictionary (gene x factor)
+//'   \item `corr` Empirical correlation (sample x factor)
+//'   \item `model` A list: beta (gene x factor) and theta (sample x factor)
 //' }
 //'
 //'

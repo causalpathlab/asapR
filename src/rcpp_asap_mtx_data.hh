@@ -37,7 +37,11 @@ struct mtx_data_t {
                                      Kiss64Random,
                                      RcppAnnoyIndexThreadPolicy>;
 
-    explicit mtx_data_t(const MTX &mtx, const ROW &row, const IDX &idx)
+    explicit mtx_data_t(const MTX &mtx,
+                        const ROW &row,
+                        const IDX &idx,
+                        const std::size_t MAX_ROW_WORD = 2,
+                        const char ROW_WORD_SEP = '_')
         : mtx_file(mtx.val)
         , row_file(row.val)
         , idx_file(idx.val)
@@ -45,7 +49,8 @@ struct mtx_data_t {
         CHECK(peek_bgzf_header(mtx_file, info));
         CHECK(read_mmutil_index(idx_file, mtx_idx));
         sub_rows.reserve(info.max_row);
-        CHECK(read_vector_file(row_file, sub_rows));
+        CHECK(read_line_file(row_file, sub_rows, MAX_ROW_WORD, ROW_WORD_SEP));
+
         has_index = false;
 
         A.resize(info.max_row, info.max_row);

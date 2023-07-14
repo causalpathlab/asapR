@@ -16,10 +16,34 @@
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
+//' @param do_down_sample down-sampling (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
+//' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
+//' @param MAX_ROW_WORD maximum words per line in `row_file`
+//' @param ROW_WORD_SEP word separation character to replace white space
+//' @param MAX_COL_WORD maximum words per line in `col_file`
+//' @param COL_WORD_SEP word separation character to replace white space
+//'
+//' @return a list
+//' \itemize{
+//' \item `PB` pseudobulk (average) data (feature x sample)
+//' \item `sum` pseudobulk (sum) data (feature x sample)
+//' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
+//' \item `sum_db` batch-specific sum (feature x batch)
+//' \item `size` size per sample (sample x 1)
+//' \item `prob_bs` batch-specific frequency (batch x sample)
+//' \item `size_bs` batch-specific size (batch x sample)
+//' \item `batch.effect` batch effect (feature x batch)
+//' \item `log.batch.effect` log batch effect (feature x batch)
+//' \item `batch.names` batch names (batch x 1)
+//' \item `positions` pseudobulk sample positions (cell x 1)
+//' \item `rand.proj` random projection results (proj factor x feature)
+//' \item `colnames` column (cell) names
+//' \item `rownames` feature (gene) names
+//' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -37,10 +61,16 @@ asap_random_bulk_data(
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
     const bool do_log1p = false,
+    const bool do_down_sample = false,
     const std::size_t KNN_CELL = 10,
+    const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
     const double a0 = 1e-8,
-    const double b0 = 1)
+    const double b0 = 1,
+    const std::size_t MAX_ROW_WORD = 2,
+    const char ROW_WORD_SEP = '_',
+    const std::size_t MAX_COL_WORD = 100,
+    const char COL_WORD_SEP = '@')
 {
 
     log1p_op<Mat> log1p;
@@ -53,9 +83,9 @@ asap_random_bulk_data(
               "Failed to read the size of this mtx file:" << mtx_file);
 
     std::vector<std::string> row_names, col_names;
-    CHK_RETL_(read_vector_file(row_file, row_names),
+    CHK_RETL_(read_line_file(row_file, row_names, MAX_ROW_WORD, ROW_WORD_SEP),
               "Failed to read the row names");
-    CHK_RETL_(read_vector_file(col_file, col_names),
+    CHK_RETL_(read_line_file(col_file, col_names, MAX_COL_WORD, COL_WORD_SEP),
               "Failed to read the col names");
 
     std::vector<Index> mtx_idx;
@@ -73,7 +103,7 @@ asap_random_bulk_data(
     ASSERT_RETL(D == row_names.size(),
                 "|rows| " << row_names.size() << " != " << D);
     ASSERT_RETL(N == col_names.size(),
-                "|cols| " << row_names.size() << " != " << N);
+                "|cols| " << col_names.size() << " != " << N);
 
     Mat X_nr;
     if (r_covar_n.isNotNull()) {
@@ -265,8 +295,18 @@ asap_random_bulk_data(
                    _pos_op);
 
     // Pseudobulk samples to cells
-    const std::vector<std::vector<Index>> pb_cells =
-        make_index_vec_vec(positions);
+    std::vector<std::vector<Index>> pb_cells = make_index_vec_vec(positions);
+
+    const Index NA_POS = S;
+    if (do_down_sample) {
+        TLOG_(verbose, "down-sampling to " << CELL_PER_SAMPLE << " per sample");
+        down_sample_vec_vec(pb_cells, CELL_PER_SAMPLE, rng);
+        std::fill(positions.begin(), positions.end(), NA_POS);
+        for (std::size_t s = 0; s < pb_cells.size(); ++s) {
+            for (auto x : pb_cells.at(s))
+                positions[x] = s;
+        }
+    }
 
     TLOG_(verbose,
           "Start collecting statistics... "

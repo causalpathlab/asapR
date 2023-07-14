@@ -63,7 +63,7 @@ std::shared_ptr<igzstream> open_igzstream(const std::string filename);
 ///////////////
 
 template <typename IFS, typename T1, typename T2>
-auto
+int
 read_dict_stream(IFS &ifs, std::unordered_map<T1, T2> &in)
 {
     in.clear();
@@ -77,10 +77,10 @@ read_dict_stream(IFS &ifs, std::unordered_map<T1, T2> &in)
 }
 
 template <typename T1, typename T2>
-auto
+int
 read_dict_file(const std::string filename, std::unordered_map<T1, T2> &in)
 {
-    auto ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS;
 
     if (is_file_gz(filename)) {
         igzstream ifs(filename.c_str(), std::ios::in);
@@ -95,7 +95,7 @@ read_dict_file(const std::string filename, std::unordered_map<T1, T2> &in)
 }
 
 template <typename IFS, typename T1, typename T2>
-auto
+int
 read_pair_stream(IFS &ifs, std::vector<std::tuple<T1, T2>> &in)
 {
     in.clear();
@@ -109,10 +109,10 @@ read_pair_stream(IFS &ifs, std::vector<std::tuple<T1, T2>> &in)
 }
 
 template <typename T1, typename T2>
-auto
+int
 read_pair_file(const std::string filename, std::vector<std::tuple<T1, T2>> &in)
 {
-    auto ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS;
 
     if (is_file_gz(filename)) {
         igzstream ifs(filename.c_str(), std::ios::in);
@@ -127,7 +127,7 @@ read_pair_file(const std::string filename, std::vector<std::tuple<T1, T2>> &in)
 }
 
 template <typename IFS, typename T>
-auto
+int
 read_vector_stream(IFS &ifs, std::vector<T> &in)
 {
     in.clear();
@@ -140,10 +140,10 @@ read_vector_stream(IFS &ifs, std::vector<T> &in)
 }
 
 template <typename T>
-auto
+int
 read_vector_file(const std::string filename, std::vector<T> &in)
 {
-    auto ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS;
 
     if (is_file_gz(filename)) {
         igzstream ifs(filename.c_str(), std::ios::in);
@@ -380,14 +380,72 @@ num_rows_cols(IFS &ifs)
     return std::make_tuple(nr, nc);
 }
 
+// Construct a word per line, concatenating up to max_word number of words
+int read_line_file(const std::string filename,
+                   std::vector<std::string> &in,
+                   const std::size_t max_word,
+                   const char sep);
+
+// Construct a word per line, concatenating up to max_word number of words
+template <typename IFS>
+int
+read_line_stream(IFS &ifs,
+                 std::vector<std::string> &in,
+                 const std::size_t max_word = 1,
+                 const char sep = '_')
+{
+    typedef enum _state_t { S_WORD, S_EOW, S_EOL } state_t;
+    const char eol = '\n';
+    std::istreambuf_iterator<char> END;
+    std::istreambuf_iterator<char> it(ifs);
+
+    strbuf_t strbuf;
+    state_t state = S_EOL;
+    std::size_t nw = 0;
+    std::string line;
+    std::size_t nr = 0;
+
+    for (; it != END; ++it) {
+        char c = *it;
+
+        if (c == eol) {
+            if (nw == 0) {
+                // empty line
+                ELOG("Found an empty line: " << (nr + 1));
+                return EXIT_FAILURE;
+            }
+            strbuf.take_string(line);
+            in.emplace_back(line);
+            strbuf.clear();
+            state = S_EOL;
+            nw = 0;
+            ++nr;
+        } else if (isspace(c)) {
+            if (state == S_WORD && nw < max_word) {
+                strbuf.add(sep);
+            }
+            state = S_EOW;
+        } else {
+            if (state != S_WORD) {
+                ++nw;
+            }
+            if (nw < max_word) {
+                strbuf.add(c);
+            }
+            state = S_WORD;
+        }
+    }
+    return EXIT_SUCCESS;
+}
+
 template <typename IFS, typename T>
-auto
+int
 read_data_stream(IFS &ifs, T &in)
 {
     typedef typename T::Scalar elem_t;
 
     typedef enum _state_t { S_WORD, S_EOW, S_EOL } state_t;
-    const auto eol = '\n';
+    const char eol = '\n';
     std::istreambuf_iterator<char> END;
     std::istreambuf_iterator<char> it(ifs);
 
@@ -461,10 +519,10 @@ read_data_stream(IFS &ifs, T &in)
 
 ////////////////////////////////////////////////////////////////
 template <typename T>
-auto
+int
 read_data_file(const std::string filename, T &in)
 {
-    auto ret = EXIT_SUCCESS;
+    int ret = EXIT_SUCCESS;
 
     if (is_file_gz(filename)) {
         igzstream ifs(filename.c_str(), std::ios::in);

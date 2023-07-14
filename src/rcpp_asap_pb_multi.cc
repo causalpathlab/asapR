@@ -20,6 +20,28 @@
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
+//' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+//' @param ROW_WORD_SEP word separation character to replace white space
+//' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+//' @param COL_WORD_SEP word separation character to replace white space
+//'
+//' @return a list
+//' \itemize{
+//' \item `PB` pseudobulk (average) data (feature x sample)
+//' \item `sum` pseudobulk (sum) data (feature x sample)
+//' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
+//' \item `sum_db` batch-specific sum (feature x batch)
+//' \item `size` size per sample (sample x 1)
+//' \item `prob_bs` batch-specific frequency (batch x sample)
+//' \item `size_bs` batch-specific size (batch x sample)
+//' \item `batch.effect` batch effect (feature x batch)
+//' \item `log.batch.effect` log batch effect (feature x batch)
+//' \item `batch.names` batch names (batch x 1)
+//' \item `positions` pseudobulk sample positions (cell x 1)
+//' \item `rand.proj` random projection results (proj factor x feature)
+//' \item `colnames` column (cell) names
+//' \item `rownames` feature (gene) names
+//' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
@@ -40,7 +62,11 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                             const std::size_t CELL_PER_SAMPLE = 100,
                             const std::size_t BATCH_ADJ_ITER = 100,
                             const double a0 = 1e-8,
-                            const double b0 = 1)
+                            const double b0 = 1,
+                            const std::size_t MAX_ROW_WORD = 2,
+                            const char ROW_WORD_SEP = '_',
+                            const std::size_t MAX_COL_WORD = 100,
+                            const char COL_WORD_SEP = '@')
 {
 
     log1p_op<Mat> log1p;
@@ -95,7 +121,8 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
         std::vector<std::string> col_b;
-        CHECK(read_vector_file(col_files.at(b), col_b))
+        CHECK(
+            read_line_file(col_files.at(b), col_b, MAX_COL_WORD, COL_WORD_SEP))
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
     }
 
@@ -124,7 +151,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
         mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
                         mtx_data_t::ROW(row_files.at(b)),
-                        mtx_data_t::IDX(idx_files.at(b)));
+                        mtx_data_t::IDX(idx_files.at(b)),
+                        MAX_ROW_WORD,
+                        ROW_WORD_SEP);
 
         // Find features in the global mapping
         Mat R_matched_kd(K, data.info.max_row);
@@ -313,7 +342,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
             mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
                             mtx_data_t::ROW(row_files.at(b)),
-                            mtx_data_t::IDX(idx_files.at(b)));
+                            mtx_data_t::IDX(idx_files.at(b)),
+                            MAX_ROW_WORD,
+                            ROW_WORD_SEP);
 
             const Index Nb = data.info.max_col;
 
@@ -367,7 +398,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
             mtx_ptr.emplace_back(
                 std::make_shared<mtx_data_t>(mtx_data_t::MTX(mtx_files.at(b)),
                                              mtx_data_t::ROW(row_files.at(b)),
-                                             mtx_data_t::IDX(idx_files.at(b))));
+                                             mtx_data_t::IDX(idx_files.at(b)),
+                                             MAX_ROW_WORD,
+                                             ROW_WORD_SEP));
             mtx_ptr[b]->relocate_rows(row2pos);
         }
 

@@ -32,6 +32,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/introduction.html">We want cell topic estimation ASAP</a>
+    </li>
+    <li>
       <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
     </li>
     <li>
@@ -78,7 +81,11 @@
 <span>  CELL_PER_SAMPLE <span class="op">=</span> <span class="fl">100L</span>,</span>
 <span>  BATCH_ADJ_ITER <span class="op">=</span> <span class="fl">100L</span>,</span>
 <span>  a0 <span class="op">=</span> <span class="fl">1e-08</span>,</span>
-<span>  b0 <span class="op">=</span> <span class="fl">1</span></span>
+<span>  b0 <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  MAX_ROW_WORD <span class="op">=</span> <span class="fl">2L</span>,</span>
+<span>  ROW_WORD_SEP <span class="op">=</span> <span class="st">"_"</span>,</span>
+<span>  MAX_COL_WORD <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  COL_WORD_SEP <span class="op">=</span> <span class="st">"@"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -155,7 +162,42 @@
 <dt>b0</dt>
 <dd><p>gamma(a0, b0) (default: 1)</p></dd>
 
+
+<dt>MAX_ROW_WORD</dt>
+<dd><p>maximum words per line in <code>row_files[i]</code></p></dd>
+
+
+<dt>ROW_WORD_SEP</dt>
+<dd><p>word separation character to replace white space</p></dd>
+
+
+<dt>MAX_COL_WORD</dt>
+<dd><p>maximum words per line in <code>col_files[i]</code></p></dd>
+
+
+<dt>COL_WORD_SEP</dt>
+<dd><p>word separation character to replace white space</p></dd>
+
 </dl></div>
+    <div id="value">
+    <h2>Value</h2>
+    
+
+<p>a list</p><ul><li><p><code>PB</code> pseudobulk (average) data (feature x sample)</p></li>
+<li><p><code>sum</code> pseudobulk (sum) data (feature x sample)</p></li>
+<li><p><code>matched.sum</code> kNN-matched pseudobulk data (feature x sample)</p></li>
+<li><p><code>sum_db</code> batch-specific sum (feature x batch)</p></li>
+<li><p><code>size</code> size per sample (sample x 1)</p></li>
+<li><p><code>prob_bs</code> batch-specific frequency (batch x sample)</p></li>
+<li><p><code>size_bs</code> batch-specific size (batch x sample)</p></li>
+<li><p><code>batch.effect</code> batch effect (feature x batch)</p></li>
+<li><p><code>log.batch.effect</code> log batch effect (feature x batch)</p></li>
+<li><p><code>batch.names</code> batch names (batch x 1)</p></li>
+<li><p><code>positions</code> pseudobulk sample positions (cell x 1)</p></li>
+<li><p><code>rand.proj</code> random projection results (proj factor x feature)</p></li>
+<li><p><code>colnames</code> column (cell) names</p></li>
+<li><p><code>rownames</code> feature (gene) names</p></li>
+</ul></div>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -169,7 +211,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
 </div>
 
       </footer></div>

@@ -27,6 +27,17 @@ asap_regression(
 
 \item{Y}{D x N data matrix}
 }
+\value{
+a list that contains:
+\itemize{
+\item beta (D x K) matrix
+\item theta (N x K) matrix
+\item log.theta (N x K) log matrix
+\item log.theta.sd (N x K) standard deviation matrix
+\item corr (N x K) topic correlation matrix
+\item colsum (N x 1) column sum vector
+}
+}
 \description{
 Poisson regression to estimate factor loading
 }

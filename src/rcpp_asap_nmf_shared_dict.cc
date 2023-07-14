@@ -34,7 +34,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf_shared_dict(const Rcpp::List &y_dn_vec,
+asap_fit_nmf_shared_dict(const std::vector<Eigen::MatrixXf> &y_dn_vec,
                          const std::size_t maxK,
                          const std::size_t max_iter = 100,
                          const std::size_t burnin = 0,
