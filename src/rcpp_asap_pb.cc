@@ -17,6 +17,7 @@
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
+//' @param save_rand_proj save random projection (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -40,7 +41,8 @@
 //' \item `log.batch.effect` log batch effect (feature x batch)
 //' \item `batch.names` batch names (batch x 1)
 //' \item `positions` pseudobulk sample positions (cell x 1)
-//' \item `rand.proj` random projection results (proj factor x feature)
+//' \item `rand.dict` random dictionary (proj factor x feature)
+//' \item `rand.proj` random projection results (sample x proj factor)
 //' \item `colnames` column (cell) names
 //' \item `rownames` feature (gene) names
 //' }
@@ -62,6 +64,7 @@ asap_random_bulk_data(
     const std::size_t BLOCK_SIZE = 100,
     const bool do_log1p = false,
     const bool do_down_sample = false,
+    const bool save_rand_proj = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
@@ -517,6 +520,10 @@ asap_random_bulk_data(
 
     std::vector<std::string> d_ = row_names;
 
+    if (!save_rand_proj) {
+        Q_kn.resize(0, 0);
+    }
+
     TLOG_(verbose, "Done");
 
     return List::create(_["PB"] = named(mu_ds, d_, s_),
@@ -532,7 +539,8 @@ asap_random_bulk_data(
                             matched_data.get_exposure_mapping(),
                         _["batch.names"] = matched_data.get_exposure_names(),
                         _["positions"] = r_positions,
-                        _["rand.proj"] = R_kd,
+                        _["rand.dict"] = R_kd,
+                        _["rand.proj"] = Q_kn.transpose(),
                         _["colnames"] = col_names,
                         _["rownames"] = row_names);
 }

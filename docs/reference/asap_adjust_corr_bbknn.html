@@ -32,16 +32,22 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/introduction.html">We want cell topic estimation ASAP</a>
+      <a href="../articles/example_allen_brain.html">8. Example: Brain cell type annotation</a>
     </li>
     <li>
-      <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
+      <a href="../articles/example_brain_tumour.html">9. An example of brain tumour data analysis across multiple batches</a>
     </li>
     <li>
-      <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
+      <a href="../articles/introduction.html">1. Introduction: We want cell topic estimation ASAP</a>
     </li>
     <li>
-      <a href="../articles/note_multi_nmf.html">Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
+      <a href="../articles/note_batch_correction.html">2. Batch correction within each pseudobulk sample</a>
+    </li>
+    <li>
+      <a href="../articles/note_faster_nmf_approximation.html">3. Expedite Poisson-NMF estimation via alternating regression models</a>
+    </li>
+    <li>
+      <a href="../articles/note_multi_nmf.html">4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -65,7 +71,7 @@
     <div id="ref-usage">
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">asap_adjust_corr_bbknn</span><span class="op">(</span></span>
 <span>  <span class="va">data_nk_vec</span>,</span>
-<span>  KNN_PER_BATCH <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  KNN_PER_BATCH <span class="op">=</span> <span class="fl">3L</span>,</span>
 <span>  BLOCK_SIZE <span class="op">=</span> <span class="fl">100L</span>,</span>
 <span>  NUM_THREADS <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
@@ -79,7 +85,7 @@
 
 
 <dt>KNN_PER_BATCH</dt>
-<dd><p>(default: 10)</p></dd>
+<dd><p>(default: 3)</p></dd>
 
 
 <dt>BLOCK_SIZE</dt>

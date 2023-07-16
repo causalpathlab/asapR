@@ -180,24 +180,6 @@ mmutil_read_columns_sparse(const std::string mtx_file,
 //'
 //' @return a dense sub-matrix
 //'
-//' @examples
-//'
-//' rr <- rgamma(100, 1, 1) # one hundred cells
-//' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
-//' data.hdr <- "test_sim"
-//' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
-//' data.file <- .files$mtx
-//' idx.file <- .files$idx
-//' mtx.idx <- asapR::mmutil_read_index(idx.file)
-//' Y <- as.matrix(Matrix::readMM(data.file))
-//' col.pos <- c(1,13,77) # 1-based
-//' yy <- asapR::mmutil_read_columns(
-//'                  data.file, mtx.idx, col.pos)
-//' all(Y[, col.pos, drop = FALSE] == yy)
-//' print(head(Y[, col.pos, drop = FALSE]))
-//' print(head(yy))
-//' unlink(list.files(pattern = data.hdr))
-//'
 // [[Rcpp::export]]
 Rcpp::NumericMatrix
 mmutil_read_columns(const std::string mtx_file,
@@ -242,26 +224,6 @@ mmutil_read_columns(const std::string mtx_file,
 //' @param verbose verbosity
 //'
 //' @return a dense sub-matrix
-//'
-//' @examples
-//'
-//' rr <- rgamma(100, 1, 1) # one hundred cells
-//' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
-//' data.hdr <- "test_sim"
-//' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
-//' data.file <- .files$mtx
-//' idx.file <- .files$idx
-//' mtx.idx <- asapR::mmutil_read_index(idx.file)
-//' Y <- as.matrix(Matrix::readMM(data.file))
-//' col.pos <- c(1,13,77) # 1-based
-//' row.pos <- 1:10
-//' yy <- asapR::mmutil_read_rows_columns(
-//'                  data.file, mtx.idx, row.pos, col.pos)
-//' all(Y[, col.pos, drop = FALSE] == yy)
-//' print(head(Y[, col.pos, drop = FALSE]))
-//' print(head(yy))
-//' print(tail(yy))
-//' unlink(list.files(pattern = data.hdr))
 //'
 // [[Rcpp::export]]
 Rcpp::NumericMatrix

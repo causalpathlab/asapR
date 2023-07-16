@@ -4,12 +4,14 @@
 \alias{project.proportions}
 \title{Create 2D projection of topic proportions}
 \usage{
-project.proportions(.prop, max.angle = 2 * pi)
+project.proportions(.prop, max.angle = 2 * pi, do.jitter = TRUE)
 }
 \arguments{
 \item{.prop}{cell/sample x topic/factor proportion matrix}
 
 \item{max.angle}{maximum angle}
+
+\item{do.jitter}{jitter points}
 }
 \value{
 xy

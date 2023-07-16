@@ -6,7 +6,7 @@
 \usage{
 asap_adjust_corr_bbknn(
   data_nk_vec,
-  KNN_PER_BATCH = 10L,
+  KNN_PER_BATCH = 3L,
   BLOCK_SIZE = 100L,
   NUM_THREADS = 1L,
   verbose = TRUE
@@ -15,7 +15,7 @@ asap_adjust_corr_bbknn(
 \arguments{
 \item{data_nk_vec}{a list of sample x factor matrices}
 
-\item{KNN_PER_BATCH}{(default: 10)}
+\item{KNN_PER_BATCH}{(default: 3)}
 
 \item{BLOCK_SIZE}{each parallel job size (default: 100)}
 

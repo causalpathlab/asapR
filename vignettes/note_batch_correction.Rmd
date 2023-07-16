@@ -1,5 +1,5 @@
 ---
-title: "Batch correction within each pseudobulk sample"
+title: "2. Batch correction within each pseudobulk sample"
 author: "Yongjin Park"
 ---
 

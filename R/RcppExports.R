@@ -78,6 +78,7 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: FALSE)
+#' @param save_rand_proj save random projection (default: FALSE)
 #' @param KNN_CELL k-NN matching between cells (default: 10)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -101,13 +102,14 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' \item `log.batch.effect` log batch effect (feature x batch)
 #' \item `batch.names` batch names (batch x 1)
 #' \item `positions` pseudobulk sample positions (cell x 1)
-#' \item `rand.proj` random projection results (proj factor x feature)
+#' \item `rand.dict` random dictionary (proj factor x feature)
+#' \item `rand.proj` random projection results (sample x proj factor)
 #' \item `colnames` column (cell) names
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -122,10 +124,11 @@ asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_fa
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_batch_adj (default: TRUE)
+#' @param do_batch_adj (default: FALSE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
-#' @param do_down_sample down-sampling (default: FALSE)
-#' @param KNN_CELL k-NN matching between cells (default: 10)
+#' @param do_down_sample down-sampling (default: TRUE)
+#' @param save_rand_proj save random projection (default: FALSE)
+#' @param KNN_CELL k-NN cells per batch between different batches (default: 3)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1e-8)
@@ -148,13 +151,14 @@ asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_fa
 #' \item `log.batch.effect` log batch effect (feature x batch)
 #' \item `batch.names` batch names (batch x 1)
 #' \item `positions` pseudobulk sample positions (cell x 1)
-#' \item `rand.proj` random projection results (proj factor x feature)
+#' \item `rand.dict` random dictionary (proj factor x feature)
+#' \item `rand.proj` random projection results (sample x proj factor)
 #' \item `colnames` column (cell) names
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 3L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
@@ -176,14 +180,14 @@ asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_fil
 #'  \item log.theta.sd (N x K) standard deviation matrix
 #' }
 #'
-asap_topic_prop <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, verbose = TRUE) {
-    .Call('_asapR_asap_topic_prop', PACKAGE = 'asapR', X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, verbose)
+asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, verbose = TRUE) {
+    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, verbose)
 }
 
 #' Reconcile multi-batch matrices by batch-balancing KNN
 #'
 #' @param data_nk_vec a list of sample x factor matrices
-#' @param KNN_PER_BATCH (default: 10)
+#' @param KNN_PER_BATCH (default: 3)
 #' @param BLOCK_SIZE each parallel job size (default: 100)
 #' @param NUM_THREADS number of parallel threads (default: 1)
 #' @param verbose (default: TRUE)
@@ -195,7 +199,7 @@ asap_topic_prop <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L
 #'  \item batches batch membership
 #' }
 #'
-asap_adjust_corr_bbknn <- function(data_nk_vec, KNN_PER_BATCH = 10L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, verbose = TRUE) {
+asap_adjust_corr_bbknn <- function(data_nk_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, verbose = TRUE) {
     .Call('_asapR_asap_adjust_corr_bbknn', PACKAGE = 'asapR', data_nk_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
 }
 
@@ -361,24 +365,6 @@ mmutil_read_columns_sparse <- function(mtx_file, memory_location, r_column_index
 #'
 #' @return a dense sub-matrix
 #'
-#' @examples
-#'
-#' rr <- rgamma(100, 1, 1) # one hundred cells
-#' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
-#' data.hdr <- "test_sim"
-#' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
-#' data.file <- .files$mtx
-#' idx.file <- .files$idx
-#' mtx.idx <- asapR::mmutil_read_index(idx.file)
-#' Y <- as.matrix(Matrix::readMM(data.file))
-#' col.pos <- c(1,13,77) # 1-based
-#' yy <- asapR::mmutil_read_columns(
-#'                  data.file, mtx.idx, col.pos)
-#' all(Y[, col.pos, drop = FALSE] == yy)
-#' print(head(Y[, col.pos, drop = FALSE]))
-#' print(head(yy))
-#' unlink(list.files(pattern = data.hdr))
-#'
 mmutil_read_columns <- function(mtx_file, memory_location, r_column_index, verbose = FALSE) {
     .Call('_asapR_mmutil_read_columns', PACKAGE = 'asapR', mtx_file, memory_location, r_column_index, verbose)
 }
@@ -391,26 +377,6 @@ mmutil_read_columns <- function(mtx_file, memory_location, r_column_index, verbo
 #' @param verbose verbosity
 #'
 #' @return a dense sub-matrix
-#'
-#' @examples
-#'
-#' rr <- rgamma(100, 1, 1) # one hundred cells
-#' mm <- matrix(rgamma(10 * 3, 1, 1), 10, 3)
-#' data.hdr <- "test_sim"
-#' .files <- asapR::mmutil_simulate_poisson(mm, rr, data.hdr)
-#' data.file <- .files$mtx
-#' idx.file <- .files$idx
-#' mtx.idx <- asapR::mmutil_read_index(idx.file)
-#' Y <- as.matrix(Matrix::readMM(data.file))
-#' col.pos <- c(1,13,77) # 1-based
-#' row.pos <- 1:10
-#' yy <- asapR::mmutil_read_rows_columns(
-#'                  data.file, mtx.idx, row.pos, col.pos)
-#' all(Y[, col.pos, drop = FALSE] == yy)
-#' print(head(Y[, col.pos, drop = FALSE]))
-#' print(head(yy))
-#' print(tail(yy))
-#' unlink(list.files(pattern = data.hdr))
 #'
 mmutil_read_rows_columns <- function(mtx_file, memory_location, r_row_index, r_column_index, verbose = FALSE) {
     .Call('_asapR_mmutil_read_rows_columns', PACKAGE = 'asapR', mtx_file, memory_location, r_row_index, r_column_index, verbose)

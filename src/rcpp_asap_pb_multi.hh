@@ -10,14 +10,16 @@ void
 take_row_names(const std::vector<S> &row_files,
                std::vector<S> &pos2row,
                std::unordered_map<S, I> &row2pos,
-               bool take_union)
+               bool take_union,
+               const std::size_t MAX_ROW_WORD = 2,
+               const char ROW_WORD_SEP = '_')
 {
     if (take_union) {
         std::unordered_set<S> _rows; // Take a unique set
 
         auto _insert = [&](S f) {
             std::vector<S> vv;
-            CHECK(read_vector_file(f, vv));
+            CHECK(read_line_file(f, vv, MAX_ROW_WORD, ROW_WORD_SEP));
             const std::size_t sz = vv.size();
 
             std::sort(vv.begin(), vv.end());
@@ -39,7 +41,7 @@ take_row_names(const std::vector<S> &row_files,
 
         for (std::size_t b = 0; b < B; ++b) {
             std::vector<S> vv;
-            CHECK(read_vector_file(row_files[b], vv));
+            CHECK(read_line_file(row_files[b], vv, MAX_ROW_WORD, ROW_WORD_SEP));
 
             const std::size_t sz = vv.size();
             std::sort(vv.begin(), vv.end());

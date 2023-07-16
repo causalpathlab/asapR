@@ -21,14 +21,14 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_prop(const Eigen::MatrixXf X_dk,
-                const Eigen::MatrixXf R_nk,
-                const Eigen::MatrixXf Y_n,
-                const double a0 = 1e-8,
-                const double b0 = 1.0,
-                const std::size_t max_iter = 10,
-                const std::size_t NUM_THREADS = 1,
-                const bool verbose = true)
+asap_topic_pmf(const Eigen::MatrixXf X_dk,
+               const Eigen::MatrixXf R_nk,
+               const Eigen::MatrixXf Y_n,
+               const double a0 = 1e-8,
+               const double b0 = 1.0,
+               const std::size_t max_iter = 10,
+               const std::size_t NUM_THREADS = 1,
+               const bool verbose = true)
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -82,7 +82,7 @@ asap_topic_prop(const Eigen::MatrixXf X_dk,
 //' Reconcile multi-batch matrices by batch-balancing KNN
 //'
 //' @param data_nk_vec a list of sample x factor matrices
-//' @param KNN_PER_BATCH (default: 10)
+//' @param KNN_PER_BATCH (default: 3)
 //' @param BLOCK_SIZE each parallel job size (default: 100)
 //' @param NUM_THREADS number of parallel threads (default: 1)
 //' @param verbose (default: TRUE)
@@ -97,7 +97,7 @@ asap_topic_prop(const Eigen::MatrixXf X_dk,
 // [[Rcpp::export]]
 Rcpp::List
 asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
-                       const std::size_t KNN_PER_BATCH = 10,
+                       const std::size_t KNN_PER_BATCH = 3,
                        const std::size_t BLOCK_SIZE = 100,
                        const std::size_t NUM_THREADS = 1,
                        const bool verbose = true)
@@ -199,6 +199,8 @@ asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     std::vector<std::tuple<Index, Index, Scalar>> backbone;
 
+    Index Nprocessed = 0;
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
@@ -253,6 +255,18 @@ asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
                 }
             }
         }
+#pragma omp critical
+        {
+            Nprocessed += 1;
+            if (verbose) {
+                Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
+            } else {
+                Rcpp::Rcerr << "+ " << std::flush;
+                if (Nprocessed % 100 == 0)
+                    Rcpp::Rcerr << "\r" << std::flush;
+            }
+        }
+
     } // jobs
 
     SpMat W = build_eigen_sparse(backbone, Ntot, Ntot);
@@ -297,13 +311,16 @@ asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     } // for each batch
 
-    TLOG("Successfully adjusted weights");
+    TLOG_(verbose, "Successfully adjusted weights");
 
     Vadj.transposeInPlace();
 
+    std::vector<Index> r_batches(batches.size());
+    rcpp::util::convert_r_index(batches, r_batches);
+
     return Rcpp::List::create(Rcpp::_["adjusted"] = Vadj,
                               Rcpp::_["bbknn"] = W,
-                              Rcpp::_["batches"] = batches);
+                              Rcpp::_["batches"] = r_batches);
 }
 
 //' Topic statistics to estimate factor loading
@@ -466,7 +483,7 @@ asap_topic_stat(const std::string mtx_file,
 
     if (!verbose)
         Rcpp::Rcerr << std::endl;
-    TLOG("Done");
+    TLOG_(verbose, "Done");
 
     using namespace rcpp::util;
     using namespace Rcpp;

@@ -38,7 +38,7 @@ extern "C" {
 
 bool file_exists(std::string filename);
 
-bool all_files_exist(std::vector<std::string> filenames);
+bool all_files_exist(std::vector<std::string> filenames, const bool verbose);
 
 void copy_file(const std::string _src, const std::string _dst);
 
@@ -429,7 +429,7 @@ read_line_stream(IFS &ifs,
             if (state != S_WORD) {
                 ++nw;
             }
-            if (nw < max_word) {
+            if (nw <= max_word) {
                 strbuf.add(c);
             }
             state = S_WORD;

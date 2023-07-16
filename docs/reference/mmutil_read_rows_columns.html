@@ -32,16 +32,22 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/introduction.html">We want cell topic estimation ASAP</a>
+      <a href="../articles/example_allen_brain.html">8. Example: Brain cell type annotation</a>
     </li>
     <li>
-      <a href="../articles/note_batch_correction.html">Batch correction within each pseudobulk sample</a>
+      <a href="../articles/example_brain_tumour.html">9. An example of brain tumour data analysis across multiple batches</a>
     </li>
     <li>
-      <a href="../articles/note_faster_nmf_approximation.html">Expedite Poisson-NMF estimation via alternating regression models</a>
+      <a href="../articles/introduction.html">1. Introduction: We want cell topic estimation ASAP</a>
     </li>
     <li>
-      <a href="../articles/note_multi_nmf.html">Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
+      <a href="../articles/note_batch_correction.html">2. Batch correction within each pseudobulk sample</a>
+    </li>
+    <li>
+      <a href="../articles/note_faster_nmf_approximation.html">3. Expedite Poisson-NMF estimation via alternating regression models</a>
+    </li>
+    <li>
+      <a href="../articles/note_multi_nmf.html">4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -101,51 +107,6 @@
 <p>a dense sub-matrix</p>
     </div>
 
-    <div id="ref-examples">
-    <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="va">rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span> <span class="co"># one hundred cells</span></span></span>
-<span class="r-in"><span><span class="va">mm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="fl">10</span> <span class="op">*</span> <span class="fl">3</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">10</span>, <span class="fl">3</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">data.hdr</span> <span class="op">&lt;-</span> <span class="st">"test_sim"</span></span></span>
-<span class="r-in"><span><span class="va">.files</span> <span class="op">&lt;-</span> <span class="fu">asapR</span><span class="fu">::</span><span class="fu"><a href="mmutil_simulate_poisson.html">mmutil_simulate_poisson</a></span><span class="op">(</span><span class="va">mm</span>, <span class="va">rr</span>, <span class="va">data.hdr</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">data.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">mtx</span></span></span>
-<span class="r-in"><span><span class="va">idx.file</span> <span class="op">&lt;-</span> <span class="va">.files</span><span class="op">$</span><span class="va">idx</span></span></span>
-<span class="r-in"><span><span class="va">mtx.idx</span> <span class="op">&lt;-</span> <span class="fu">asapR</span><span class="fu">::</span><span class="fu"><a href="mmutil_read_index.html">mmutil_read_index</a></span><span class="op">(</span><span class="va">idx.file</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">Y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu">Matrix</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/Matrix/man/externalFormats.html" class="external-link">readMM</a></span><span class="op">(</span><span class="va">data.file</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">col.pos</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">13</span>,<span class="fl">77</span><span class="op">)</span> <span class="co"># 1-based</span></span></span>
-<span class="r-in"><span><span class="va">row.pos</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span></span></span>
-<span class="r-in"><span><span class="va">yy</span> <span class="op">&lt;-</span> <span class="fu">asapR</span><span class="fu">::</span><span class="fu">mmutil_read_rows_columns</span><span class="op">(</span></span></span>
-<span class="r-in"><span>                 <span class="va">data.file</span>, <span class="va">mtx.idx</span>, <span class="va">row.pos</span>, <span class="va">col.pos</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span> <span class="op">==</span> <span class="va">yy</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] TRUE</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">Y</span><span class="op">[</span>, <span class="va">col.pos</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      [,1] [,2] [,3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]    1    2    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]    0    0    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]    1    4    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]    0    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]    1    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,]    0    0    0</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      [,1] [,2] [,3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]    1    2    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]    0    0    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]    1    4    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]    0    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]    1    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,]    0    0    0</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">yy</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       [,1] [,2] [,3]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5,]    1    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [6,]    0    0    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7,]    1    2    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [8,]    0    2    0</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9,]    0    0    1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [10,]    0    0    0</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/unlink.html" class="external-link">unlink</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span>pattern <span class="op">=</span> <span class="va">data.hdr</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-</code></pre></div>
-    </div>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top"><h2 data-toc-skip>Contents</h2>

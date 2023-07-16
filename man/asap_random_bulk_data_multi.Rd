@@ -12,13 +12,14 @@ asap_random_bulk_data_multi(
   num_factors,
   take_union_rows = FALSE,
   rseed = 42L,
-  verbose = FALSE,
+  verbose = TRUE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   do_batch_adj = TRUE,
   do_log1p = FALSE,
-  do_down_sample = FALSE,
-  KNN_CELL = 10L,
+  do_down_sample = TRUE,
+  save_rand_proj = FALSE,
+  KNN_CELL = 3L,
   CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
   a0 = 1e-08,
@@ -50,13 +51,15 @@ asap_random_bulk_data_multi(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
-\item{do_batch_adj}{(default: TRUE)}
+\item{do_batch_adj}{(default: FALSE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
-\item{do_down_sample}{down-sampling (default: FALSE)}
+\item{do_down_sample}{down-sampling (default: TRUE)}
 
-\item{KNN_CELL}{k-NN matching between cells (default: 10)}
+\item{save_rand_proj}{save random projection (default: FALSE)}
+
+\item{KNN_CELL}{k-NN cells per batch between different batches (default: 3)}
 
 \item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
 
@@ -88,7 +91,8 @@ a list
 \item \code{log.batch.effect} log batch effect (feature x batch)
 \item \code{batch.names} batch names (batch x 1)
 \item \code{positions} pseudobulk sample positions (cell x 1)
-\item \code{rand.proj} random projection results (proj factor x feature)
+\item \code{rand.dict} random dictionary (proj factor x feature)
+\item \code{rand.proj} random projection results (sample x proj factor)
 \item \code{colnames} column (cell) names
 \item \code{rownames} feature (gene) names
 }

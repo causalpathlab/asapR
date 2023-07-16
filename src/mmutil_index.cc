@@ -97,7 +97,7 @@ read_mmutil_index(const std::string index_file, std::vector<Index> &_index)
             _index[j] = _index[j + 1];
     }
 
-    TLOG("Read " << MaxIdx << " indexes");
+    // TLOG("Read " << MaxIdx << " indexes");
     return ret;
 }
 

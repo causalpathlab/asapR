@@ -7,6 +7,12 @@
     <loc>/LICENSE-text.html</loc>
   </url>
   <url>
+    <loc>/articles/example_allen_brain.html</loc>
+  </url>
+  <url>
+    <loc>/articles/example_brain_tumour.html</loc>
+  </url>
+  <url>
     <loc>/articles/index.html</loc>
   </url>
   <url>
@@ -56,6 +62,9 @@
   </url>
   <url>
     <loc>/reference/asap_regression_mtx.html</loc>
+  </url>
+  <url>
+    <loc>/reference/asap_topic_pmf.html</loc>
   </url>
   <url>
     <loc>/reference/asap_topic_prop.html</loc>

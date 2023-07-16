@@ -12,10 +12,11 @@
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_batch_adj (default: TRUE)
+//' @param do_batch_adj (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
-//' @param do_down_sample down-sampling (default: FALSE)
-//' @param KNN_CELL k-NN matching between cells (default: 10)
+//' @param do_down_sample down-sampling (default: TRUE)
+//' @param save_rand_proj save random projection (default: FALSE)
+//' @param KNN_CELL k-NN cells per batch between different batches (default: 3)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
@@ -38,7 +39,8 @@
 //' \item `log.batch.effect` log batch effect (feature x batch)
 //' \item `batch.names` batch names (batch x 1)
 //' \item `positions` pseudobulk sample positions (cell x 1)
-//' \item `rand.proj` random projection results (proj factor x feature)
+//' \item `rand.dict` random dictionary (proj factor x feature)
+//' \item `rand.proj` random projection results (sample x proj factor)
 //' \item `colnames` column (cell) names
 //' \item `rownames` feature (gene) names
 //' }
@@ -52,13 +54,14 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                             const std::size_t num_factors,
                             const bool take_union_rows = false,
                             const std::size_t rseed = 42,
-                            const bool verbose = false,
+                            const bool verbose = true,
                             const std::size_t NUM_THREADS = 1,
                             const std::size_t BLOCK_SIZE = 100,
                             const bool do_batch_adj = true,
                             const bool do_log1p = false,
-                            const bool do_down_sample = false,
-                            const std::size_t KNN_CELL = 10,
+                            const bool do_down_sample = true,
+                            const bool save_rand_proj = false,
+                            const std::size_t KNN_CELL = 3,
                             const std::size_t CELL_PER_SAMPLE = 100,
                             const std::size_t BATCH_ADJ_ITER = 100,
                             const double a0 = 1e-8,
@@ -80,10 +83,10 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     ASSERT_RETL(col_files.size() == B, "Need a col file for each batch");
     ASSERT_RETL(idx_files.size() == B, "Need an index file for each batch");
 
-    ERR_RET(!all_files_exist(mtx_files), "missing in the mtx files");
-    ERR_RET(!all_files_exist(row_files), "missing in the row files");
-    ERR_RET(!all_files_exist(col_files), "missing in the col files");
-    ERR_RET(!all_files_exist(idx_files), "missing in the idx files");
+    ERR_RET(!all_files_exist(mtx_files, false), "missing in the mtx files");
+    ERR_RET(!all_files_exist(row_files, false), "missing in the row files");
+    ERR_RET(!all_files_exist(col_files, false), "missing in the col files");
+    ERR_RET(!all_files_exist(idx_files, false), "missing in the idx files");
 
     ////////////////////////////
     // first read global rows //
@@ -94,7 +97,12 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
 
-    take_row_names(row_files, pos2row, row2pos, take_union_rows);
+    take_row_names(row_files,
+                   pos2row,
+                   row2pos,
+                   take_union_rows,
+                   MAX_ROW_WORD,
+                   ROW_WORD_SEP);
     TLOG_(verbose, "Found " << row2pos.size() << " row names");
 
     ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
@@ -201,7 +209,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                                      << Nb << " / " << offset << " cells");
     }
 
-    if (B > 1 && do_batch_adj) {
+    if (B > 1) {
 
         at_least_one_op<Mat> at_least_one;
         at_least_zero_op<Mat> at_least_zero;
@@ -256,7 +264,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     Mat Q_nk = Q_kn.transpose();      // N x K
     Mat RD = standardize_columns(vv); // N x K
-    TLOG(RD.rows() << " x " << RD.cols());
+    TLOG_(verbose, "random dictionary: " << RD.rows() << " x " << RD.cols());
 
     TLOG_(verbose, "SVD on the projected: " << RD.rows() << " x " << RD.cols());
 
@@ -434,7 +442,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         // Step a. precalculation //
         ////////////////////////////
 
-        TLOG_(verbose, "Collecting sufficient statistics...");
+        TLOG_(verbose, "Collecting statistics matched by ANNOY...");
 
         zsum_ds = Mat::Zero(D, S); // gene x PB counterfactual
 
@@ -449,7 +457,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
             const std::vector<Index> &_cells_s = pb_cells.at(s);
             std::vector<Scalar> query(rank);
 
-            const std::size_t nneigh_max = (B - 1) * KNN_CELL;
+            const std::size_t nneigh_max =
+                std::max(static_cast<std::size_t>(1),
+                         static_cast<std::size_t>((B - 1) * KNN_CELL));
             Mat z_per_cell = Mat::Zero(D, nneigh_max);
             ColVec w_per_cell = ColVec::Zero(nneigh_max);
 
@@ -495,13 +505,17 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                     }
                 }
 
-                mmutil::match::normalize_weights(nneigh, cum_dist, weights);
+                if (nneigh > 1) {
+                    mmutil::match::normalize_weights(nneigh, cum_dist, weights);
 
-                for (Index k = 0; k < nneigh; ++k) {
-                    w_per_cell(k) = weights.at(k);
+                    for (Index k = 0; k < nneigh; ++k) {
+                        w_per_cell(k) = weights.at(k);
+                    }
+                    zsum_ds.col(s) +=
+                        z_per_cell * w_per_cell / w_per_cell.sum();
+                } else {
+                    zsum_ds.col(s) += z_per_cell.col(0);
                 }
-
-                zsum_ds.col(s) += z_per_cell * w_per_cell / w_per_cell.sum();
             } // for each glob index
 
 #pragma omp critical
@@ -623,6 +637,10 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
         s_.push_back(std::to_string(s));
     std::vector<std::string> b_ = mtx_files;
 
+    if (!save_rand_proj) {
+        Q_nk.resize(0, 0);
+    }
+
     TLOG_(verbose, "Done");
 
     return List::create(_["PB"] = named(mu_ds, d_, s_),
@@ -637,7 +655,8 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                         _["mtx.files"] = mtx_files,
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
-                        _["rand.proj"] = R_kd,
+                        _["rand.dict"] = R_kd,
+                        _["rand.proj"] = Q_nk,
                         _["colnames"] = columns,
                         _["rownames"] = pos2row);
 }

@@ -1,0 +1,379 @@
+---
+title: "8. Example: Brain cell type annotation"
+author: "Yongjin Park"
+---
+
+```{r}
+library(asapR)
+```
+
+## 1. Random projection
+
+
+```{r include = FALSE}
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(data.table)
+library(RColorBrewer)
+theme_set(theme_classic())
+
+take.top <- function(.mat, ntop = 5){
+    apply(.mat, 2, function(x) order(x, decreasing=T)[1:ntop]) %>%
+        as.vector() %>%
+        unique()
+}
+
+if.needed <- function(.file, .code) {
+    if(!all(file.exists(unlist(.file)))){ .code }
+    stopifnot(all(file.exists(unlist(.file))))
+}
+
+run.tsne <- function(.mat,.file){
+    if.needed(.file, {
+        .out <- Rtsne::Rtsne(.mat, num_threads = 16,
+                             check_duplicates = FALSE,
+                             verbose = TRUE)
+        .out <- .out$Y
+        saveRDS(.out, .file)
+    })
+    readRDS(.file)
+}
+
+plot.struct <- function(.prop){
+    .order <- order(apply(.prop, 1, which.max))
+    .melt <- reshape2::melt(.prop)
+    .melt$Var1 <- factor(.melt$Var1, .order)
+
+    ggplot(.melt, aes(Var1,value,fill=as.factor(Var2))) +
+        geom_bar(stat="identity") +
+        ylab("topic proportions")
+}
+
+row.order <- function(mat) {
+    require(cba)
+    require(proxy)
+
+    if(nrow(mat) < 3) {
+        return(1:nrow(mat))
+    }
+
+    D = proxy::dist(mat, method <- function(a,b) 1 - cor(a,b, method = 'spearman'))
+    D[!is.finite(D)] = 0
+    h.out = hclust(D)
+    o.out = cba::order.optimal(D, h.out$merge)
+    return(o.out$order)
+}
+
+col.order <- function(pair.tab, .ro, ret.tab = FALSE) {
+
+    M <- pair.tab %>%
+        dplyr::select(row, col, weight) %>%
+        dplyr::mutate(row = factor(row, .ro)) %>%
+        tidyr::spread(key = col, value = weight, fill = 0)
+
+    co <- order(apply(M[, -1], 2, which.max), decreasing = TRUE)
+    .co <- colnames(M)[-1][co]
+    if(ret.tab) {
+        ret <- pair.tab %>%
+            dplyr::mutate(row = factor(row, .ro)) %>%
+            dplyr::mutate(col = factor(col, .co))
+    } else {
+        ret <- .co
+    }
+    return(ret)
+}
+
+order.pair <- function(pair.tab, ret.tab=FALSE) {
+
+    require(tidyr)
+    require(dplyr)
+
+    .tab <- pair.tab %>% dplyr::select(row, col, weight)
+
+    M <- .tab %>% tidyr::spread(key = col, value = weight, fill = 0)
+    rr <- M[, 1] %>% unlist(use.names = FALSE)
+    cc <- colnames(M)[-1] %>% unlist(use.names = FALSE)
+
+    ## Sort rows
+    ro <- row.order(M %>% dplyr::select(-row) %>% as.matrix())
+
+    ## Sort columns
+    co <- order(apply(M[ro, -1], 2, which.max), decreasing = TRUE)
+
+    if(ret.tab){
+        ret <- pair.tab %>%
+            dplyr::mutate(row = factor(row, rr[ro])) %>%
+            dplyr::mutate(col = factor(col, cc[co]))
+    } else {
+        ret <- list(rows = rr[ro], cols = cc[co], M = M)
+    }
+
+    return(ret)
+}
+
+`%&%` <- function(a,b) paste0(a,b)
+```
+
+```{r hide_data_dir, include = FALSE}
+temp.dir <- "temp/example_allen_brain/"
+dir.create(temp.dir, recursive = TRUE, showWarnings = FALSE)
+data.dir <- "/data/data/Brain/AllenBrain/m1_10xgenomics_2020/"
+```
+
+We have a convenient function to collapse cells in large `.mtx` file sets into a single matrix over much smaller pseudo-bulk samples.
+
+```{r step1_make_pb}
+ref.data <- fileset.list(data.dir %&% "/full")
+data.info <- mmutil_info(ref.data$mtx)
+
+.file <- temp.dir %&% "/bulk_results.rds"
+if.needed(.file,{
+    .bulk <- asap_random_bulk_data_multi(ref.data$mtx,
+                                         ref.data$row,
+                                         ref.data$col,
+                                         ref.data$idx,
+                                         num_factors = 10,
+                                         NUM_THREADS = 16,
+                                         do_down_sample = TRUE,
+                                         save_rand_proj = TRUE,
+                                         CELL_PER_SAMPLE = 100,
+                                         verbose = FALSE)
+    saveRDS(.bulk,.file)
+})
+.bulk <- readRDS(.file)
+```
+
+```{r read_meta_data}
+annot.file <- data.dir %&% "/metadata.csv.gz"
+annot.dt <- fread(annot.file)
+annot.color <- annot.dt[, .(cell_type_alias_label, cell_type_alias_color)] %>%
+    unique() %>%
+    arrange(cell_type_alias_label) %>%
+    (function(x) x$cell_type_alias_color)
+```
+
+## Rough random projection can sort out broad cell types
+
+```{r fig_rp_scatter, fig.width=12, fig.height=6}
+Q <-
+    as.data.table(apply(.bulk$rand.proj, 2, scale)) %>%
+    cbind(annot.dt[, .(class_label, cell_type_alias_label)])
+
+.rand.vis <- sample(nrow(Q), 5000)
+
+p1 <-
+    ggplot(Q[.rand.vis,], aes(V1, V2, color=class_label)) +
+    ggrastr::rasterize(geom_point(stroke=0)) +
+    theme(legend.position=c(0,1), legend.justification=c(0,1))
+
+p2 <-
+    ggplot(Q[.rand.vis,], aes(V3, V4, color=class_label)) +
+    ggrastr::rasterize(geom_point(stroke=0)) +
+    theme(legend.position=c(0,1), legend.justification=c(0,1))
+
+p3 <-
+    ggplot(Q[.rand.vis,], aes(V5, V6, color=class_label)) +
+    ggrastr::rasterize(geom_point(stroke=0)) +
+    theme(legend.position=c(0,1), legend.justification=c(0,1))
+
+p4 <-
+    ggplot(Q[.rand.vis,], aes(V7, V8, color=class_label)) +
+    ggrastr::rasterize(geom_point(stroke=0)) +
+    theme(legend.position=c(0,1), legend.justification=c(0,1))
+
+p5 <-
+    ggplot(Q[.rand.vis,], aes(V9, V10, color=class_label)) +
+    ggrastr::rasterize(geom_point(stroke=0)) +
+    theme(legend.position=c(0,1), legend.justification=c(0,1))
+
+wrap_plots(p1, p2, p3, p4, p5, nrow=2)
+```
+
+If the goal is to visualize high-dimensional vectors in lower-dimensional space, we can simply apply the projected `r ncol(.bulk$rand.proj)`-dimensional data to some embedding methods, such as t-SNE.
+
+```{r fig_tsne_rp, fig.width=8, fig.height=8}
+.tsne.rp <- run.tsne(.bulk$rand.proj, temp.dir %&% "/bulk_rp_tsne.rds")
+
+.dt <- data.table(.tsne.rp) %>%
+    cbind(annot.dt[, .(class_label, cell_type_alias_label)])
+
+ggplot(.dt, aes(V1, V2, color=cell_type_alias_label)) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = annot.color) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+We can consolidate cells into pseudo-bulk samples based on these random projection results. We hope each consolidated pseudo-bulk sample contains nearly homogeneous cell populations.
+
+```{r fig_bulk_size_hist, fig.width=5, fig.height=4}
+hist(.bulk$size, 20)
+```
+We allocated `r as.integer(sum(.bulk$size))` cells (down-sampled) into `r ncol(.bulk$PB)` pseudo-bulk samples. A large fraction of the pseudo-bulk samples (`r sum(.bulk$size == 100)`, `r round(mean(.bulk$size==100)*100)` per cent) contain 100 cells.
+
+We can drop small PB samples, depending on studies. Here, we discard bottom 5% samples to avoid unwanted stochastic samples. We take pseudo-bulk samples with at least `r quantile(.bulk$size, .05)` cells.
+
+```{r}
+cutoff <- quantile(.bulk$size, .05)
+Y <- .bulk$PB[, .bulk$size >= cutoff, drop = F]
+Y <- stretch_matrix_columns(Y)*100
+```
+
+```{r fig_pb_heatmap}
+.show <- take.top(Y, 10)
+y.show <- Y[.show, , drop=F]
+heatmap(y.show, scale="none")
+```
+
+* `r nrow(y.show)` unique genes
+
+* `r ncol(y.show)` unique samples
+
+## Random pseudobulk data naturally enrich the cell types within each sample
+
+```{r}
+.pb.dt <-
+    data.table(pb = .bulk$positions, sample_name = .bulk$colnames) %>%
+    cbind(as.data.table(.tsne.rp)) %>%
+    left_join(annot.dt) %>%
+    filter(pb <= ncol(.bulk$PB)) %>%
+    as.data.table()
+
+.pb.match <- .pb.dt[, .(nn = .N), by = .(pb, cell_type_alias_label)]
+
+.dt.show <- .pb.match %>%
+    mutate(row = cell_type_alias_label, col = pb, weight = log1p(`nn`)) %>%
+    order.pair(ret.tab = TRUE)
+```
+
+```{r fig_rp_enrich_match, fig.width=6, fig.height=3}
+ggplot(.dt.show, aes(`col`, `row`, fill = `weight`)) +
+    xlab(length(unique(.dt.show$pb)) %&% " pseudobulk samples") +
+    ylab(length(unique(.dt.show$cell_type_alias_label)) %&% " cell types (manual)") +
+    geom_tile() +
+    scale_fill_distiller("#cells", direction=1, label = function(x) round(pmax(exp(x)-1,0))) +
+    theme(axis.ticks = element_blank(), axis.text = element_blank()) +
+    theme(legend.key.width=unit(.2, "lines"))
+```
+
+## 2. Non-negative matrix factorization helps learn cell type definitions
+
+```{r step2_run_nmf}
+.file <- temp.dir %&% "/pb_nmf_results.rds"
+if.needed(.file, {
+    .nmf <- asap_fit_nmf(Y, maxK = 30,
+                         NUM_THREADS=16,
+                         svd_init = TRUE,
+                         a0 = 1, b0 = 1,
+                         max_iter = 300)
+    saveRDS(.nmf, .file)
+})
+.nmf <- readRDS(.file)
+```
+
+```{r fig_bulk_nmf_theta}
+heatmap(.nmf$model$theta)
+```
+
+We can visualize the mixed topic membership of the pseudobulk samples in the following [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structure.html) plot.
+
+```{r fig_struct_bulk, fig.width=10, fig.height=3}
+.cols <- colorRampPalette(brewer.pal(8,"Paired"))(30)
+.bulk.topic <- pmf2topic(.nmf$model$beta, .nmf$model$theta)
+ggrastr::rasterise(plot.struct(.bulk.topic$prop), dpi=300) +
+    theme(legend.position = "none") +
+    theme(axis.text.x = element_blank()) +
+    theme(axis.ticks.x = element_blank()) +
+    scale_fill_manual("Topics", values = .cols) +
+    xlab("pseudobulk samples")
+```
+
+However, the structure plot is somewhat difficult to read with many colours. Instead, we can project proportions into a polar coordinate.
+
+```{r fig_bulk_nmf_polar, fig.width=8, fig.height=8}
+kk <- apply(.bulk.topic$prop, 1, which.max)
+
+.polar <-
+    apply(project.proportions(.bulk.topic$prop), 2, scale) %>%
+    as.data.table() %>%
+    mutate(pb = 1:n(), kk = kk) %>%
+    as.data.table()
+
+plot(.polar$xx, .polar$yy, col=kk, pch=(kk %% 25), xlab = "polar 1", ylab = " polar 2")
+```
+
+Additionally, we can apply `tSNE` to spread the points.
+
+```{r fig_bulk_nmf_polar_tsne, fig.width=8, fig.height=8}
+.tsne.polar <- run.tsne(as.matrix(.polar[, .(xx, yy)]), temp.dir %&% "/bulk_polar_tsne.rds")
+
+.dt <- cbind(data.table(.tsne.polar), .polar)
+
+.cols <- colorRampPalette(brewer.pal(8,"Paired"))(length(unique(.dt$kk)))
+
+ggplot(.dt, aes(V1, V2, fill=as.factor(kk))) +
+    ggrastr::rasterize(geom_point(pch=21, stroke=.2, alpha=.7, show.legend=F, size=2)) +
+    scale_fill_manual(values=.cols) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+## 3. Recovering cell-level proportions from the pseudo-bulk NMF results
+
+```{r calc_corr_stat}
+.file <- temp.dir %&% "/pb_stat_results.rds"
+if.needed(.file, {
+    .stat <- asap_topic_stat(ref.data$mtx, ref.data$row, ref.data$col, ref.data$idx,
+                             log_x = .nmf$std_log_x, .bulk$rownames, NUM_THREADS = 16)
+    saveRDS(.stat, .file)
+})
+.stat <- readRDS(.file)
+```
+
+We can improve cell-level embedding results with the additional round of NMF and topic correlation analysis.
+
+```{r fig_tsne_corr, fig.width=8, fig.height=8}
+R <- apply(.stat$corr, 2, scale)
+.tsne.corr <- run.tsne(R, temp.dir %&% "/stat_corr_tsne.rds")
+
+.dt <- data.table(.tsne.corr) %>%
+    cbind(annot.dt[, .(class_label, cell_type_alias_label)])
+
+ggplot(.dt, aes(V1, V2, color=cell_type_alias_label)) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = annot.color) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+What about the topic proportions of these cells?
+
+```{r calibrate_topic_from_corr}
+.pmf <- asap_topic_pmf(.nmf$model$beta, R, .stat$colsum)
+.topic <- pmf2topic(.pmf$beta, .pmf$theta)
+```
+
+```{r fig_cell_polar, fig.width=8, fig.height=8}
+.dt <-
+    apply(project.proportions(.topic$prop), 2, scale) %>%
+    as.data.table() %>%
+    cbind(annot.dt[, .(class_label, cell_type_alias_label)])
+
+ggplot(.dt, aes(xx, yy, color=cell_type_alias_label)) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = annot.color) +
+    xlab("polar 1") + ylab("polar 2")
+```
+
+We may not need tSNE, but let's see.
+
+```{r fig_cell_polar_tsne, fig.width=8, fig.height=8}
+.polar <- apply(project.proportions(.topic$prop), 2, scale)
+
+.tsne.polar <- run.tsne(.polar, temp.dir %&% "/cell_polar_tsne.rds")
+
+.dt <- cbind(.tsne.polar, annot.dt[, .(class_label, cell_type_alias_label)])
+
+ggplot(.dt, aes(V1, V2, color=cell_type_alias_label)) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = annot.color) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```

@@ -1,0 +1,408 @@
+---
+title: "9. An example of brain tumour data analysis across multiple batches"
+author: "Yongjin Park"
+---
+
+```{r}
+library(asapR)
+```
+
+
+```{r include = FALSE}
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(data.table)
+library(RColorBrewer)
+theme_set(theme_classic())
+
+take.top <- function(.mat, ntop = 5){
+    apply(.mat, 2, function(x) order(x, decreasing=T)[1:ntop]) %>%
+        as.vector() %>%
+        unique()
+}
+
+if.needed <- function(.file, .code) {
+    if(!all(file.exists(unlist(.file)))){ .code }
+    stopifnot(all(file.exists(unlist(.file))))
+}
+
+run.tsne <- function(.mat,.file){
+    if.needed(.file, {
+        .out <- Rtsne::Rtsne(.mat, num_threads = 16,
+                             check_duplicates = FALSE,
+                             verbose = TRUE)
+        .out <- .out$Y
+        saveRDS(.out, .file)
+    })
+    readRDS(.file)
+}
+
+plot.struct <- function(.prop, K = NULL){
+
+    .qq <- apply(log(.prop + 1/ncol(.prop)), 2, scale)
+    if(is.null(K)){
+        K <- ceiling(log(nrow(.prop)))
+    }
+    .kk <- kmeans(.qq, K, nstart=20)$cluster
+
+    .order <- order(apply(.prop, 1, which.max))
+    .melt <- melt(data.table(.prop, r = 1:nrow(.prop), k = .kk),
+                  id.vars = c("r", "k"))
+    .melt$r <- factor(.melt$r, .order)
+
+    ggplot(.melt, aes(r,value,fill=as.factor(variable))) +
+        facet_grid(. ~ k, space = "free", scales = "free") +
+        geom_bar(stat="identity") +
+        ylab("topic proportions")
+}
+
+row.order <- function(mat) {
+    require(cba)
+    require(proxy)
+
+    if(nrow(mat) < 3) {
+        return(1:nrow(mat))
+    }
+
+    D = proxy::dist(mat, method <- function(a,b) 1 - cor(a,b, method = 'spearman'))
+    D[!is.finite(D)] = 0
+    h.out = hclust(D)
+    o.out = cba::order.optimal(D, h.out$merge)
+    return(o.out$order)
+}
+
+col.order <- function(pair.tab, .ro, ret.tab = FALSE) {
+
+    M <- pair.tab %>%
+        dplyr::select(row, col, weight) %>%
+        dplyr::mutate(row = factor(row, .ro)) %>%
+        tidyr::spread(key = col, value = weight, fill = 0)
+
+    co <- order(apply(M[, -1], 2, which.max), decreasing = TRUE)
+    .co <- colnames(M)[-1][co]
+    if(ret.tab) {
+        ret <- pair.tab %>%
+            dplyr::mutate(row = factor(row, .ro)) %>%
+            dplyr::mutate(col = factor(col, .co))
+    } else {
+        ret <- .co
+    }
+    return(ret)
+}
+
+order.pair <- function(pair.tab, ret.tab=FALSE) {
+
+    require(tidyr)
+    require(dplyr)
+
+    .tab <- pair.tab %>% dplyr::select(row, col, weight)
+
+    M <- .tab %>% tidyr::spread(key = col, value = weight, fill = 0)
+    rr <- M[, 1] %>% unlist(use.names = FALSE)
+    cc <- colnames(M)[-1] %>% unlist(use.names = FALSE)
+
+    ## Sort rows
+    ro <- row.order(M %>% dplyr::select(-row) %>% as.matrix())
+
+    ## Sort columns
+    co <- order(apply(M[ro, -1], 2, which.max), decreasing = TRUE)
+
+    if(ret.tab){
+        ret <- pair.tab %>%
+            dplyr::mutate(row = factor(row, rr[ro])) %>%
+            dplyr::mutate(col = factor(col, cc[co]))
+    } else {
+        ret <- list(rows = rr[ro], cols = cc[co], M = M)
+    }
+
+    return(ret)
+}
+
+`%&%` <- function(a,b) paste0(a,b)
+```
+
+## 1. We can combine multiple MTX file sets
+
+```{r include = FALSE}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+theme_set(theme_classic())
+
+temp.dir <- "temp/example_brain_tumour/"
+dir.create(temp.dir, recursive = TRUE, showWarnings = FALSE)
+```
+
+```{r hide_data_dir, include = FALSE}
+data.dirs <- list.files("/data/data/GBM/Couturier2020/filtered/", full.names = TRUE)
+```
+
+* Note: these data files are downloaded from the original glioblastoma study.
+
+```{r step1_make_pb}
+mtx.files <- paste0(data.dirs, "/matrix.mtx.gz")
+idx.files <- paste0(data.dirs, "/matrix.mtx.gz.index")
+gene.files <- paste0(data.dirs, "/genes.tsv.gz")
+cell.files <- paste0(data.dirs, "/barcodes.tsv.gz")
+
+.file <- temp.dir %&% "/bulk_results.rds"
+if.needed(.file,{
+    .bulk <- asap_random_bulk_data_multi(mtx.files,
+                                         gene.files,
+                                         cell.files,
+                                         idx.files,
+                                         num_factors = 10,
+                                         NUM_THREADS = 16,
+                                         do_down_sample = TRUE,
+                                         do_batch_adj = FALSE,
+                                         save_rand_proj = TRUE,
+                                         CELL_PER_SAMPLE = 100,
+                                         verbose = FALSE)
+    saveRDS(.bulk,.file)
+})
+.bulk <- readRDS(.file)
+```
+
+## Random projection data show no batch bias
+
+Let's cluster cells based on the random projection results for visualization.
+
+```{r run_kmeans}
+.file <- temp.dir %&% "/bulk_rp_kmeans.rds"
+if.needed(.file,{
+    .kmeans <- kmeans(.bulk$rand.proj, 50, iter.max=100, nstart=10)
+    saveRDS(.kmeans, .file)
+})
+.kmeans <- readRDS(.file)
+```
+
+```{r fig_kmeans_centers}
+heatmap(.kmeans$centers)
+```
+
+We can simply visualize all the projected `r ncol(.bulk$rand.proj)`-dimensional data across `r length(.bulk$mtx.files)` batches.
+
+```{r fig_tsne_rp, fig.width=8, fig.height=8}
+.tsne.rp <- run.tsne(.bulk$rand.proj, temp.dir %&% "/bulk_rp_tsne.rds")
+
+.dt <- data.table(.tsne.rp, k = .kmeans$cluster)
+
+.cols <- colorRampPalette(brewer.pal(9,"Paired"))(50)
+
+ggplot(.dt, aes(V1, V2, color=as.factor(k))) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = .cols) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+Each batch can contain multiple cell clusters identified by random projection profiles (the colours indicate different k-means clusters).
+
+```{r fig_tsne_rp_clust, fig.width=12, fig.height=12}
+.dt <- data.table(.tsne.rp, k=as.factor(.kmeans$cluster),
+                  batch=.bulk$batch.membership)
+
+.dt <- .dt[sample(nrow(.dt)), head(.SD, 1000), by = .(batch,k)]
+
+ggplot(.dt, aes(V1, V2, color=k)) +
+    ggrastr::rasterize(geom_point(stroke=0, size=.5, show.legend=F)) +
+    facet_wrap(~batch, nrow = 5, ncol = 6) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+Multiple batches are also well-mixed within each cluster (the colours indicate different batches).
+
+```{r fig_umap_rp_batch, fig.width=12, fig.height=14}
+ggplot(.dt[!(k %in% "50")], aes(V1, V2, color=as.factor(batch))) +
+    ggrastr::rasterize(geom_point(stroke=0, size=.5, show.legend=F)) +
+    facet_wrap( ~ as.factor(k), nrow = 8, ncol = 7) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+We can consolidate cells into pseudo-bulk samples based on these random projection results. We hope each consolidated pseudo-bulk sample contains nearly homogeneous cell populations.
+
+```{r fig_bulk_size_hist, fig.width=5, fig.height=4}
+hist(.bulk$size, 20)
+```
+
+We can drop small PB samples, depending on studies. Here, we discard bottom 5% samples to avoid unwanted stochastic samples. We take pseudo-bulk samples with at least `r quantile(.bulk$size, .05)` cells.
+
+```{r}
+cutoff <- quantile(.bulk$size, .05)
+Y <- .bulk$PB[, .bulk$size >= cutoff, drop = F]
+Y <- stretch_matrix_columns(Y)*100
+```
+
+Take a look at the top 10 genes per sample.
+
+```{r fig_pb_heatmap}
+.show <- take.top(Y, 10)
+y.show <- Y[.show, , drop=F]
+heatmap(y.show, scale="none")
+```
+
+* `r nrow(y.show)` unique genes
+
+* `r ncol(y.show)` unique samples
+
+## 2. Non-negative matrix factorization effectively deconvolves cell type topics.
+
+```{r step2_run_nmf}
+.file <- temp.dir %&% "/pb_nmf_results.rds"
+if.needed(.file, {
+    .nmf <- asap_fit_nmf(Y, maxK = 30,
+                         NUM_THREADS=16,
+                         svd_init = TRUE,
+                         a0 = 1, b0 = 1,
+                         max_iter = 300)
+    saveRDS(.nmf, .file)
+})
+.nmf <- readRDS(.file)
+```
+
+```{r fig_bulk_nmf_theta}
+heatmap(.nmf$model$theta)
+```
+
+Again, we can visualize the mixed topic membership of the pseudobulk samples in the [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structure.html) plot.
+
+```{r fig_struct_bulk, fig.width=10, fig.height=3}
+.cols <- colorRampPalette(brewer.pal(8,"Paired"))(30)
+.bulk.topic <- pmf2topic(.nmf$model$beta, .nmf$model$theta)
+ggrastr::rasterise(plot.struct(.bulk.topic$prop,K=20), dpi=300) +
+    theme(axis.text.x = element_blank()) +
+    theme(axis.ticks.x = element_blank()) +
+    theme(legend.position = "none") +
+    scale_fill_manual("Topics", values = .cols) +
+    xlab("pseudobulk samples")
+```
+
+```{r fig_bulk_nmf_beta}
+.show <- take.top(.nmf$model$beta, 10)
+heatmap(.nmf$model$beta[.show,,drop=F])
+```
+
+Alternatively, we can project the proportional information onto the polar coordinate system.
+
+```{r fig_bulk_nmf_polar, fig.width=8, fig.height=8}
+kk <- apply(.bulk.topic$prop, 1, which.max)
+
+.polar <-
+    apply(project.proportions(.bulk.topic$prop), 2, scale) %>%
+    as.data.table() %>%
+    mutate(pb = 1:n(), kk = kk) %>%
+    as.data.table()
+
+plot(.polar$xx, .polar$yy, col=kk, pch=(kk %% 25), xlab = "polar 1", ylab = " polar 2")
+```
+
+Additionally, we can apply `tSNE` to spread the points.
+
+```{r fig_bulk_nmf_polar_tsne, fig.width=8, fig.height=8}
+.tsne.polar <- run.tsne(as.matrix(.polar[, .(xx, yy)]), temp.dir %&% "/bulk_polar_tsne.rds")
+
+.dt <- cbind(data.table(.tsne.polar), .polar)
+
+.cols <- colorRampPalette(brewer.pal(8,"Paired"))(length(unique(.dt$kk)))
+
+ggplot(.dt, aes(V1, V2, fill=as.factor(kk))) +
+    ggrastr::rasterize(geom_point(pch=21, stroke=.2, alpha=.7, show.legend=F, size=2)) +
+    scale_fill_manual(values=.cols) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+## 3. Recovering cell-level proportions from the pseudo-bulk NMF results
+
+Now, let's calculate topic correlations across `r length(mtx.files)` batches.
+
+```{r calc_corr_stat}
+.file <- temp.dir %&% "/pb_stat_results.rds"
+if.needed(.file, {
+    .stat.vec <- lapply(1:length(mtx.files), function(j){
+        .stat <- asap_topic_stat(mtx.files[j],
+                                 gene.files[j],
+                                 cell.files[j],
+                                 idx.files[j],
+                                 log_x = .nmf$std_log_x,
+                                 .bulk$rownames,
+                                 NUM_THREADS=16)
+    })
+    saveRDS(.stat.vec, .file)
+})
+.stat.vec <- readRDS(.file)
+
+.corr.vec <- lapply(.stat.vec, function(x) apply(x$corr, 2, scale))
+.corr.all <- do.call(rbind, .corr.vec)
+```
+
+The additional round of NMF and topic correlation analysis.
+
+```{r fig_tsne_corr, fig.width=8, fig.height=8}
+R <- apply(.corr.all, 2, scale)
+.tsne.corr <- run.tsne(R, temp.dir %&% "/stat_corr_tsne.rds")
+
+.file <- temp.dir %&% "/stat_corr_kmeans.rds"
+if.needed(.file,{
+    .kmeans <- kmeans(R, 50, iter.max=100, nstart=10)
+    saveRDS(.kmeans, .file)
+})
+.kmeans <- readRDS(.file)
+
+.dt <- data.table(.tsne.corr, k = .kmeans$cluster)
+.cols <- colorRampPalette(brewer.pal(12,"Paired"))(50)
+
+ggplot(.dt, aes(V1, V2, color=as.factor(k))) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = .cols) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```
+
+This already looks very good. Can we take step further? Can we handle potential batch effects?
+
+```{r run_bbknn, echo=F, message=F, results="none"}
+.file <- temp.dir %&% "/stat_bbknn.rds"
+if.needed(.file,{
+    .bbknn <- asap_adjust_corr_bbknn(.corr.vec, KNN_PER_BATCH=3, NUM_THREADS=16)
+    saveRDS(.bbknn,.file)
+})
+.bbknn <- readRDS(.file)
+R <- apply(.bbknn$adjusted, 2, scale)
+```
+
+Let's calculate the topic proportions after the batch-balancing kNN adjustment.
+
+```{r calibrate_topic_from_corr}
+ytot <- lapply(.stat.vec, function(x) x$colsum) %>% do.call(what=rbind)
+.pmf <- asap_topic_pmf(.nmf$model$beta, R, ytot)
+.topic <- pmf2topic(.pmf$beta, .pmf$theta)
+```
+
+```{r fig_cell_polar, fig.width=8, fig.height=8}
+.argmax <- apply(.topic$prop, 1, which.max)
+
+.dt <-
+    apply(project.proportions(.topic$prop), 2, scale) %>%
+    as.data.table() %>%
+    cbind(k = .argmax)
+
+ggplot(.dt, aes(xx, yy, color=as.factor(k))) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = .cols) +
+    xlab("polar 1") + ylab("polar 2")
+```
+
+
+We may not need tSNE, but let's see.
+
+```{r fig_cell_polar_tsne, fig.width=8, fig.height=8}
+.polar <- apply(project.proportions(.topic$prop), 2, scale)
+
+.tsne.polar <- run.tsne(.polar, temp.dir %&% "/cell_polar_tsne.rds")
+
+.dt <- as.data.table(cbind(.tsne.polar, k = .argmax))
+
+ggplot(.dt, aes(V1, V2, color=as.factor(k))) +
+    ggrastr::rasterize(geom_point(stroke=0, show.legend=F, size=.5)) +
+    scale_color_manual(values = .cols) +
+    xlab("tSNE 1") + ylab("tSNE 2")
+```

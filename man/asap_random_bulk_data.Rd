@@ -19,6 +19,7 @@ asap_random_bulk_data(
   BLOCK_SIZE = 100L,
   do_log1p = FALSE,
   do_down_sample = FALSE,
+  save_rand_proj = FALSE,
   KNN_CELL = 10L,
   CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
@@ -59,6 +60,8 @@ asap_random_bulk_data(
 
 \item{do_down_sample}{down-sampling (default: FALSE)}
 
+\item{save_rand_proj}{save random projection (default: FALSE)}
+
 \item{KNN_CELL}{k-NN matching between cells (default: 10)}
 
 \item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
@@ -91,7 +94,8 @@ a list
 \item \code{log.batch.effect} log batch effect (feature x batch)
 \item \code{batch.names} batch names (batch x 1)
 \item \code{positions} pseudobulk sample positions (cell x 1)
-\item \code{rand.proj} random projection results (proj factor x feature)
+\item \code{rand.dict} random dictionary (proj factor x feature)
+\item \code{rand.proj} random projection results (sample x proj factor)
 \item \code{colnames} column (cell) names
 \item \code{rownames} feature (gene) names
 }

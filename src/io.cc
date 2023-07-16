@@ -31,16 +31,17 @@ file_exists(std::string filename)
 }
 
 bool
-all_files_exist(std::vector<std::string> filenames)
+all_files_exist(std::vector<std::string> filenames, const bool verbose = false)
 {
     bool ret = true;
     for (auto f : filenames) {
         if (!file_exists(f)) {
-            TLOG(std::left << std::setw(10) << "Missing: " << std::setw(30)
+            ELOG(std::left << std::setw(10) << "Missing: " << std::setw(30)
                            << f);
             ret = false;
         }
-        TLOG(std::left << std::setw(10) << "Found: " << std::setw(30) << f);
+        TLOG_(verbose,
+              std::left << std::setw(10) << "Found: " << std::setw(30) << f);
     }
     return ret;
 }
