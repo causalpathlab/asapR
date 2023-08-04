@@ -372,7 +372,7 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
                     const Index glob = loc + lb + offset;
                     const Index s = positions.at(glob);
 
-                    if (s < S) {
+                    if (s < NA_POS) {
                         size_s(s) += 1.;
                         ysum_ds.col(s) += y.col(loc);
                         n_bs(b, s) = n_bs(b, s) + 1.;

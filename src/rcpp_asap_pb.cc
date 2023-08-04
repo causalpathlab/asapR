@@ -331,8 +331,10 @@ asap_random_bulk_data(
             for (Index i = 0; i < (ub - lb); ++i) {
                 const Index j = i + lb;
                 const Index s = positions.at(j);
-                ysum_ds.col(s) += y.col(i);
-                size_s(s) += 1.;
+                if (s < NA_POS) {
+                    ysum_ds.col(s) += y.col(i);
+                    size_s(s) += 1.;
+                }
             }
         }
     }
