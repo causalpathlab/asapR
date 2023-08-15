@@ -294,6 +294,88 @@ decompose_network <- function(A_dd, beta_dt, cutoff = 1e-8, verbose = TRUE) {
     .Call('_asapR_decompose_network', PACKAGE = 'asapR', A_dd, beta_dt, cutoff, verbose)
 }
 
+#' Take a subset of rows and create a new MTX file-set
+#'
+#' @description For the new mtx file, empty columns with only zero
+#'   elements will be removed.
+#'
+#' @param mtx_file data file
+#' @param row_file row file
+#' @param col_file column file
+#' @param selected selected row names
+#' @param output output header
+#' @param MAX_ROW_WORD maximum words per line in `row_file`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @return a list of file names: {output}.{mtx,rows,cols}.gz
+#'
+#' @examples
+#'
+#' options(stringsAsFactors=FALSE)
+#' rr <- rgamma(20, 1, 1)
+#' mm <- matrix(rgamma(10 * 2, 1, 1), 10, 2)
+#' src.hdr <- "test_org"
+#' src.files <- mmutil_simulate_poisson(mm, rr, src.hdr)
+#' Y <- Matrix::readMM(src.files$mtx)
+#' rownames(Y) <- read.table(src.files$row)$V1
+#' print(Y)
+#' sub.rows <- sort(read.table(src.files$row)$V1[sample(10,3)])
+#' print(sub.rows)
+#' tgt.hdr <- "test_sub"
+#' tgt.files <- mmutil_copy_selected_rows(
+#'                src.files$mtx,
+#'                src.files$row,
+#'                src.files$col,
+#'                sub.rows,
+#'                tgt.hdr)
+#' Y <- Matrix::readMM(tgt.files$mtx)
+#' colnames(Y) <- read.table(tgt.files$col)$V1
+#' rownames(Y) <- read.table(tgt.files$row)$V1
+#' print(Y)
+#' unlink(list.files(pattern = src.hdr))
+#' unlink(list.files(pattern = tgt.hdr))
+#'
+mmutil_copy_selected_rows <- function(mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_') {
+    .Call('_asapR_mmutil_copy_selected_rows', PACKAGE = 'asapR', mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD, ROW_WORD_SEP)
+}
+
+#' Take a subset of columns and create a new MTX file-set
+#'
+#' @param mtx_file data file
+#' @param row_file row file
+#' @param col_file column file
+#' @param selected selected column names
+#' @param output output header
+#' @param MAX_COL_WORD maximum words per line in `col_file`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @examples
+#'
+#' options(stringsAsFactors=FALSE)
+#' rr <- rgamma(20, 1, 1)
+#' mm <- matrix(rgamma(10 * 2, 1, 1), 10, 2)
+#' src.hdr <- "test_org"
+#' src.files <- mmutil_simulate_poisson(mm, rr, src.hdr)
+#' Y <- Matrix::readMM(src.files$mtx)
+#' colnames(Y) <- read.table(src.files$col)$V1
+#' print(Y)
+#' sub.cols <- sort(read.table(src.files$col)$V1[sample(20,3)])
+#' print(sub.cols)
+#' tgt.hdr <- "test_sub"
+#' tgt.files <- mmutil_copy_selected_columns(
+#'                          src.files$mtx,
+#'                          src.files$row,
+#'                          src.files$col,
+#'                          sub.cols, tgt.hdr)
+#' Y <- Matrix::readMM(tgt.files$mtx)
+#' colnames(Y) <- read.table(tgt.files$col)$V1
+#' print(Y)
+#' unlink(list.files(pattern = src.hdr))
+#' unlink(list.files(pattern = tgt.hdr))
+#'
+mmutil_copy_selected_columns <- function(mtx_file, row_file, col_file, r_selected, output, MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_mmutil_copy_selected_columns', PACKAGE = 'asapR', mtx_file, row_file, col_file, r_selected, output, MAX_COL_WORD, COL_WORD_SEP)
+}
+
 #' Create an index file for a given MTX
 #'
 #' @param mtx_file data file

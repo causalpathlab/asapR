@@ -18,13 +18,17 @@
    @param full_row_file
    @param _selected
    @param output
+   @param MAX_ROW_WORD maximum words per line in `row_file`
+   @param ROW_WORD_SEP word separation character to replace white space
  */
 template <typename STRVEC>
 int
 copy_selected_rows(const std::string mtx_file,
                    const std::string full_row_file,
                    const STRVEC &_selected,
-                   const std::string output)
+                   const std::string output,
+                   const std::size_t MAX_ROW_WORD = 2,
+                   const char ROW_WORD_SEP = '_')
 {
 
     using namespace mmutil::io;
@@ -37,12 +41,15 @@ copy_selected_rows(const std::string mtx_file,
     using index_map_t = copier_t::index_map_t;
 
     std::vector<Str> features(0);
-    CHK_RET_(read_vector_file(full_row_file, features),
+    CHK_RET_(read_line_file(full_row_file,
+                            features,
+                            MAX_ROW_WORD,
+                            ROW_WORD_SEP),
              "Failed to read features");
 
     std::unordered_set<Str> selected(_selected.begin(), _selected.end());
 
-    row_stat_collector_t collector;
+    mmutil::stat::row_collector_t collector;
     visit_matrix_market_file(mtx_file, collector);
 
     std::vector<Index> Nvec;
@@ -98,13 +105,17 @@ copy_selected_rows(const std::string mtx_file,
    @param full_column_file
    @param selected_column_file
    @param output
+   @param MAX_COL_WORD maximum words per line in `col_file`
+   @param COL_WORD_SEP word separation character to replace white space
  */
 template <typename STRVEC>
 int
 copy_selected_columns(const std::string mtx_file,
                       const std::string full_column_file,
                       const STRVEC &_selected,
-                      const std::string output)
+                      const std::string output,
+                      const std::size_t MAX_COL_WORD = 100,
+                      const char COL_WORD_SEP = '@')
 {
     using namespace mmutil::io;
     using Str = std::string;
@@ -114,10 +125,13 @@ copy_selected_columns(const std::string mtx_file,
     std::unordered_set<Str> selected(_selected.begin(), _selected.end());
 
     std::vector<Str> full_column_names(0);
-    CHK_RET_(read_vector_file(full_column_file, full_column_names),
+    CHK_RET_(read_line_file(full_column_file,
+                            full_column_names,
+                            MAX_COL_WORD,
+                            COL_WORD_SEP),
              "Failed to read column names");
 
-    col_stat_collector_t collector;
+    mmutil::stat::col_collector_t collector;
     visit_matrix_market_file(mtx_file, collector);
     const IntVec &nnz_col = collector.Col_N;
     const Index max_row = collector.max_row, max_col = collector.max_col;
