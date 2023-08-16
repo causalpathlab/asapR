@@ -37,7 +37,7 @@ decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor> &A_dd,
                 beta_dt.row(j).cwiseProduct(beta_dt.row(i)).maxCoeff(&k);
                 rows.emplace_back(i + 1); // 1-based
                 cols.emplace_back(j + 1); // 1-based
-                ks.emplace_back(k);
+                ks.emplace_back(k + 1); // 1-based
                 weights.emplace_back(it.value());
             }
         }
