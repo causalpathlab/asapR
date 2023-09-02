@@ -6,6 +6,7 @@
 \usage{
 asap_adjust_corr_bbknn(
   data_nk_vec,
+  row_names_vec,
   KNN_PER_BATCH = 3L,
   BLOCK_SIZE = 100L,
   NUM_THREADS = 1L,
@@ -14,6 +15,8 @@ asap_adjust_corr_bbknn(
 }
 \arguments{
 \item{data_nk_vec}{a list of sample x factor matrices}
+
+\item{row_names_vec}{a list of sample x 1 names}
 
 \item{KNN_PER_BATCH}{(default: 3)}
 

@@ -11,6 +11,22 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// asap_adjust_corr_bbknn
+Rcpp::List asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf>& data_nk_vec, const std::vector<std::vector<std::string>>& row_names_vec, const std::size_t KNN_PER_BATCH, const std::size_t BLOCK_SIZE, const std::size_t NUM_THREADS, const bool verbose);
+RcppExport SEXP _asapR_asap_adjust_corr_bbknn(SEXP data_nk_vecSEXP, SEXP row_names_vecSEXP, SEXP KNN_PER_BATCHSEXP, SEXP BLOCK_SIZESEXP, SEXP NUM_THREADSSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::vector<Eigen::MatrixXf>& >::type data_nk_vec(data_nk_vecSEXP);
+    Rcpp::traits::input_parameter< const std::vector<std::vector<std::string>>& >::type row_names_vec(row_names_vecSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type KNN_PER_BATCH(KNN_PER_BATCHSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_adjust_corr_bbknn(data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // asap_fit_nmf
 Rcpp::List asap_fit_nmf(Rcpp::NumericMatrix& Y_, const std::size_t maxK, const std::size_t max_iter, const Rcpp::Nullable<Rcpp::List> r_A_dd_list, const Rcpp::Nullable<Rcpp::List> r_A_nn_list, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
 RcppExport SEXP _asapR_asap_fit_nmf(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP r_A_dd_listSEXP, SEXP r_A_nn_listSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
@@ -139,21 +155,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     rcpp_result_gen = Rcpp::wrap(asap_topic_pmf(X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// asap_adjust_corr_bbknn
-Rcpp::List asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf>& data_nk_vec, const std::size_t KNN_PER_BATCH, const std::size_t BLOCK_SIZE, const std::size_t NUM_THREADS, const bool verbose);
-RcppExport SEXP _asapR_asap_adjust_corr_bbknn(SEXP data_nk_vecSEXP, SEXP KNN_PER_BATCHSEXP, SEXP BLOCK_SIZESEXP, SEXP NUM_THREADSSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const std::vector<Eigen::MatrixXf>& >::type data_nk_vec(data_nk_vecSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type KNN_PER_BATCH(KNN_PER_BATCHSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_adjust_corr_bbknn(data_nk_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -416,12 +417,12 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_asapR_asap_adjust_corr_bbknn", (DL_FUNC) &_asapR_asap_adjust_corr_bbknn, 6},
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_fit_nmf_shared_dict", (DL_FUNC) &_asapR_asap_fit_nmf_shared_dict, 12},
     {"_asapR_asap_random_bulk_data", (DL_FUNC) &_asapR_asap_random_bulk_data, 24},
     {"_asapR_asap_random_bulk_data_multi", (DL_FUNC) &_asapR_asap_random_bulk_data_multi, 23},
     {"_asapR_asap_topic_pmf", (DL_FUNC) &_asapR_asap_topic_pmf, 8},
-    {"_asapR_asap_adjust_corr_bbknn", (DL_FUNC) &_asapR_asap_adjust_corr_bbknn, 5},
     {"_asapR_asap_topic_stat", (DL_FUNC) &_asapR_asap_topic_stat, 14},
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 7},
     {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},
