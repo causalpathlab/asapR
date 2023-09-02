@@ -19,11 +19,11 @@ namespace mmutil { namespace match {
 struct data_loader_t {
 
     using annoy_t = Scalar;
-    using annoy_index_t = AnnoyIndex<Index,
-                                     Scalar,
-                                     Euclidean,
-                                     Kiss64Random,
-                                     RcppAnnoyIndexThreadPolicy>;
+    using annoy_index_t = Annoy::AnnoyIndex<Index,
+                                            Scalar,
+                                            Annoy::Euclidean,
+                                            Kiss64Random,
+                                            RcppAnnoyIndexThreadPolicy>;
 
     using str_vec_t = std::vector<std::string>;
     using idx_vec_t = std::vector<Index>;

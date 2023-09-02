@@ -127,11 +127,11 @@ asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     const std::size_t B = data_nk_vec.size();
     const std::size_t Ntot = n_;
 
-    using annoy_index_t = AnnoyIndex<Index,
-                                     Scalar,
-                                     Euclidean,
-                                     Kiss64Random,
-                                     RcppAnnoyIndexThreadPolicy>;
+    using annoy_index_t = Annoy::AnnoyIndex<Index,
+                                            Scalar,
+                                            Annoy::Euclidean,
+                                            Kiss64Random,
+                                            RcppAnnoyIndexThreadPolicy>;
 
     /////////////////////////////////
     // step 1. Build annoy indexes //

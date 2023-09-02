@@ -31,11 +31,11 @@ struct mtx_data_t {
         const std::string val;
     };
 
-    using annoy_index_t = AnnoyIndex<Index,
-                                     Scalar,
-                                     Euclidean,
-                                     Kiss64Random,
-                                     RcppAnnoyIndexThreadPolicy>;
+    using annoy_index_t = Annoy::AnnoyIndex<Index,
+                                            Scalar,
+                                            Annoy::Euclidean,
+                                            Kiss64Random,
+                                            RcppAnnoyIndexThreadPolicy>;
 
     explicit mtx_data_t(const MTX &mtx,
                         const ROW &row,
