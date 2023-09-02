@@ -535,9 +535,11 @@ public:
 
     template <typename Derived>
     std::tuple<Mat, Mat>
-    log_topic_correlation(const Eigen::MatrixBase<Derived> &Y_dn)
+    log_topic_correlation(const Eigen::MatrixBase<Derived> &Y_dn,
+                          const Scalar log_min_cutoff = -4)
     {
-        Mat log_x = beta_dk.log_mean();
+        at_least_val_op<Mat> at_least(log_min_cutoff);
+        Mat log_x = beta_dk.log_mean().unaryExpr(at_least);
         standardize_columns_inplace(log_x);
         Mat R_nk = (Y_dn.transpose() * log_x).array().colwise() / Y_n1.array();
         return std::make_tuple(log_x, R_nk);
