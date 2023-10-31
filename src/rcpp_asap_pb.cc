@@ -126,6 +126,22 @@ asap_random_bulk_data(
     using data_t = mmutil::match::data_loader_t;
     data_t matched_data(mtx_file, mtx_idx, mmutil::match::KNN(KNN_CELL));
 
+    ColVec row_mu(D), row_sig(D);
+
+    std::tie(row_mu, row_sig) = compute_row_stat(mtx_file,
+                                                 mtx_idx,
+                                                 block_size,
+                                                 do_log1p,
+                                                 NUM_THREADS,
+                                                 verbose);
+
+    if (verbose) {
+        TLOG("Computed row statistics:\nmean: "
+             << row_mu.minCoeff() << " .. " << row_mu.maxCoeff() << "\n"
+             << "standard deviation: " << row_sig.minCoeff() << " .. "
+             << row_sig.maxCoeff());
+    }
+
     /////////////////////////////////////////////
     // Step 1. sample random projection matrix //
     /////////////////////////////////////////////
@@ -137,6 +153,7 @@ asap_random_bulk_data(
 
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
     Mat R_kd = Mat::NullaryExpr(K, D, rnorm);
+    R_kd.array().colwise() *= row_sig.array();
 
     if (verbose) {
         TLOG("Random aggregator matrix: " << R_kd.rows() << " x "
