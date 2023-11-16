@@ -18,6 +18,7 @@
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
 //' @param save_rand_proj save random projection (default: FALSE)
+//' @param weighted_rand_proj save random projection (default: FALSE)
 //' @param KNN_CELL k-NN matching between cells (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -65,6 +66,7 @@ asap_random_bulk_data(
     const bool do_log1p = false,
     const bool do_down_sample = false,
     const bool save_rand_proj = false,
+    const bool weighted_rand_proj = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
@@ -126,22 +128,6 @@ asap_random_bulk_data(
     using data_t = mmutil::match::data_loader_t;
     data_t matched_data(mtx_file, mtx_idx, mmutil::match::KNN(KNN_CELL));
 
-    ColVec row_mu(D), row_sig(D);
-
-    std::tie(row_mu, row_sig) = compute_row_stat(mtx_file,
-                                                 mtx_idx,
-                                                 block_size,
-                                                 do_log1p,
-                                                 NUM_THREADS,
-                                                 verbose);
-
-    if (verbose) {
-        TLOG("Computed row statistics:\nmean: "
-             << row_mu.minCoeff() << " .. " << row_mu.maxCoeff() << "\n"
-             << "standard deviation: " << row_sig.minCoeff() << " .. "
-             << row_sig.maxCoeff());
-    }
-
     /////////////////////////////////////////////
     // Step 1. sample random projection matrix //
     /////////////////////////////////////////////
@@ -153,7 +139,29 @@ asap_random_bulk_data(
 
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
     Mat R_kd = Mat::NullaryExpr(K, D, rnorm);
-    R_kd.array().colwise() *= row_sig.array();
+
+    if (weighted_rand_proj) {
+        ColVec row_mu(D), row_sig(D);
+
+        std::tie(row_mu, row_sig) = compute_row_stat(mtx_file,
+                                                     mtx_idx,
+                                                     block_size,
+                                                     do_log1p,
+                                                     NUM_THREADS,
+                                                     verbose);
+
+        if (verbose) {
+            TLOG("Computed row statistics:\nmean: "
+                 << row_mu.minCoeff() << " .. " << row_mu.maxCoeff() << "\n"
+                 << "standard deviation: " << row_sig.minCoeff() << " .. "
+                 << row_sig.maxCoeff());
+        }
+
+        R_kd.array().colwise() *= row_sig.array();
+        if (verbose) {
+            TLOG("Weighted random projection matrix");
+        }
+    }
 
     if (verbose) {
         TLOG("Random aggregator matrix: " << R_kd.rows() << " x "
