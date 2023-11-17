@@ -268,9 +268,9 @@ asap_random_bulk_data_multi(const std::vector<std::string> mtx_files,
 
     TLOG_(verbose, "SVD on the projected: " << RD.rows() << " x " << RD.cols());
 
-    ////////////////////////////////////////////////
-    // Step 3. sorting in an implicit binary tree //
-    ////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
+    // Step 3. sorting through an implicit binary tree //
+    /////////////////////////////////////////////////////
 
     IntVec bb(Ntot);
     bb.setZero();

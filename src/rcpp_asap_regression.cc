@@ -1,4 +1,4 @@
-#include "rcpp_asap_regress.hh"
+#include "rcpp_asap_regression.hh"
 
 //' Calibrate topic proportions based on sufficient statistics
 //'

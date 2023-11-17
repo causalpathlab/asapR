@@ -33,6 +33,18 @@ named(const Eigen::MatrixBase<Derived> &xx,
     return x;
 }
 
+template <typename Derived>
+Rcpp::NumericMatrix
+named_rows(const Eigen::MatrixBase<Derived> &xx,
+           const std::vector<std::string> &out_row_names)
+{
+    Rcpp::NumericMatrix x = Rcpp::wrap(xx);
+    if (xx.rows() == out_row_names.size()) {
+        Rcpp::rownames(x) = Rcpp::wrap(out_row_names);
+    }
+    return x;
+}
+
 template <typename T>
 void
 convert_r_index(const std::vector<T> &cvec, std::vector<T> &rvec)

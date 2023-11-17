@@ -1,8 +1,8 @@
 Package: asapR
 Type: Package
 Title: Annotating Single-cell data matrix by Approximate Pseudo-bulk projection in R
-Version: 0.1.2
-Date: 2023-06-21
+Version: 0.2.0
+Date: 2023-11-17
 Authors@R: c(person("Yongjin", "Park", role = c("aut", "cre"), email = "ypp@stat.ubc.ca"), person("Sishir", "Subedi", role = c("aut")))
 Maintainer: Yongjin Park <ypp@stat.ubc.ca>
 Description: Annotating Single-cell data matrix by Approximate Pseudo-bulk projection

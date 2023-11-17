@@ -8,6 +8,7 @@
 #' @param KNN_PER_BATCH (default: 3)
 #' @param BLOCK_SIZE each parallel job size (default: 100)
 #' @param NUM_THREADS number of parallel threads (default: 1)
+#' @param IP_DISTANCE inner product distance (default: FALSE)
 #' @param verbose (default: TRUE)
 #'
 #' @return a list that contains:
@@ -17,8 +18,77 @@
 #'  \item batches batch membership
 #' }
 #'
-asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, verbose = TRUE) {
-    .Call('_asapR_asap_adjust_corr_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
+asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, IP_DISTANCE = FALSE, verbose = TRUE) {
+    .Call('_asapR_asap_adjust_corr_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose)
+}
+
+#' Generate approximate pseudo-bulk interaction data by random projections
+#'
+#' @param mtx_file matrix-market-formatted data file (bgzip)
+#' @param row_file row names (gene/feature names)
+#' @param col_file column names (cell/column names)
+#' @param idx_file matrix-market colum index file
+#' @param num_factors a desired number of random factors
+#'
+#' @param rseed random seed
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_log1p log(x + 1) transformation (default: FALSE)
+#' @param do_down_sample down-sampling (default: FALSE)
+#' @param save_rand_proj save random projection (default: FALSE)
+#' @param weighted_rand_proj save random projection (default: FALSE)
+#' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
+#' @param a0 gamma(a0, b0) (default: 1e-8)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param MAX_ROW_WORD maximum words per line in `row_file`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_file`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @return a list
+#' \itemize{
+#' \item `PB` pseudobulk (average) data (feature x sample)
+#' \item `sum` pseudobulk (sum) data (feature x sample)
+#' \item `size` size per sample (sample x 1)
+#' \item `positions` pseudobulk sample positions (cell pair x 1)
+#' \item `rand.dict` random dictionary (proj factor x feature)
+#' \item `rand.proj` random projection results (sample x proj factor)
+#' \item `colnames` column (cell) names
+#' \item `rownames` feature (gene) names
+#' }
+#'
+#'
+asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+}
+
+#' Topic statistics to estimate factor loading
+#'
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
+#' @param idx_file matrix-market colum index file
+#' @param log_x D x K log dictionary/design matrix
+#' @param x_row_names row names log_x (D vector)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item beta dictionary matrix (row x factor)
+#'  \item corr empirical correlation (column x factor)
+#'  \item colsum the sum of each column (column x 1)
+#' }
+#'
+asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions
@@ -91,7 +161,6 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' @param num_factors a desired number of random factors
 #' @param r_covar_n N x r covariates (default: NULL)
 #' @param r_covar_d D x r covariates (default: NULL)
-#' @param r_batch batch information (default: NULL)
 #' @param rseed random seed
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -100,9 +169,7 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' @param do_down_sample down-sampling (default: FALSE)
 #' @param save_rand_proj save random projection (default: FALSE)
 #' @param weighted_rand_proj save random projection (default: FALSE)
-#' @param KNN_CELL k-NN matching between cells (default: 10)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
-#' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1e-8)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param MAX_ROW_WORD maximum words per line in `row_file`
@@ -114,14 +181,7 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' \itemize{
 #' \item `PB` pseudobulk (average) data (feature x sample)
 #' \item `sum` pseudobulk (sum) data (feature x sample)
-#' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
-#' \item `sum_db` batch-specific sum (feature x batch)
 #' \item `size` size per sample (sample x 1)
-#' \item `prob_bs` batch-specific frequency (batch x sample)
-#' \item `size_bs` batch-specific size (batch x sample)
-#' \item `batch.effect` batch effect (feature x batch)
-#' \item `log.batch.effect` log batch effect (feature x batch)
-#' \item `batch.names` batch names (batch x 1)
 #' \item `positions` pseudobulk sample positions (cell x 1)
 #' \item `rand.dict` random dictionary (proj factor x feature)
 #' \item `rand.proj` random projection results (sample x proj factor)
@@ -129,8 +189,8 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, r_batch = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, r_batch, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections

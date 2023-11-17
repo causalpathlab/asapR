@@ -7,6 +7,7 @@
 //' @param KNN_PER_BATCH (default: 3)
 //' @param BLOCK_SIZE each parallel job size (default: 100)
 //' @param NUM_THREADS number of parallel threads (default: 1)
+//' @param IP_DISTANCE inner product distance (default: FALSE)
 //' @param verbose (default: TRUE)
 //'
 //' @return a list that contains:
@@ -24,6 +25,7 @@ asap_adjust_corr_bbknn(
     const std::size_t KNN_PER_BATCH = 3,
     const std::size_t BLOCK_SIZE = 100,
     const std::size_t NUM_THREADS = 1,
+    const bool IP_DISTANCE = false,
     const bool verbose = true)
 {
 
@@ -96,7 +98,9 @@ asap_adjust_corr_bbknn(
             globs.reserve(data_nk.rows());
 
             Mat vsub_kn = data_nk.transpose();
-            normalize_columns_inplace(vsub_kn);
+            if (IP_DISTANCE) {
+                normalize_columns_inplace(vsub_kn);
+            }
             std::vector<Scalar> vec(rank);
 
             for (Index j = 0; j < vsub_kn.cols(); ++j) {
@@ -273,18 +277,18 @@ asap_adjust_corr_bbknn(
     Vadj.transposeInPlace();
 
     std::vector<Index> r_batches(batches.size());
-    rcpp::util::convert_r_index(batches, r_batches);
 
-    return Rcpp::List::create(Rcpp::_["adjusted"] = Vadj,
-                              Rcpp::_["W"] = Wsym,
-                              Rcpp::_["names"] = global_names,
-                              Rcpp::_["indexes"] = global_index,
-                              Rcpp::_["batches"] = r_batches,
-                              Rcpp::_["knn"] =
-                                  Rcpp::List::create(Rcpp::_["src.index"] =
-                                                         src_index,
-                                                     Rcpp::_["tgt.index"] =
-                                                         tgt_index,
-                                                     Rcpp::_["weight"] =
-                                                         weight));
+    using namespace rcpp::util;
+    using namespace Rcpp;
+    convert_r_index(batches, r_batches);
+
+    List knn_list = List::create(_["src.index"] = src_index,
+                                 _["tgt.index"] = tgt_index,
+                                 _["weight"] = weight);
+
+    return List::create(_["adjusted"] = named_rows(Vadj, global_names),
+                        _["names"] = global_names,
+                        _["indexes"] = global_index,
+                        _["batches"] = r_batches,
+                        _["knn"] = knn_list);
 }
