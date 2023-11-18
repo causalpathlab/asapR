@@ -102,30 +102,9 @@ asap_interaction_random_bulk(const std::string mtx_file,
     // Step 1. Build weighted kNN graph from the input //
     /////////////////////////////////////////////////////
 
-    const Index N = knn_src.size(); // number of pairs
-
-    ASSERT_RETL(
-        N == knn_tgt.size(),
-        "source and target vectors should have the same number of elements");
-
-    ASSERT_RETL(
-        N == knn_weight.size(),
-        "source and weight vectors should have the same number of elements");
-
     SpMat W;
-    {
-        std::vector<std::tuple<Index, Index, Scalar>> knn_index;
-        knn_index.reserve(N);
-        for (Index j = 0; j < N; ++j) {
-            // convert 1-based to 0-based
-            const Index s = knn_src[j] - 1, t = knn_tgt[j] - 1;
-            if (s < Ncell && t < Ncell && s >= 0 && t >= 0 && s != t) {
-                knn_index.emplace_back(std::make_tuple(s, t, knn_weight[j]));
-            }
-        }
-
-        W = build_eigen_sparse(knn_index, Ncell, Ncell);
-    }
+    CHK_RETL_(build_knn_graph(knn_src, knn_tgt, knn_weight, Ncell, W),
+              "Failed to build the kNN graph");
 
     ///////////////////////////////////////////////
     // Step 2. Sample a random projection matrix //

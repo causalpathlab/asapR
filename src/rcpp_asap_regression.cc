@@ -252,7 +252,9 @@ asap_topic_stat(const std::string mtx_file,
 
     return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
                         _["corr"] = named(Rtot_nk, coln, k_),
-                        _["colsum"] = named(Ytot_n, coln, file_));
+                        _["colsum"] = named(Ytot_n, coln, file_),
+                        _["rownames"] = pos2row,
+                        _["colnames"] = coln);
 }
 
 //' Poisson regression to estimate factor loading
