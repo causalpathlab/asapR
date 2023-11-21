@@ -8,7 +8,7 @@
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param x_row_names row names log_x (D vector)
-//' @param do_log1p do log(1+y) transformation
+//' @param do_product yi * yj for interaction (default: TRUE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -16,6 +16,7 @@
 //' @param ROW_WORD_SEP word separation character to replace white space
 //' @param MAX_COL_WORD maximum words per line in `col_files[i]`
 //' @param COL_WORD_SEP word separation character to replace white space
+//' @param verbose verbosity
 //'
 //' @return a list that contains:
 //' \itemize{
@@ -35,14 +36,14 @@ asap_interaction_topic_stat(const std::string mtx_file,
                             const std::vector<std::size_t> knn_src,
                             const std::vector<std::size_t> knn_tgt,
                             const std::vector<float> knn_weight,
-                            const bool do_log1p = false,
-                            const bool verbose = false,
+                            const bool do_product = true,
                             const std::size_t NUM_THREADS = 1,
                             const std::size_t BLOCK_SIZE = 100,
                             const std::size_t MAX_ROW_WORD = 2,
                             const char ROW_WORD_SEP = '_',
                             const std::size_t MAX_COL_WORD = 100,
-                            const char COL_WORD_SEP = '@')
+                            const char COL_WORD_SEP = '@',
+                            const bool verbose = false)
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -116,8 +117,8 @@ asap_interaction_topic_stat(const std::string mtx_file,
 
     const Index Nedge = W.nonZeros();
 
-    Mat Rtot_nk(Nedge, K);
-    Mat Ytot_n(Nedge, 1);
+    Mat Rtot_nk = Mat::Zero(Nedge, K);
+    Mat Ytot_n = Mat::Zero(Nedge, 1);
     std::vector<Index> src_out(Nedge);
     std::vector<Index> tgt_out(Nedge);
 
@@ -130,7 +131,6 @@ asap_interaction_topic_stat(const std::string mtx_file,
     at_least_one_op<Mat> at_least_one;
     at_least_zero_op<Mat> at_least_zero;
     exp_op<Mat> exp;
-    log1p_op<Mat> log1p;
 
     Index Nprocessed = 0;
     const Scalar one = 1.;
@@ -147,8 +147,8 @@ asap_interaction_topic_stat(const std::string mtx_file,
 
             // yij <- (yi + yj) * wij (D x 1)
             Mat wy_ij;
-            if (do_log1p) {
-                wy_ij = w_ij * (y_i.unaryExpr(log1p) + y_j.unaryExpr(log1p));
+            if (do_product) {
+                wy_ij = w_ij * (y_i.cwiseProduct(y_j));
             } else {
                 wy_ij = w_ij * (y_i + y_j);
             }

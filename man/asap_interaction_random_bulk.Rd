@@ -14,20 +14,21 @@ asap_interaction_random_bulk(
   knn_tgt,
   knn_weight,
   rseed = 42L,
-  verbose = FALSE,
-  NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L,
+  do_product = TRUE,
   do_log1p = FALSE,
   do_down_sample = FALSE,
   save_rand_proj = FALSE,
   weighted_rand_proj = FALSE,
-  CELL_PER_SAMPLE = 100L,
+  NUM_THREADS = 1L,
+  BLOCK_SIZE = 100L,
+  EDGE_PER_SAMPLE = 100L,
   a0 = 1e-08,
   b0 = 1,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
   MAX_COL_WORD = 100L,
-  COL_WORD_SEP = "@"
+  COL_WORD_SEP = "@",
+  verbose = FALSE
 )
 }
 \arguments{
@@ -43,11 +44,7 @@ asap_interaction_random_bulk(
 
 \item{rseed}{random seed}
 
-\item{verbose}{verbosity}
-
-\item{NUM_THREADS}{number of threads in data reading}
-
-\item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+\item{do_product}{yi * yj for interaction (default: TRUE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
@@ -57,7 +54,11 @@ asap_interaction_random_bulk(
 
 \item{weighted_rand_proj}{save random projection (default: FALSE)}
 
-\item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
+\item{NUM_THREADS}{number of threads in data reading}
+
+\item{BLOCK_SIZE}{disk I/O block size (number of columns)}
+
+\item{EDGE_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
 
 \item{a0}{gamma(a0, b0) (default: 1e-8)}
 
@@ -70,6 +71,8 @@ asap_interaction_random_bulk(
 \item{MAX_COL_WORD}{maximum words per line in \code{col_file}}
 
 \item{COL_WORD_SEP}{word separation character to replace white space}
+
+\item{verbose}{verbosity}
 }
 \value{
 a list

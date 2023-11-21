@@ -14,14 +14,14 @@ asap_interaction_topic_stat(
   knn_src,
   knn_tgt,
   knn_weight,
-  do_log1p = FALSE,
-  verbose = FALSE,
+  do_product = TRUE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
   MAX_COL_WORD = 100L,
-  COL_WORD_SEP = "@"
+  COL_WORD_SEP = "@",
+  verbose = FALSE
 )
 }
 \arguments{
@@ -37,9 +37,7 @@ asap_interaction_topic_stat(
 
 \item{x_row_names}{row names log_x (D vector)}
 
-\item{do_log1p}{do log(1+y) transformation}
-
-\item{verbose}{verbosity}
+\item{do_product}{yi * yj for interaction (default: TRUE)}
 
 \item{NUM_THREADS}{number of threads in data reading}
 
@@ -52,6 +50,8 @@ asap_interaction_topic_stat(
 \item{MAX_COL_WORD}{maximum words per line in \code{col_files[i]}}
 
 \item{COL_WORD_SEP}{word separation character to replace white space}
+
+\item{verbose}{verbosity}
 }
 \value{
 a list that contains:

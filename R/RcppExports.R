@@ -31,20 +31,21 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' @param num_factors a desired number of random factors
 #'
 #' @param rseed random seed
-#' @param verbose verbosity
-#' @param NUM_THREADS number of threads in data reading
-#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_product yi * yj for interaction (default: TRUE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: FALSE)
 #' @param save_rand_proj save random projection (default: FALSE)
 #' @param weighted_rand_proj save random projection (default: FALSE)
-#' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param EDGE_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1e-8)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param MAX_ROW_WORD maximum words per line in `row_file`
 #' @param ROW_WORD_SEP word separation character to replace white space
 #' @param MAX_COL_WORD maximum words per line in `col_file`
 #' @param COL_WORD_SEP word separation character to replace white space
+#' @param verbose verbosity
 #'
 #' @return a list
 #' \itemize{
@@ -59,8 +60,8 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' }
 #'
 #'
-asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, do_product = TRUE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' Topic statistics to estimate factor loading
@@ -71,7 +72,7 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #' @param idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
 #' @param x_row_names row names log_x (D vector)
-#' @param do_log1p do log(1+y) transformation
+#' @param do_product yi * yj for interaction (default: TRUE)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -79,6 +80,7 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #' @param ROW_WORD_SEP word separation character to replace white space
 #' @param MAX_COL_WORD maximum words per line in `col_files[i]`
 #' @param COL_WORD_SEP word separation character to replace white space
+#' @param verbose verbosity
 #'
 #' @return a list that contains:
 #' \itemize{
@@ -87,8 +89,8 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions

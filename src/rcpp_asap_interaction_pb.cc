@@ -9,20 +9,21 @@
 //' @param num_factors a desired number of random factors
 //'
 //' @param rseed random seed
-//' @param verbose verbosity
-//' @param NUM_THREADS number of threads in data reading
-//' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_product yi * yj for interaction (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
 //' @param save_rand_proj save random projection (default: FALSE)
 //' @param weighted_rand_proj save random projection (default: FALSE)
-//' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
+//' @param NUM_THREADS number of threads in data reading
+//' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param EDGE_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param MAX_ROW_WORD maximum words per line in `row_file`
 //' @param ROW_WORD_SEP word separation character to replace white space
 //' @param MAX_COL_WORD maximum words per line in `col_file`
 //' @param COL_WORD_SEP word separation character to replace white space
+//' @param verbose verbosity
 //'
 //' @return a list
 //' \itemize{
@@ -48,20 +49,21 @@ asap_interaction_random_bulk(const std::string mtx_file,
                              const std::vector<std::size_t> knn_tgt,
                              const std::vector<float> knn_weight,
                              const std::size_t rseed = 42,
-                             const bool verbose = false,
-                             const std::size_t NUM_THREADS = 1,
-                             const std::size_t BLOCK_SIZE = 100,
+                             const bool do_product = true,
                              const bool do_log1p = false,
                              const bool do_down_sample = false,
                              const bool save_rand_proj = false,
                              const bool weighted_rand_proj = false,
-                             const std::size_t CELL_PER_SAMPLE = 100,
+                             const std::size_t NUM_THREADS = 1,
+                             const std::size_t BLOCK_SIZE = 100,
+                             const std::size_t EDGE_PER_SAMPLE = 100,
                              const double a0 = 1e-8,
                              const double b0 = 1,
                              const std::size_t MAX_ROW_WORD = 2,
                              const char ROW_WORD_SEP = '_',
                              const std::size_t MAX_COL_WORD = 100,
-                             const char COL_WORD_SEP = '@')
+                             const char COL_WORD_SEP = '@',
+                             const bool verbose = false)
 {
 
     log1p_op<Mat> log1p;
@@ -159,7 +161,11 @@ asap_interaction_random_bulk(const std::string mtx_file,
                 // Q_km <- R_kd * yij     (K x 1)
 #pragma omp critical
                 {
-                    Q_km.col(m) = (R_kd * y_i + R_kd * y_j) * w_ij;
+                    if (do_product) {
+                        Q_km.col(m) = R_kd * (y_i.cwiseProduct(y_j)) * w_ij;
+                    } else {
+                        Q_km.col(m) = (R_kd * y_i + R_kd * y_j) * w_ij;
+                    }
                     ++m;
                 }
             }
@@ -196,7 +202,7 @@ asap_interaction_random_bulk(const std::string mtx_file,
                                     rng,
                                     verbose,
                                     do_down_sample,
-                                    CELL_PER_SAMPLE);
+                                    EDGE_PER_SAMPLE);
 
     const Index S = *std::max_element(positions.begin(), positions.end());
     const Index NA_POS = S;
