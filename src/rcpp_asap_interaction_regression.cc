@@ -8,7 +8,7 @@
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param x_row_names row names log_x (D vector)
-//' @param do_product yi * yj for interaction (default: TRUE)
+//' @param do_product yi * yj for interaction (default: FALSE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -36,7 +36,7 @@ asap_interaction_topic_stat(const std::string mtx_file,
                             const std::vector<std::size_t> knn_src,
                             const std::vector<std::size_t> knn_tgt,
                             const std::vector<float> knn_weight,
-                            const bool do_product = true,
+                            const bool do_product = false,
                             const std::size_t NUM_THREADS = 1,
                             const std::size_t BLOCK_SIZE = 100,
                             const std::size_t MAX_ROW_WORD = 2,
@@ -117,20 +117,17 @@ asap_interaction_topic_stat(const std::string mtx_file,
 
     const Index Nedge = W.nonZeros();
 
-    Mat Rtot_nk = Mat::Zero(Nedge, K);
-    Mat Ytot_n = Mat::Zero(Nedge, 1);
+    Mat Rtot_mk = Mat::Zero(Nedge, K);
+    Mat Ytot_m = Mat::Zero(Nedge, 1);
     std::vector<Index> src_out(Nedge);
     std::vector<Index> tgt_out(Nedge);
+    std::vector<Scalar> weight_out(Nedge);
 
     if (verbose) {
         Rcpp::Rcerr << "Calibrating " << Nedge << " columns..." << std::endl;
     }
 
     data.relocate_rows(row2pos);
-
-    at_least_one_op<Mat> at_least_one;
-    at_least_zero_op<Mat> at_least_zero;
-    exp_op<Mat> exp;
 
     Index Nprocessed = 0;
     const Scalar one = 1.;
@@ -139,27 +136,29 @@ asap_interaction_topic_stat(const std::string mtx_file,
 #pragma omp for
 #endif
     for (Index i = 0; i < W.outerSize(); ++i) {
-        SpMat y_i = data.read_reloc(i, i + 1);
+        SpMat y_di = data.read_reloc(i, i + 1);
         for (SpMat::InnerIterator jt(W, i); jt; ++jt) {
             const Index j = jt.col();
-            const Scalar w_ij = jt.value();
-            SpMat y_j = data.read_reloc(j, j + 1);
+            SpMat y_dj = data.read_reloc(j, j + 1);
+
+            const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
             // yij <- (yi + yj) * wij (D x 1)
-            Mat wy_ij;
+            Mat wy_dij(D, 1);
             if (do_product) {
-                wy_ij = w_ij * (y_i.cwiseProduct(y_j));
+                wy_dij = w_ij * (y_di.cwiseProduct(y_dj));
             } else {
-                wy_ij = w_ij * (y_i + y_j);
+                wy_dij = w_ij * (y_di + y_dj);
             }
 #pragma omp critical
             {
-                const Scalar denom = wy_ij.sum();
-                Rtot_nk.row(Nprocessed) =
-                    (wy_ij.transpose() * logX_dk) / std::max(denom, one);
-                Ytot_n(Nprocessed, 0) = denom;
-                src_out[Nprocessed] = i + 1; // 1-based
-                tgt_out[Nprocessed] = j + 1; // 1-based
+                const Scalar denom = std::max(wy_dij.sum(), one);
+                Rtot_mk.row(Nprocessed) =
+                    (wy_dij.transpose() * logX_dk) / denom;
+                Ytot_m(Nprocessed, 0) = denom;
+                src_out[Nprocessed] = i + 1;   // 1-based
+                tgt_out[Nprocessed] = j + 1;   // 1-based
+                weight_out[Nprocessed] = w_ij; // readjusted weight
 
                 ++Nprocessed;
                 if (verbose) {
@@ -173,9 +172,11 @@ asap_interaction_topic_stat(const std::string mtx_file,
         }
     }
 
-    if (!verbose)
+    if (!verbose) {
         Rcpp::Rcerr << std::endl;
-    TLOG_(verbose, "Done");
+    } else {
+        TLOG("Done");
+    }
 
     using namespace rcpp::util;
     using namespace Rcpp;
@@ -186,11 +187,14 @@ asap_interaction_topic_stat(const std::string mtx_file,
         k_.push_back(std::to_string(k));
     }
 
+    exp_op<Mat> exp;
+
     return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
-                        _["corr"] = Rtot_nk,
-                        _["colsum"] = Ytot_n,
+                        _["corr"] = Rtot_mk,
+                        _["colsum"] = Ytot_m,
                         _["src.index"] = src_out,
                         _["tgt.index"] = tgt_out,
+                        _["weight"] = weight_out,
                         _["rownames"] = pos2row,
                         _["colnames"] = coln);
 }

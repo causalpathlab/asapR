@@ -9,7 +9,7 @@
 //' @param num_factors a desired number of random factors
 //'
 //' @param rseed random seed
-//' @param do_product yi * yj for interaction (default: TRUE)
+//' @param do_product yi * yj for interaction (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
 //' @param save_rand_proj save random projection (default: FALSE)
@@ -49,7 +49,7 @@ asap_interaction_random_bulk(const std::string mtx_file,
                              const std::vector<std::size_t> knn_tgt,
                              const std::vector<float> knn_weight,
                              const std::size_t rseed = 42,
-                             const bool do_product = true,
+                             const bool do_product = false,
                              const bool do_log1p = false,
                              const bool do_down_sample = false,
                              const bool save_rand_proj = false,
@@ -151,20 +151,21 @@ asap_interaction_random_bulk(const std::string mtx_file,
 #pragma omp for
 #endif
         for (Index i = 0; i < W.outerSize(); ++i) {
-            SpMat y_i = mtx_data.read(i, i + 1);
+            SpMat y_di = mtx_data.read(i, i + 1);
             for (SpMat::InnerIterator jt(W, i); jt; ++jt) {
                 const Index j = jt.col();
-                const Scalar w_ij = jt.value();
-                SpMat y_j = mtx_data.read(j, j + 1);
+                SpMat y_dj = mtx_data.read(j, j + 1);
+
+                const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
                 // yij <- (yi + yj) * wij (D x 1)
                 // Q_km <- R_kd * yij     (K x 1)
 #pragma omp critical
                 {
                     if (do_product) {
-                        Q_km.col(m) = R_kd * (y_i.cwiseProduct(y_j)) * w_ij;
+                        Q_km.col(m) = R_kd * (y_di.cwiseProduct(y_dj)) * w_ij;
                     } else {
-                        Q_km.col(m) = (R_kd * y_i + R_kd * y_j) * w_ij;
+                        Q_km.col(m) = (R_kd * y_di + R_kd * y_dj) * w_ij;
                     }
                     ++m;
                 }
@@ -226,11 +227,12 @@ asap_interaction_random_bulk(const std::string mtx_file,
 #pragma omp for
 #endif
         for (Index i = 0; i < W.outerSize(); ++i) {
-            SpMat y_i = mtx_data.read(i, i + 1);
+            SpMat y_di = mtx_data.read(i, i + 1);
             for (SpMat::InnerIterator jt(W, i); jt; ++jt) {
                 const Index j = jt.col();
-                const Scalar w_ij = jt.value();
-                SpMat y_j = mtx_data.read(j, j + 1);
+                SpMat y_dj = mtx_data.read(j, j + 1);
+
+                const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
                 // yij <- (yi + yj) * wij (D x 1)
                 // Q_km <- R_kd * yij     (K x 1)
@@ -238,7 +240,11 @@ asap_interaction_random_bulk(const std::string mtx_file,
                 {
                     const Index s = positions.at(m);
                     if (s < NA_POS) {
-                        ysum_ds.col(s) += (y_i + y_j) * w_ij;
+                        if (do_product) {
+                            ysum_ds.col(s) += y_di.cwiseProduct(y_dj) * w_ij;
+                        } else {
+                            ysum_ds.col(s) += (y_di + y_dj) * w_ij;
+                        }
                         size_s(s) += 1.;
                     }
                     ++m;

@@ -14,7 +14,7 @@ asap_interaction_topic_stat(
   knn_src,
   knn_tgt,
   knn_weight,
-  do_product = TRUE,
+  do_product = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   MAX_ROW_WORD = 2L,
@@ -37,7 +37,7 @@ asap_interaction_topic_stat(
 
 \item{x_row_names}{row names log_x (D vector)}
 
-\item{do_product}{yi * yj for interaction (default: TRUE)}
+\item{do_product}{yi * yj for interaction (default: FALSE)}
 
 \item{NUM_THREADS}{number of threads in data reading}
 

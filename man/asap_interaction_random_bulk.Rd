@@ -14,7 +14,7 @@ asap_interaction_random_bulk(
   knn_tgt,
   knn_weight,
   rseed = 42L,
-  do_product = TRUE,
+  do_product = FALSE,
   do_log1p = FALSE,
   do_down_sample = FALSE,
   save_rand_proj = FALSE,
@@ -44,7 +44,7 @@ asap_interaction_random_bulk(
 
 \item{rseed}{random seed}
 
-\item{do_product}{yi * yj for interaction (default: TRUE)}
+\item{do_product}{yi * yj for interaction (default: FALSE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 

@@ -12,6 +12,7 @@ asap_topic_pmf(
   b0 = 1,
   max_iter = 10L,
   NUM_THREADS = 1L,
+  stdize_r = TRUE,
   verbose = TRUE
 )
 }
@@ -29,6 +30,8 @@ asap_topic_pmf(
 \item{max_iter}{maximum iterations (default: 10)}
 
 \item{NUM_THREADS}{number of parallel threads (default: 1)}
+
+\item{stdize_r}{standardize correlation matrix R (default: TRUE)}
 
 \item{verbose}{(default: TRUE)}
 }

@@ -39,7 +39,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_data(
+asap_random_bulk(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,

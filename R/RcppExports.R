@@ -31,7 +31,7 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' @param num_factors a desired number of random factors
 #'
 #' @param rseed random seed
-#' @param do_product yi * yj for interaction (default: TRUE)
+#' @param do_product yi * yj for interaction (default: FALSE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: FALSE)
 #' @param save_rand_proj save random projection (default: FALSE)
@@ -60,7 +60,7 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' }
 #'
 #'
-asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, do_product = TRUE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, do_product = FALSE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
     .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
@@ -72,7 +72,7 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #' @param idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
 #' @param x_row_names row names log_x (D vector)
-#' @param do_product yi * yj for interaction (default: TRUE)
+#' @param do_product yi * yj for interaction (default: FALSE)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -89,7 +89,7 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
     .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
@@ -191,8 +191,8 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_data', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -240,8 +240,8 @@ asap_random_bulk_data <- function(mtx_file, row_file, col_file, idx_file, num_fa
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 3L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_data_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_multi <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 3L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_multi', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
@@ -253,6 +253,7 @@ asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_fil
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of parallel threads (default: 1)
+#' @param stdize_r standardize correlation matrix R (default: TRUE)
 #' @param verbose (default: TRUE)
 #'
 #' @return a list that contains:
@@ -263,8 +264,8 @@ asap_random_bulk_data_multi <- function(mtx_files, row_files, col_files, idx_fil
 #'  \item log.theta.sd (N x K) standard deviation matrix
 #' }
 #'
-asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, verbose = TRUE) {
-    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, verbose)
+asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, stdize_r = TRUE, verbose = TRUE) {
+    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
 }
 
 #' Topic statistics to estimate factor loading

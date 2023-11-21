@@ -9,6 +9,7 @@
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of parallel threads (default: 1)
+//' @param stdize_r standardize correlation matrix R (default: TRUE)
 //' @param verbose (default: TRUE)
 //'
 //' @return a list that contains:
@@ -28,6 +29,7 @@ asap_topic_pmf(const Eigen::MatrixXf X_dk,
                const double b0 = 1.0,
                const std::size_t max_iter = 10,
                const std::size_t NUM_THREADS = 1,
+               const bool stdize_r = true,
                const bool verbose = true)
 {
 
@@ -57,9 +59,14 @@ asap_topic_pmf(const Eigen::MatrixXf X_dk,
 
     RowVec tempK(K);
 
+    Mat r_nk = R_nk;
+    if (stdize_r) {
+        standardize_columns_inplace(r_nk);
+    }
+
     for (std::size_t t = 0; t < max_iter; ++t) {
 
-        logRho_nk = R_nk + theta_nk.log_mean();
+        logRho_nk = r_nk + theta_nk.log_mean();
 
         for (Index jj = 0; jj < N; ++jj) {
             tempK = logRho_nk.row(jj);
