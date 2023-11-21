@@ -106,6 +106,8 @@ asap_interaction_random_bulk(const std::string mtx_file,
     CHK_RETL_(build_knn_graph(knn_src, knn_tgt, knn_weight, Ncell, W),
               "Failed to build the kNN graph");
 
+    TLOG_(verbose, "kNN graph W: " << W.rows() << " x " << W.cols());
+
     ///////////////////////////////////////////////
     // Step 2. Sample a random projection matrix //
     ///////////////////////////////////////////////

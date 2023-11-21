@@ -11,7 +11,7 @@ build_knn_graph(const std::vector<I> &knn_src,
                 const I2 Ncell,
                 Eigen::SparseMatrixBase<Derived> &_w)
 {
-    Derived W = _w.derived();
+    Derived &W = _w.derived();
     using Scalar = typename Derived::Scalar;
 
     const Index Nedge = knn_src.size(); // number of pairs
@@ -34,9 +34,13 @@ build_knn_graph(const std::vector<I> &knn_src,
         }
     }
 
+    // TLOG("knn_index: " << knn_index.size());
+
     W.resize(Ncell, Ncell);
     W.reserve(knn_index.size());
     W.setFromTriplets(knn_index.begin(), knn_index.end());
+
+    // TLOG("W: " << W.nonZeros());
 
     return EXIT_SUCCESS;
 }
