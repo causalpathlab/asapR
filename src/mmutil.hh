@@ -1,5 +1,6 @@
 // [[Rcpp::plugins(cpp14)]]
 #include <Rcpp.h>
+
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 
@@ -23,25 +24,6 @@
 #include <utility>
 #include <unordered_map>
 
-#include "eigen_util.hh"
-#include "std_util.hh"
-#include "math.hh"
-#include "util.hh"
-#include "check.hh"
-
-#include "rcpp_util.hh"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "bgzf.h"
-#include "kstring.h"
-
-#ifdef __cplusplus
-}
-#endif
-
 #ifndef MMUTIL_HH_
 #define MMUTIL_HH_
 
@@ -56,5 +38,24 @@ using Vec = typename Eigen::Matrix<Scalar, Eigen::Dynamic, 1>;
 using IntMat = typename Eigen::
     Matrix<std::ptrdiff_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
 using IntVec = typename Eigen::Matrix<std::ptrdiff_t, Eigen::Dynamic, 1>;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "bgzf.h"
+#include "kstring.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+#include "util.hh"
+#include "eigen_util.hh"
+#include "std_util.hh"
+#include "math.hh"
+#include "util.hh"
+#include "check.hh"
+#include "io.hh"
 
 #endif

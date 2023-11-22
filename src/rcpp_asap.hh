@@ -1,6 +1,12 @@
 #ifndef _RCPP_ASAP_HH
 #define _RCPP_ASAP_HH
 
+// [[Rcpp::plugins(cpp14)]]
+#include <Rcpp.h>
+
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
+
 #include "mmutil.hh"
 #include "mmutil_bgzf_util.hh"
 #include "mmutil_util.hh"
@@ -33,6 +39,8 @@ using namespace mmutil::bgzf;
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/random/uniform_01.hpp>
 #include <xoshiro.h>
+
+#include "rcpp_util.hh"
 
 #include "gamma_parameter.hh"
 #include "clustering.hh"

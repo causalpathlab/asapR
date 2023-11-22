@@ -1,5 +1,20 @@
-////////////////////////////////////////////////////////////////
-// I/O routines
+// [[Rcpp::plugins(cpp14)]]
+#include <Rcpp.h>
+
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
+
+#ifndef IO_HH_
+#define IO_HH_
+
+#include "util.hh"
+#include "io_visitor.hh"
+#include "eigen_util.hh"
+#include "gzstream.hh"
+#include "bgzstream.hh"
+#include "strbuf.hh"
+#include "tuple_util.hh"
+
 #include <cctype>
 #include <fstream>
 #include <iomanip>
@@ -10,15 +25,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "mmutil.hh"
-#include "io_visitor.hh"
-#include "eigen_util.hh"
-#include "gzstream.hh"
-#include "bgzstream.hh"
-#include "strbuf.hh"
-#include "tuple_util.hh"
-#include "util.hh"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,9 +34,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
-#ifndef UTIL_IO_HH_
-#define UTIL_IO_HH_
 
 ////////////////////////////
 // common file operations //

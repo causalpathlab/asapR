@@ -1,4 +1,4 @@
-#include "rcpp_asap.hh"
+#include "rcpp_asap_util.hh"
 
 //' Stretch non-negative matrix
 //'

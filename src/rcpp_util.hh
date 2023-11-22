@@ -1,15 +1,10 @@
-// [[Rcpp::plugins(cpp14)]]
-#include <Rcpp.h>
-
-// [[Rcpp::depends(RcppEigen)]]
-#include <RcppEigen.h>
+#ifndef RCPP_UTIL_HH_
+#define RCPP_UTIL_HH_
 
 #include <vector>
 #include <string>
 #include "util.hh"
-
-#ifndef RCPP_UTIL_HH_
-#define RCPP_UTIL_HH_
+#include "io.hh"
 
 namespace rcpp { namespace util {
 
@@ -120,6 +115,75 @@ build_sparse_mat(const Rcpp::List &in_list,
 
     ret.reserve(triples.size());
     ret.setFromTriplets(triples.begin(), triples.end());
+}
+
+template <typename S, typename I>
+void
+take_common_names(const std::vector<S> &name_files,
+                  std::vector<S> &pos2name,
+                  std::unordered_map<S, I> &name2pos,
+                  bool take_union = false,
+                  const std::size_t MAX_WORD = 2,
+                  const char WORD_SEP = '_')
+{
+    if (take_union) {
+        std::unordered_set<S> _names; // Take a unique set
+
+        auto _insert = [&](S f) {
+            std::vector<S> vv;
+            CHECK(read_line_file(f, vv, MAX_WORD, WORD_SEP));
+            const std::size_t sz = vv.size();
+
+            std::sort(vv.begin(), vv.end());
+            vv.erase(std::unique(vv.begin(), vv.end()), vv.end());
+            WLOG_(vv.size() < sz, "Duplicate in \"" << f << "\"");
+
+            for (auto r : vv)
+                _names.insert(r);
+        };
+
+        std::for_each(name_files.begin(), name_files.end(), _insert);
+        pos2name.reserve(_names.size());
+        std::copy(_names.begin(), _names.end(), std::back_inserter(pos2name));
+
+    } else {
+
+        const std::size_t B = name_files.size();
+        std::unordered_map<S, std::size_t> nn;
+
+        for (std::size_t b = 0; b < B; ++b) {
+            std::vector<S> vv;
+            CHECK(read_line_file(name_files[b], vv, MAX_WORD, WORD_SEP));
+
+            const std::size_t sz = vv.size();
+            std::sort(vv.begin(), vv.end());
+            vv.erase(std::unique(vv.begin(), vv.end()), vv.end());
+            WLOG_(vv.size() < sz,
+                  "Duplicate in \"" << name_files.at(b) << "\"");
+
+            for (S x : vv) {
+                if (nn.count(x) == 0) {
+                    nn[x] = 1;
+                } else {
+                    nn[x] = nn[x] + 1;
+                }
+            }
+        }
+
+        pos2name.reserve(nn.size());
+
+        for (auto &it : nn) {
+            if (it.second >= B) {
+                pos2name.emplace_back(it.first);
+            }
+        }
+    }
+
+    std::sort(pos2name.begin(), pos2name.end());
+    for (I r = 0; r < pos2name.size(); ++r) {
+        const S &s = pos2name.at(r);
+        name2pos[s] = r;
+    }
 }
 
 }} // namespace rcpp::util

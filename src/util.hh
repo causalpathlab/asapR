@@ -1,3 +1,12 @@
+// [[Rcpp::plugins(cpp14)]]
+#include <Rcpp.h>
+
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
+
+#ifndef UTIL_HH_
+#define UTIL_HH_
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -9,10 +18,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <Rcpp.h>
-
-#ifndef UTIL_HH_
-#define UTIL_HH_
 
 std::string curr_time();
 std::string zeropad(const int t, const int tmax);

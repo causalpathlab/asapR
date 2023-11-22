@@ -1,8 +1,8 @@
-#include "mmutil.hh"
-#include "gamma_parameter.hh"
-
 #ifndef ASAP_NMF_MODEL_HH_
 #define ASAP_NMF_MODEL_HH_
+
+#include "mmutil.hh"
+#include "gamma_parameter.hh"
 
 template <typename RNG>
 struct asap_nmf_model_t {

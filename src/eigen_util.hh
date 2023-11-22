@@ -1,3 +1,12 @@
+// [[Rcpp::plugins(cpp14)]]
+#include <Rcpp.h>
+
+// [[Rcpp::depends(RcppEigen)]]
+#include <RcppEigen.h>
+
+#ifndef EIGEN_UTIL_HH_
+#define EIGEN_UTIL_HH_
+
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -15,9 +24,6 @@
 #include <boost/random/uniform_int_distribution.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
 #include <boost/random/uniform_01.hpp>
-
-#ifndef EIGEN_UTIL_HH_
-#define EIGEN_UTIL_HH_
 
 template <typename T>
 struct softmax_op_t {

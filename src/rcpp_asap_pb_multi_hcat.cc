@@ -1,6 +1,8 @@
-#include "rcpp_asap_pb_multi.hh"
+#include "rcpp_asap_pb_multi_hcat.hh"
 
 //' Generate approximate pseudo-bulk data by random projections
+//' while sharing rows/features across multiple data sets.
+//' Horizontal concatenation.
 //'
 //' @param mtx_files matrix-market-formatted data files (bgzip)
 //' @param row_files row names (gene/feature names)
@@ -47,29 +49,29 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_multi(const std::vector<std::string> mtx_files,
-                       const std::vector<std::string> row_files,
-                       const std::vector<std::string> col_files,
-                       const std::vector<std::string> idx_files,
-                       const std::size_t num_factors,
-                       const bool take_union_rows = false,
-                       const std::size_t rseed = 42,
-                       const bool verbose = true,
-                       const std::size_t NUM_THREADS = 1,
-                       const std::size_t BLOCK_SIZE = 100,
-                       const bool do_batch_adj = true,
-                       const bool do_log1p = false,
-                       const bool do_down_sample = true,
-                       const bool save_rand_proj = false,
-                       const std::size_t KNN_CELL = 3,
-                       const std::size_t CELL_PER_SAMPLE = 100,
-                       const std::size_t BATCH_ADJ_ITER = 100,
-                       const double a0 = 1e-8,
-                       const double b0 = 1,
-                       const std::size_t MAX_ROW_WORD = 2,
-                       const char ROW_WORD_SEP = '_',
-                       const std::size_t MAX_COL_WORD = 100,
-                       const char COL_WORD_SEP = '@')
+asap_random_bulk_multi_hcat(const std::vector<std::string> mtx_files,
+                            const std::vector<std::string> row_files,
+                            const std::vector<std::string> col_files,
+                            const std::vector<std::string> idx_files,
+                            const std::size_t num_factors,
+                            const bool take_union_rows = false,
+                            const std::size_t rseed = 42,
+                            const bool verbose = true,
+                            const std::size_t NUM_THREADS = 1,
+                            const std::size_t BLOCK_SIZE = 100,
+                            const bool do_batch_adj = true,
+                            const bool do_log1p = false,
+                            const bool do_down_sample = true,
+                            const bool save_rand_proj = false,
+                            const std::size_t KNN_CELL = 3,
+                            const std::size_t CELL_PER_SAMPLE = 100,
+                            const std::size_t BATCH_ADJ_ITER = 100,
+                            const double a0 = 1e-8,
+                            const double b0 = 1,
+                            const std::size_t MAX_ROW_WORD = 2,
+                            const char ROW_WORD_SEP = '_',
+                            const std::size_t MAX_COL_WORD = 100,
+                            const char COL_WORD_SEP = '@')
 {
 
     log1p_op<Mat> log1p;
@@ -81,28 +83,39 @@ asap_random_bulk_multi(const std::vector<std::string> mtx_files,
     ASSERT_RETL(B > 0, "Empty mtx file names");
     ASSERT_RETL(row_files.size() == B, "Need a row file for each batch");
     ASSERT_RETL(col_files.size() == B, "Need a col file for each batch");
+
+    ERR_RET(!all_files_exist(mtx_files, verbose), "missing in the mtx files");
+    ERR_RET(!all_files_exist(row_files, verbose), "missing in the row files");
+    ERR_RET(!all_files_exist(col_files, verbose), "missing in the col files");
+
+    for (Index b = 0; b < B; ++b) {
+        CHK_RETL(convert_bgzip(mtx_files.at(b)));
+    }
+
     ASSERT_RETL(idx_files.size() == B, "Need an index file for each batch");
 
-    ERR_RET(!all_files_exist(mtx_files, false), "missing in the mtx files");
-    ERR_RET(!all_files_exist(row_files, false), "missing in the row files");
-    ERR_RET(!all_files_exist(col_files, false), "missing in the col files");
-    ERR_RET(!all_files_exist(idx_files, false), "missing in the idx files");
+    for (Index b = 0; b < B; ++b) {
+        if (!file_exists(idx_files.at(b))) {
+            CHK_RETL(build_mmutil_index(mtx_files.at(b), idx_files.at(b)));
+            TLOG_(verbose, "built the missing index: " << idx_files.at(b));
+        }
+    }
+
+    TLOG_(verbose, "Checked the files");
 
     ////////////////////////////
     // first read global rows //
     ////////////////////////////
 
-    TLOG_(verbose, "Checked the files");
-
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
 
-    take_row_names(row_files,
-                   pos2row,
-                   row2pos,
-                   take_union_rows,
-                   MAX_ROW_WORD,
-                   ROW_WORD_SEP);
+    rcpp::util::take_common_names(row_files,
+                                  pos2row,
+                                  row2pos,
+                                  take_union_rows,
+                                  MAX_ROW_WORD,
+                                  ROW_WORD_SEP);
     TLOG_(verbose, "Found " << row2pos.size() << " row names");
 
     ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
@@ -120,10 +133,6 @@ asap_random_bulk_multi(const std::vector<std::string> mtx_files,
 
     TLOG_(verbose, D << " x " << Ntot);
 
-    for (Index b = 0; b < B; ++b) {
-        CHK_RETL(convert_bgzip(mtx_files.at(b)));
-    }
-
     std::vector<std::string> columns;
     columns.reserve(Ntot);
 
@@ -138,13 +147,11 @@ asap_random_bulk_multi(const std::vector<std::string> mtx_files,
     // Step 1. sample random projection matrix //
     /////////////////////////////////////////////
 
-    using norm_dist_t = boost::random::normal_distribution<Scalar>;
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
-    norm_dist_t norm_dist(0., 1.);
 
-    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
-    Mat R_kd = Mat::NullaryExpr(K, D, rnorm);
+    Mat R_kd;
+    sample_random_projection(D, K, rseed, R_kd);
 
     Mat Q_kn = Mat::Zero(K, Ntot);
 
