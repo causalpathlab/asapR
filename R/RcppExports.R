@@ -123,6 +123,7 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions
+#' while sharing a dictionary/factors matrix
 #'
 #' @param y_dn_vec a list of non-negative data matrices (gene x sample)
 #' @param maxK maximum number of factors
@@ -152,6 +153,39 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #'
 asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
     .Call('_asapR_asap_fit_nmf_shared_dict', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+}
+
+#' A quick NMF estimation based on alternating Poisson regressions
+#' while sharing a factor loading/topic proportion matrix
+#'
+#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta dictionary (sample x factor)
+#'   \item log.theta log-dictionary (sample x factor)
+#'   \item log.theta.sd sd(log-dictionary) (sample x factor)
+#'   \item beta a list of loading matrices (gene x factor)
+#'   \item log.beta a list of log loadings (gene x factor)
+#'   \item log.beta.sd a list of standard deviations (gene x factor)
+#' }
+#'
+#'
+asap_fit_nmf_shared_loading <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf_shared_loading', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -260,13 +294,11 @@ asap_random_bulk_multi_hcat <- function(mtx_files, row_files, col_files, idx_fil
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_batch_adj (default: FALSE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: FALSE)
 #' @param save_rand_proj save random projection (default: FALSE)
-#' @param KNN_CELL k-NN cells per batch between different batches (default: 3)
+#' @param weighted_rand_proj save random projection (default: FALSE)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
-#' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1e-8)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
@@ -276,25 +308,18 @@ asap_random_bulk_multi_hcat <- function(mtx_files, row_files, col_files, idx_fil
 #'
 #' @return a list
 #' \itemize{
-#' \item `PB` pseudobulk (average) data (feature x sample)
-#' \item `sum` pseudobulk (sum) data (feature x sample)
-#' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
-#' \item `sum_db` batch-specific sum (feature x batch)
-#' \item `size` size per sample (sample x 1)
-#' \item `prob_bs` batch-specific frequency (batch x sample)
-#' \item `size_bs` batch-specific size (batch x sample)
-#' \item `batch.effect` batch effect (feature x batch)
-#' \item `log.batch.effect` log batch effect (feature x batch)
-#' \item `batch.names` batch names (batch x 1)
+#' \item `PB.list` pseudobulk (average) data (feature x sample) for each type
+#' \item `sum.list` pseudobulk (sum) data (feature x sample) for each type
+#' \item `size.list` size per sample (sample x 1) for each type
+#' \item `rownames.list` feature (gene) names for each type
+#' \item `colnames` column (cell) names across data types
 #' \item `positions` pseudobulk sample positions (cell x 1)
-#' \item `rand.dict` random dictionary (proj factor x feature)
 #' \item `rand.proj` random projection results (sample x proj factor)
 #' \item `colnames` column (cell) names
-#' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_multi_vcat <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_multi_vcat', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_multi_vcat <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_multi_vcat', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
