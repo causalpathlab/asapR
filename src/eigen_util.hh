@@ -712,7 +712,7 @@ standardize_columns_inplace(Eigen::MatrixBase<Derived> &X_,
 {
     using Scalar = typename Derived::Scalar;
 
-    Derived X = X_.derived();
+    Derived &X = X_.derived();
     stdizer_t<Derived> std_op(X);
     std_op.colwise(EPS);
 }
@@ -724,7 +724,7 @@ scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
 {
     using Scalar = typename Derived::Scalar;
 
-    Derived X = X_.derived();
+    Derived &X = X_.derived();
     stdizer_t<Derived> std_op(X);
     std_op.colwise_scale(EPS);
 }
@@ -738,7 +738,7 @@ residual_columns(Eigen::MatrixBase<Derived> &_yy,
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
 
-    const Derived Yraw = _yy.derived();
+    const Derived &Yraw = _yy.derived();
     Derived &Yout = _yy.derived();
     const Derived2 &X = _xx.derived();
     using ColVec = typename Eigen::internal::plain_col_type<Derived>::type;
