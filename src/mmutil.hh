@@ -28,7 +28,7 @@
 #define MMUTIL_HH_
 
 using Scalar = float;
-using SpMat = Eigen::SparseMatrix<Scalar, Eigen::RowMajor>;
+using SpMat = Eigen::SparseMatrix<Scalar, Eigen::ColMajor>;
 using Index = SpMat::Index;
 using MSpMat = Eigen::MappedSparseMatrix<Scalar>;
 

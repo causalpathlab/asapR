@@ -15,18 +15,18 @@
 //'  \item adjusted (N x K) matrix
 //'  \item bbknn batch-balanced kNN adjacency matrix
 //'  \item batches batch membership
+//'  \item knn edges
 //' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_adjust_corr_bbknn(
-    const std::vector<Eigen::MatrixXf> &data_nk_vec,
-    const std::vector<std::vector<std::string>> &row_names_vec,
-    const std::size_t KNN_PER_BATCH = 3,
-    const std::size_t BLOCK_SIZE = 100,
-    const std::size_t NUM_THREADS = 1,
-    const bool IP_DISTANCE = false,
-    const bool verbose = true)
+asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
+           const std::vector<std::vector<std::string>> &row_names_vec,
+           const std::size_t KNN_PER_BATCH = 3,
+           const std::size_t BLOCK_SIZE = 100,
+           const std::size_t NUM_THREADS = 1,
+           const bool IP_DISTANCE = false,
+           const bool verbose = true)
 {
 
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
@@ -255,40 +255,18 @@ asap_adjust_corr_bbknn(
 
     } // for each batch
 
-    std::vector<Index> src_index;
-    std::vector<Index> tgt_index;
-    std::vector<Scalar> weight;
-    src_index.reserve(Wsym.nonZeros());
-    tgt_index.reserve(Wsym.nonZeros());
-    weight.reserve(Wsym.nonZeros());
-
-    for (Index j = 0; j < Ntot; ++j) {
-        for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
-            const Index i = it.col();
-            const Scalar wji = it.value();
-            src_index.emplace_back(i + 1);
-            tgt_index.emplace_back(j + 1);
-            weight.emplace_back(wji);
-        }
-    }
-
     TLOG_(verbose, "Successfully adjusted weights");
 
     Vadj.transposeInPlace();
 
-    std::vector<Index> r_batches(batches.size());
-
     using namespace rcpp::util;
     using namespace Rcpp;
-    convert_r_index(batches, r_batches);
 
-    List knn_list = List::create(_["src.index"] = src_index,
-                                 _["tgt.index"] = tgt_index,
-                                 _["weight"] = weight);
+    List knn_list = build_sparse_list(Wsym);
 
     return List::create(_["adjusted"] = named_rows(Vadj, global_names),
                         _["names"] = global_names,
                         _["indexes"] = global_index,
-                        _["batches"] = r_batches,
+                        _["batches"] = convert_r_index(batches),
                         _["knn"] = knn_list);
 }

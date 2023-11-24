@@ -11,9 +11,9 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// asap_adjust_corr_bbknn
-Rcpp::List asap_adjust_corr_bbknn(const std::vector<Eigen::MatrixXf>& data_nk_vec, const std::vector<std::vector<std::string>>& row_names_vec, const std::size_t KNN_PER_BATCH, const std::size_t BLOCK_SIZE, const std::size_t NUM_THREADS, const bool IP_DISTANCE, const bool verbose);
-RcppExport SEXP _asapR_asap_adjust_corr_bbknn(SEXP data_nk_vecSEXP, SEXP row_names_vecSEXP, SEXP KNN_PER_BATCHSEXP, SEXP BLOCK_SIZESEXP, SEXP NUM_THREADSSEXP, SEXP IP_DISTANCESEXP, SEXP verboseSEXP) {
+// asap_bbknn
+Rcpp::List asap_bbknn(const std::vector<Eigen::MatrixXf>& data_nk_vec, const std::vector<std::vector<std::string>>& row_names_vec, const std::size_t KNN_PER_BATCH, const std::size_t BLOCK_SIZE, const std::size_t NUM_THREADS, const bool IP_DISTANCE, const bool verbose);
+RcppExport SEXP _asapR_asap_bbknn(SEXP data_nk_vecSEXP, SEXP row_names_vecSEXP, SEXP KNN_PER_BATCHSEXP, SEXP BLOCK_SIZESEXP, SEXP NUM_THREADSSEXP, SEXP IP_DISTANCESEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -24,13 +24,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     Rcpp::traits::input_parameter< const bool >::type IP_DISTANCE(IP_DISTANCESEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_adjust_corr_bbknn(data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose));
+    rcpp_result_gen = Rcpp::wrap(asap_bbknn(data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // asap_interaction_random_bulk
-Rcpp::List asap_interaction_random_bulk(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const std::size_t num_factors, const std::vector<std::size_t> knn_src, const std::vector<std::size_t> knn_tgt, const std::vector<float> knn_weight, const std::size_t rseed, const bool do_product, const bool do_log1p, const bool do_down_sample, const bool save_rand_proj, const bool weighted_rand_proj, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t EDGE_PER_SAMPLE, const double a0, const double b0, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP, const bool verbose);
-RcppExport SEXP _asapR_asap_interaction_random_bulk(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP num_factorsSEXP, SEXP knn_srcSEXP, SEXP knn_tgtSEXP, SEXP knn_weightSEXP, SEXP rseedSEXP, SEXP do_productSEXP, SEXP do_log1pSEXP, SEXP do_down_sampleSEXP, SEXP save_rand_projSEXP, SEXP weighted_rand_projSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP EDGE_PER_SAMPLESEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP, SEXP verboseSEXP) {
+Rcpp::List asap_interaction_random_bulk(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const std::size_t num_factors, const Rcpp::List W_nn_list, const Rcpp::Nullable<Rcpp::List> A_dd_list, const std::size_t rseed, const bool do_product, const bool do_log1p, const bool do_down_sample, const bool save_rand_proj, const bool weighted_rand_proj, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t EDGE_PER_SAMPLE, const double a0, const double b0, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP, const bool verbose);
+RcppExport SEXP _asapR_asap_interaction_random_bulk(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP num_factorsSEXP, SEXP W_nn_listSEXP, SEXP A_dd_listSEXP, SEXP rseedSEXP, SEXP do_productSEXP, SEXP do_log1pSEXP, SEXP do_down_sampleSEXP, SEXP save_rand_projSEXP, SEXP weighted_rand_projSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP EDGE_PER_SAMPLESEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -39,9 +39,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type col_file(col_fileSEXP);
     Rcpp::traits::input_parameter< const std::string >::type idx_file(idx_fileSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type num_factors(num_factorsSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::size_t> >::type knn_src(knn_srcSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::size_t> >::type knn_tgt(knn_tgtSEXP);
-    Rcpp::traits::input_parameter< const std::vector<float> >::type knn_weight(knn_weightSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List >::type W_nn_list(W_nn_listSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::List> >::type A_dd_list(A_dd_listSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_product(do_productSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
@@ -58,13 +57,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_interaction_random_bulk(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose));
+    rcpp_result_gen = Rcpp::wrap(asap_interaction_random_bulk(mtx_file, row_file, col_file, idx_file, num_factors, W_nn_list, A_dd_list, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // asap_interaction_topic_stat
-Rcpp::List asap_interaction_topic_stat(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const Eigen::MatrixXf log_x, const Rcpp::StringVector& x_row_names, const std::vector<std::size_t> knn_src, const std::vector<std::size_t> knn_tgt, const std::vector<float> knn_weight, const bool do_product, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP, const bool verbose);
-RcppExport SEXP _asapR_asap_interaction_topic_stat(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP log_xSEXP, SEXP x_row_namesSEXP, SEXP knn_srcSEXP, SEXP knn_tgtSEXP, SEXP knn_weightSEXP, SEXP do_productSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP, SEXP verboseSEXP) {
+Rcpp::List asap_interaction_topic_stat(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const Eigen::MatrixXf log_x, const Rcpp::StringVector& x_row_names, const Rcpp::List W_nn_list, const Rcpp::Nullable<Rcpp::List> A_dd_list, const bool do_product, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP, const bool verbose);
+RcppExport SEXP _asapR_asap_interaction_topic_stat(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP log_xSEXP, SEXP x_row_namesSEXP, SEXP W_nn_listSEXP, SEXP A_dd_listSEXP, SEXP do_productSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -74,9 +73,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type idx_file(idx_fileSEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type log_x(log_xSEXP);
     Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type x_row_names(x_row_namesSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::size_t> >::type knn_src(knn_srcSEXP);
-    Rcpp::traits::input_parameter< const std::vector<std::size_t> >::type knn_tgt(knn_tgtSEXP);
-    Rcpp::traits::input_parameter< const std::vector<float> >::type knn_weight(knn_weightSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List >::type W_nn_list(W_nn_listSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::List> >::type A_dd_list(A_dd_listSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_product(do_productSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
@@ -85,7 +83,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_interaction_topic_stat(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose));
+    rcpp_result_gen = Rcpp::wrap(asap_interaction_topic_stat(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, W_nn_list, A_dd_list, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -347,6 +345,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// collapse_network
+Rcpp::List collapse_network(const Rcpp::List W_nn_list, const Rcpp::IntegerVector r_positions, const std::size_t N, const std::size_t S, const bool verbose);
+RcppExport SEXP _asapR_collapse_network(SEXP W_nn_listSEXP, SEXP r_positionsSEXP, SEXP NSEXP, SEXP SSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List >::type W_nn_list(W_nn_listSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::IntegerVector >::type r_positions(r_positionsSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type N(NSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type S(SSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(collapse_network(W_nn_list, r_positions, N, S, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // decompose_network
 Rcpp::List decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor>& A_dd, const Eigen::MatrixXd& beta_dt, const double cutoff, const bool verbose);
 RcppExport SEXP _asapR_decompose_network(SEXP A_ddSEXP, SEXP beta_dtSEXP, SEXP cutoffSEXP, SEXP verboseSEXP) {
@@ -530,9 +543,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_asapR_asap_adjust_corr_bbknn", (DL_FUNC) &_asapR_asap_adjust_corr_bbknn, 7},
-    {"_asapR_asap_interaction_random_bulk", (DL_FUNC) &_asapR_asap_interaction_random_bulk, 24},
-    {"_asapR_asap_interaction_topic_stat", (DL_FUNC) &_asapR_asap_interaction_topic_stat, 17},
+    {"_asapR_asap_bbknn", (DL_FUNC) &_asapR_asap_bbknn, 7},
+    {"_asapR_asap_interaction_random_bulk", (DL_FUNC) &_asapR_asap_interaction_random_bulk, 23},
+    {"_asapR_asap_interaction_topic_stat", (DL_FUNC) &_asapR_asap_interaction_topic_stat, 16},
     {"_asapR_asap_fit_nmf", (DL_FUNC) &_asapR_asap_fit_nmf, 14},
     {"_asapR_asap_fit_nmf_shared_dict", (DL_FUNC) &_asapR_asap_fit_nmf_shared_dict, 12},
     {"_asapR_asap_fit_nmf_shared_loading", (DL_FUNC) &_asapR_asap_fit_nmf_shared_loading, 12},
@@ -544,6 +557,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_regression", (DL_FUNC) &_asapR_asap_regression, 7},
     {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
+    {"_asapR_collapse_network", (DL_FUNC) &_asapR_collapse_network, 5},
     {"_asapR_decompose_network", (DL_FUNC) &_asapR_decompose_network, 4},
     {"_asapR_mmutil_copy_selected_rows", (DL_FUNC) &_asapR_mmutil_copy_selected_rows, 7},
     {"_asapR_mmutil_copy_selected_columns", (DL_FUNC) &_asapR_mmutil_copy_selected_columns, 7},

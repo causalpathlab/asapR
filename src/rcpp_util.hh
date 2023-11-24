@@ -49,6 +49,64 @@ convert_r_index(const std::vector<T> &cvec, std::vector<T> &rvec)
     std::transform(cvec.begin(), cvec.end(), rvec.begin(), r_index);
 }
 
+template <typename T>
+std::vector<T>
+convert_r_index(const std::vector<T> &cvec)
+{
+    std::vector<T> rvec(cvec.size());
+    auto r_index = [](const T x) -> T { return x + 1; };
+    std::transform(cvec.begin(), cvec.end(), rvec.begin(), r_index);
+    return rvec;
+}
+
+template <typename T>
+void
+convert_c_index(const std::vector<T> &rvec, std::vector<T> &cvec)
+{
+    cvec.resize(rvec.size());
+    auto c_index = [](const T x) -> T { return x - 1; };
+    std::transform(rvec.begin(), rvec.end(), cvec.begin(), c_index);
+}
+
+template <typename T>
+void
+convert_c_index(const Rcpp::IntegerVector &r_vec, std::vector<T> &cvec)
+{
+    std::vector<T> rvec = Rcpp::as<std::vector<T>>(r_vec);
+    cvec.resize(rvec.size());
+    auto c_index = [](const T x) -> T { return x - 1; };
+    std::transform(rvec.begin(), rvec.end(), cvec.begin(), c_index);
+}
+
+template <typename Derived>
+Rcpp::List
+build_sparse_list(const Eigen::SparseMatrixBase<Derived> &_A)
+{
+    using Scalar = typename Derived::Scalar;
+    using Index = typename Derived::Index;
+
+    const Derived &A = _A.derived();
+
+    std::vector<Index> ii, jj;
+    std::vector<Scalar> xx;
+    ii.reserve(A.nonZeros());
+    jj.reserve(A.nonZeros());
+    xx.reserve(A.nonZeros());
+
+    for (Index j = 0; j < A.outerSize(); ++j) {
+        for (typename Derived::InnerIterator it(A, j); it; ++it) {
+            const Index i = it.index();
+            const Scalar x = it.value();
+
+            ii.emplace_back(i);
+            jj.emplace_back(j);
+            xx.emplace_back(x);
+        }
+    }
+
+    return Rcpp::List::create(convert_r_index(ii), convert_r_index(jj), xx);
+}
+
 template <typename Derived>
 void
 build_sparse_mat(const Rcpp::List &in_list,

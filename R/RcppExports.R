@@ -16,10 +16,11 @@
 #'  \item adjusted (N x K) matrix
 #'  \item bbknn batch-balanced kNN adjacency matrix
 #'  \item batches batch membership
+#'  \item knn edges
 #' }
 #'
-asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, IP_DISTANCE = FALSE, verbose = TRUE) {
-    .Call('_asapR_asap_adjust_corr_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose)
+asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, IP_DISTANCE = FALSE, verbose = TRUE) {
+    .Call('_asapR_asap_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose)
 }
 
 #' Generate approximate pseudo-bulk interaction data by random projections
@@ -29,6 +30,9 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' @param col_file column names (cell/column names)
 #' @param idx_file matrix-market colum index file
 #' @param num_factors a desired number of random factors
+#' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+#'
+#' @param A_dd_list list(src.index, tgt.index, [weights]) for features
 #'
 #' @param rseed random seed
 #' @param do_product yi * yj for interaction (default: FALSE)
@@ -60,8 +64,8 @@ asap_adjust_corr_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3
 #' }
 #'
 #'
-asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed = 42L, do_product = FALSE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
-    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, knn_src, knn_tgt, knn_weight, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
+asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, W_nn_list, A_dd_list = NULL, rseed = 42L, do_product = FALSE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, W_nn_list, A_dd_list, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' Topic statistics to estimate factor loading
@@ -72,6 +76,9 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #' @param idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
 #' @param x_row_names row names log_x (D vector)
+#' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+#'
+#' @param A_dd_list list(src.index, tgt.index, [weights]) for features
 #' @param do_product yi * yj for interaction (default: FALSE)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -89,8 +96,8 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
-    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, knn_src, knn_tgt, knn_weight, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
+asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, W_nn_list, A_dd_list = NULL, do_product = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, W_nn_list, A_dd_list, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions
@@ -424,6 +431,20 @@ stretch_matrix_columns <- function(Y, qq_min = 0.01, qq_max = 0.99, std_min = -8
 #'
 fit_poisson_cluster_rows <- function(X, Ltrunc, alpha = 1, a0 = 1e-2, b0 = 1e-4, rseed = 42L, mcmc = 100L, burnin = 10L, verbose = TRUE) {
     .Call('_asapR_fit_poisson_cluster_rows', PACKAGE = 'asapR', X, Ltrunc, alpha, a0, b0, rseed, mcmc, burnin, verbose)
+}
+
+#' Collapse N x N adjacency network into S x S
+#'
+#' @param W_nn_list adjacency list
+#' @param r_positions collapsing positions
+#' @param N number of vertices
+#' @param S number of meta-vertices
+#' @param verbose verbosity
+#'
+#' @return a list of {rows, columns, weights}
+#'
+collapse_network <- function(W_nn_list, r_positions, N, S, verbose = TRUE) {
+    .Call('_asapR_collapse_network', PACKAGE = 'asapR', W_nn_list, r_positions, N, S, verbose)
 }
 
 #' Assign best topic membership for the edges

@@ -10,9 +10,8 @@ asap_interaction_random_bulk(
   col_file,
   idx_file,
   num_factors,
-  knn_src,
-  knn_tgt,
-  knn_weight,
+  W_nn_list,
+  A_dd_list = NULL,
   rseed = 42L,
   do_product = FALSE,
   do_log1p = FALSE,
@@ -41,6 +40,10 @@ asap_interaction_random_bulk(
 \item{idx_file}{matrix-market colum index file}
 
 \item{num_factors}{a desired number of random factors}
+
+\item{W_nn_list}{list(src.index, tgt.index, \link{weights}) for columns}
+
+\item{A_dd_list}{list(src.index, tgt.index, \link{weights}) for features}
 
 \item{rseed}{random seed}
 

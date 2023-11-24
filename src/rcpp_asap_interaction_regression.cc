@@ -8,6 +8,9 @@
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param x_row_names row names log_x (D vector)
+//' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+//'
+//' @param A_dd_list list(src.index, tgt.index, [weights]) for features
 //' @param do_product yi * yj for interaction (default: FALSE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -27,23 +30,23 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_interaction_topic_stat(const std::string mtx_file,
-                            const std::string row_file,
-                            const std::string col_file,
-                            const std::string idx_file,
-                            const Eigen::MatrixXf log_x,
-                            const Rcpp::StringVector &x_row_names,
-                            const std::vector<std::size_t> knn_src,
-                            const std::vector<std::size_t> knn_tgt,
-                            const std::vector<float> knn_weight,
-                            const bool do_product = false,
-                            const std::size_t NUM_THREADS = 1,
-                            const std::size_t BLOCK_SIZE = 100,
-                            const std::size_t MAX_ROW_WORD = 2,
-                            const char ROW_WORD_SEP = '_',
-                            const std::size_t MAX_COL_WORD = 100,
-                            const char COL_WORD_SEP = '@',
-                            const bool verbose = false)
+asap_interaction_topic_stat(
+    const std::string mtx_file,
+    const std::string row_file,
+    const std::string col_file,
+    const std::string idx_file,
+    const Eigen::MatrixXf log_x,
+    const Rcpp::StringVector &x_row_names,
+    const Rcpp::List W_nn_list,
+    const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
+    const bool do_product = false,
+    const std::size_t NUM_THREADS = 1,
+    const std::size_t BLOCK_SIZE = 100,
+    const std::size_t MAX_ROW_WORD = 2,
+    const char ROW_WORD_SEP = '_',
+    const std::size_t MAX_COL_WORD = 100,
+    const char COL_WORD_SEP = '@',
+    const bool verbose = false)
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -104,9 +107,16 @@ asap_interaction_topic_stat(const std::string mtx_file,
     // Build weighted kNN graph from the input //
     /////////////////////////////////////////////
 
-    SpMat W;
-    CHK_RETL_(build_knn_graph(knn_src, knn_tgt, knn_weight, N, W),
-              "Failed to build the kNN graph");
+    SpMat W_nn;
+    rcpp::util::build_sparse_mat(W_nn_list, N, N, W_nn);
+
+    SpMat A_dd;
+    if (A_dd_list.isNotNull()) {
+        rcpp::util::build_sparse_mat(Rcpp::List(A_dd_list), D, D, A_dd);
+        TLOG_(verbose, "Row Network: " << A_dd.rows() << " x " << A_dd.cols());
+    } else {
+        build_diagonal(D, 1., A_dd);
+    }
 
     ////////////////////////////////
     // Take sufficient statistics //
@@ -115,7 +125,7 @@ asap_interaction_topic_stat(const std::string mtx_file,
     Mat logX_dk = log_x;
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
 
-    const Index Nedge = W.nonZeros();
+    const Index Nedge = W_nn.nonZeros();
 
     Mat Rtot_mk = Mat::Zero(Nedge, K);
     Mat Ytot_m = Mat::Zero(Nedge, 1);
@@ -135,10 +145,10 @@ asap_interaction_topic_stat(const std::string mtx_file,
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-    for (Index i = 0; i < W.outerSize(); ++i) {
+    for (Index i = 0; i < W_nn.outerSize(); ++i) {
         SpMat y_di = data.read_reloc(i, i + 1);
-        for (SpMat::InnerIterator jt(W, i); jt; ++jt) {
-            const Index j = jt.col();
+        for (SpMat::InnerIterator jt(W_nn, i); jt; ++jt) {
+            const Index j = jt.index();
             SpMat y_dj = data.read_reloc(j, j + 1);
 
             const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
@@ -146,9 +156,9 @@ asap_interaction_topic_stat(const std::string mtx_file,
             // yij <- (yi + yj) * wij (D x 1)
             Mat wy_dij(D, 1);
             if (do_product) {
-                wy_dij = w_ij * (y_di.cwiseProduct(y_dj));
+                wy_dij = w_ij * y_di.cwiseProduct(y_dj);
             } else {
-                wy_dij = w_ij * (y_di + y_dj);
+                wy_dij = w_ij * 0.5 * (A_dd * y_di + y_dj + y_di + A_dd * y_dj);
             }
 #pragma omp critical
             {

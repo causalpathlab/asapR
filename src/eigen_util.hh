@@ -268,18 +268,45 @@ eigen_triplets(const std::vector<Eigen::Triplet<Scalar>> &Tvec)
 }
 
 template <typename TVEC, typename INDEX>
-inline Eigen::SparseMatrix<float, Eigen::RowMajor, std::ptrdiff_t> //
+inline Eigen::SparseMatrix<float, Eigen::ColMajor, std::ptrdiff_t> //
 build_eigen_sparse(const TVEC &Tvec, const INDEX max_row, const INDEX max_col)
 {
     auto _tvec = eigen_triplets(Tvec);
     using Scalar = float;
-    using SpMat = Eigen::SparseMatrix<Scalar, Eigen::RowMajor, std::ptrdiff_t>;
+    using SpMat = Eigen::SparseMatrix<Scalar, Eigen::ColMajor, std::ptrdiff_t>;
 
     SpMat ret(max_row, max_col);
     ret.reserve(_tvec.size());
     ret.setFromTriplets(_tvec.begin(), _tvec.end());
     return ret;
 }
+
+////////////////////////////////////////////////////////////////
+
+template <typename Derived>
+void
+build_diagonal(const typename Derived::Index d,
+               const typename Derived::Scalar val,
+               Eigen::SparseMatrixBase<Derived> &_x)
+{
+    using Scalar = typename Derived::Scalar;
+    using Index = typename Derived::Index;
+    Derived &x = _x.derived();
+    x.setZero();
+    x.resize(d, d);
+    x.reserve(d);
+
+    using ET = Eigen::Triplet<Scalar>;
+    std::vector<ET> triples;
+    triples.reserve(d);
+    for (Index j = 0; j < d; ++j) {
+        triples.emplace_back(ET(j, j, val));
+    }
+
+    x.setFromTriplets(triples.begin(), triples.end());
+}
+
+////////////////////////////////////////////////////////////////
 
 template <typename Vec>
 inline std::vector<typename Vec::Index>
@@ -293,6 +320,8 @@ eigen_argsort_descending(const Vec &data)
     });
     return index;
 }
+
+////////////////////////////////////////////////////////////////
 
 template <typename Derived>
 inline Eigen::Matrix<typename Derived::Scalar,
@@ -335,12 +364,12 @@ row_score_sd(const Eigen::SparseMatrixBase<Derived> &_xx)
 
 template <typename Derived, typename ROWS>
 inline Eigen::SparseMatrix<typename Derived::Scalar, //
-                           Eigen::RowMajor,          //
+                           Eigen::ColMajor,          //
                            std::ptrdiff_t>
 row_sub(const Eigen::SparseMatrixBase<Derived> &_mat, const ROWS &sub_rows)
 {
     using SpMat = typename Eigen::
-        SparseMatrix<typename Derived::Scalar, Eigen::RowMajor, std::ptrdiff_t>;
+        SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>;
 
     using Index = typename SpMat::Index;
     using Scalar = typename SpMat::Scalar;
@@ -424,7 +453,7 @@ visit_sparse_matrix(const DATA &data, FUN &fun)
 
 template <typename Derived>
 inline Eigen::
-    SparseMatrix<typename Derived::Scalar, Eigen::RowMajor, std::ptrdiff_t>
+    SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>
     vcat(const Eigen::SparseMatrixBase<Derived> &_upper,
          const Eigen::SparseMatrixBase<Derived> &_lower)
 {
@@ -441,7 +470,7 @@ inline Eigen::
     triplets.reserve(upper.nonZeros() + lower.nonZeros());
 
     using SpMat = typename Eigen::
-        SparseMatrix<typename Derived::Scalar, Eigen::RowMajor, std::ptrdiff_t>;
+        SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>;
 
     for (Index k = 0; k < upper.outerSize(); ++k) {
         for (typename SpMat::InnerIterator it(upper, k); it; ++it) {
@@ -464,7 +493,7 @@ inline Eigen::
 
 template <typename Derived>
 inline Eigen::
-    SparseMatrix<typename Derived::Scalar, Eigen::RowMajor, std::ptrdiff_t>
+    SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>
     hcat(const Eigen::SparseMatrixBase<Derived> &_left,
          const Eigen::SparseMatrixBase<Derived> &_right)
 {
@@ -481,7 +510,7 @@ inline Eigen::
     triplets.reserve(left.nonZeros() + right.nonZeros());
 
     using SpMat = typename Eigen::
-        SparseMatrix<typename Derived::Scalar, Eigen::RowMajor, std::ptrdiff_t>;
+        SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>;
 
     for (Index k = 0; k < left.outerSize(); ++k) {
         for (typename SpMat::InnerIterator it(left, k); it; ++it) {

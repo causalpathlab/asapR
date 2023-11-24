@@ -55,6 +55,11 @@ int
 mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> &X,
                  const std::string mtx_file)
 {
+
+    /////////////////////////////////
+    // Note: This must be colmajor //
+    /////////////////////////////////
+
     const std::string idx_file = mtx_file + ".index";
 
     const Index max_row = X.rows();
@@ -70,11 +75,15 @@ mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> &X,
 
     TLOG("Start writing down " << max_row << " x " << max_col);
 
+    /////////////////////////////////
+    // Note: This must be colmajor //
+    /////////////////////////////////
+
     using SpMat = Eigen::SparseMatrix<float, Eigen::ColMajor>;
     for (Index j = 0; j < X.outerSize(); ++j) {
         for (SpMat::InnerIterator it(X, j); it; ++it) {
-            const Index ii = it.row() + 1; // fix zero-based to one-based
-            const Index jj = j + 1;        // fix zero-based to one-based
+            const Index ii = it.index() + 1; // fix zero-based to one-based
+            const Index jj = j + 1;          // fix zero-based to one-based
             const Scalar weight = it.value();
             ofs << ii << FS << jj << FS << weight << std::endl;
         }

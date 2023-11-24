@@ -11,9 +11,8 @@ asap_interaction_topic_stat(
   idx_file,
   log_x,
   x_row_names,
-  knn_src,
-  knn_tgt,
-  knn_weight,
+  W_nn_list,
+  A_dd_list = NULL,
   do_product = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
@@ -36,6 +35,10 @@ asap_interaction_topic_stat(
 \item{log_x}{D x K log dictionary/design matrix}
 
 \item{x_row_names}{row names log_x (D vector)}
+
+\item{W_nn_list}{list(src.index, tgt.index, \link{weights}) for columns}
+
+\item{A_dd_list}{list(src.index, tgt.index, \link{weights}) for features}
 
 \item{do_product}{yi * yj for interaction (default: FALSE)}
 
