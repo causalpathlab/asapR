@@ -1,4 +1,4 @@
-#include "rcpp_asap_pb_multi_hcat.hh"
+#include "rcpp_asap_pb_cbind.hh"
 
 //' Generate approximate pseudo-bulk data by random projections
 //' while sharing rows/features across multiple data sets.
@@ -49,29 +49,29 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_multi_hcat(const std::vector<std::string> mtx_files,
-                            const std::vector<std::string> row_files,
-                            const std::vector<std::string> col_files,
-                            const std::vector<std::string> idx_files,
-                            const std::size_t num_factors,
-                            const bool take_union_rows = false,
-                            const std::size_t rseed = 42,
-                            const bool verbose = true,
-                            const std::size_t NUM_THREADS = 1,
-                            const std::size_t BLOCK_SIZE = 100,
-                            const bool do_batch_adj = true,
-                            const bool do_log1p = false,
-                            const bool do_down_sample = true,
-                            const bool save_rand_proj = false,
-                            const std::size_t KNN_CELL = 3,
-                            const std::size_t CELL_PER_SAMPLE = 100,
-                            const std::size_t BATCH_ADJ_ITER = 100,
-                            const double a0 = 1e-8,
-                            const double b0 = 1,
-                            const std::size_t MAX_ROW_WORD = 2,
-                            const char ROW_WORD_SEP = '_',
-                            const std::size_t MAX_COL_WORD = 100,
-                            const char COL_WORD_SEP = '@')
+asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
+                       const std::vector<std::string> row_files,
+                       const std::vector<std::string> col_files,
+                       const std::vector<std::string> idx_files,
+                       const std::size_t num_factors,
+                       const bool take_union_rows = false,
+                       const std::size_t rseed = 42,
+                       const bool verbose = true,
+                       const std::size_t NUM_THREADS = 1,
+                       const std::size_t BLOCK_SIZE = 100,
+                       const bool do_batch_adj = true,
+                       const bool do_log1p = false,
+                       const bool do_down_sample = true,
+                       const bool save_rand_proj = false,
+                       const std::size_t KNN_CELL = 3,
+                       const std::size_t CELL_PER_SAMPLE = 100,
+                       const std::size_t BATCH_ADJ_ITER = 100,
+                       const double a0 = 1e-8,
+                       const double b0 = 1,
+                       const std::size_t MAX_ROW_WORD = 2,
+                       const char ROW_WORD_SEP = '_',
+                       const std::size_t MAX_COL_WORD = 100,
+                       const char COL_WORD_SEP = '@')
 {
 
     log1p_op<Mat> log1p;

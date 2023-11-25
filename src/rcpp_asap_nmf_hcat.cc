@@ -5,7 +5,7 @@
 #include "gamma_parameter.hh"
 
 //' A quick NMF estimation based on alternating Poisson regressions
-//' while sharing a factor loading/topic proportion matrix
+//' while sharing a dictionary/factors matrix
 //'
 //' @param y_dn_vec a list of non-negative data matrices (gene x sample)
 //' @param maxK maximum number of factors
@@ -24,29 +24,29 @@
 //' @return a list that contains:
 //'  \itemize{
 //'   \item log.likelihood log-likelihood trace
-//'   \item theta dictionary (sample x factor)
-//'   \item log.theta log-dictionary (sample x factor)
-//'   \item log.theta.sd sd(log-dictionary) (sample x factor)
-//'   \item beta a list of loading matrices (gene x factor)
-//'   \item log.beta a list of log loadings (gene x factor)
-//'   \item log.beta.sd a list of standard deviations (gene x factor)
+//'   \item beta dictionary (gene x factor)
+//'   \item log.beta log-dictionary (gene x factor)
+//'   \item log.beta.sd sd(log-dictionary) (gene x factor)
+//'   \item theta a list of loading matrices (sample x factor)
+//'   \item log.theta a list of log loadings (sample x factor)
+//'   \item log.theta.sd a list of standard deviations (sample x factor)
 //' }
 //'
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
-                            const std::size_t maxK,
-                            const std::size_t max_iter = 100,
-                            const std::size_t burnin = 0,
-                            const bool verbose = true,
-                            const double a0 = 1,
-                            const double b0 = 1,
-                            const bool do_log1p = false,
-                            const std::size_t rseed = 1337,
-                            const bool svd_init = false,
-                            const double EPS = 1e-8,
-                            const std::size_t NUM_THREADS = 1)
+asap_fit_nmf_cbind(const std::vector<Eigen::MatrixXf> &y_dn_vec,
+                   const std::size_t maxK,
+                   const std::size_t max_iter = 100,
+                   const std::size_t burnin = 0,
+                   const bool verbose = true,
+                   const double a0 = 1,
+                   const double b0 = 1,
+                   const bool do_log1p = false,
+                   const std::size_t rseed = 1337,
+                   const bool svd_init = false,
+                   const double EPS = 1e-8,
+                   const std::size_t NUM_THREADS = 1)
 {
     Eigen::setNbThreads(NUM_THREADS);
     TLOG_(verbose, Eigen::nbThreads() << " threads");
@@ -60,18 +60,20 @@ asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
     TLOG_(verbose, "Found " << M << " data matrices.");
 
     std::size_t K = maxK;
-
-    Index N = 0;
+    Index D = 0;
     for (const Eigen::MatrixXf &y_dn : y_dn_vec) {
+
         TLOG_(verbose, "Y: " << y_dn.rows() << " x " << y_dn.cols());
 
-        if (N == 0) {
-            N = y_dn.cols();
+        if (y_dn.cols() < K)
+            K = y_dn.cols();
+        if (D == 0) {
+            D = y_dn.rows();
         } else {
-            ASSERT_RETL(y_dn.cols() == N,
-                        "Found inconsistent # columns: "
-                            << "the previous data: " << N << " vs. "
-                            << "this data:" << y_dn.cols());
+            ASSERT_RETL(y_dn.rows() == D,
+                        "Found inconsistent # rows: "
+                            << "the previous data: " << D << " vs. "
+                            << "this data:" << y_dn.rows());
         }
     }
 
@@ -82,29 +84,28 @@ asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
     ////////////////////////////////////////////
     // We have:				      //
     // 					      //
-    //   Each Y(t)_dn ~ beta_dk(t) * theta_nk //
+    //   Each Y(t)_dn ~ beta_dk * theta(t)_nk //
     // 					      //
     ////////////////////////////////////////////
 
     TLOG_(verbose, "Building " << M << " NMF models");
 
-    ///////////////////////////////////////
-    // Create parameters and beta models //
-    ///////////////////////////////////////
+    ////////////////////////////////////////
+    // Create parameters and theta models //
+    ////////////////////////////////////////
 
-    gamma_t theta_nk(N, K, a0, b0, rng);
+    gamma_t beta_dk(D, K, a0, b0, rng);
 
-    std::vector<std::shared_ptr<gamma_t>> beta_dk_ptr_vec;
-
+    std::vector<std::shared_ptr<gamma_t>> theta_nk_ptr_vec;
     for (const Eigen::MatrixXf &y : y_dn_vec) {
-        const std::size_t d = y.rows();
-        beta_dk_ptr_vec.emplace_back(
-            std::make_shared<gamma_t>(d, K, a0, b0, rng));
+        const std::size_t n = y.cols();
+        theta_nk_ptr_vec.emplace_back(
+            std::make_shared<gamma_t>(n, K, a0, b0, rng));
     }
 
     std::vector<std::shared_ptr<model_t>> model_dn_ptr_vec;
-    for (auto beta_dk_ptr : beta_dk_ptr_vec) {
-        gamma_t &beta_dk = *beta_dk_ptr.get();
+    for (auto theta_nk_ptr : theta_nk_ptr_vec) {
+        gamma_t &theta_nk = *theta_nk_ptr.get();
         model_dn_ptr_vec.emplace_back(
             std::make_shared<model_t>(beta_dk, theta_nk, RSEED(rseed)));
     }
@@ -114,13 +115,14 @@ asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
     auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
 
     for (std::size_t m = 0; m < M; ++m) {
-        gamma_t &beta_dk = *beta_dk_ptr_vec[m].get();
+        model_t &model_dn = *model_dn_ptr_vec[m].get();
+        gamma_t &theta_nk = *theta_nk_ptr_vec[m].get();
         const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
-        const std::size_t d = y_dn.rows();
-        const Mat temp_dk = Mat::NullaryExpr(d, K, rnorm);
+        const std::size_t n = y_dn.cols();
+        const Mat temp_nk = Mat::NullaryExpr(n, K, rnorm);
         exp_op<Mat> exp;
-        beta_dk.update(temp_dk.unaryExpr(exp), Mat::Ones(d, K));
-        beta_dk.calibrate();
+        theta_nk.update(temp_nk.unaryExpr(exp), Mat::Ones(n, K));
+        theta_nk.calibrate();
     }
 
     Scalar llik = 0;
@@ -144,25 +146,23 @@ asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
         // Add matrix data to each model's stats //
         ///////////////////////////////////////////
 
-        theta_nk.reset_stat_only();
+        beta_dk.reset_stat_only();
 
         for (std::size_t m = 0; m < M; ++m) {
             model_t &model_dn = *model_dn_ptr_vec[m].get();
-            gamma_t &beta_dk = *beta_dk_ptr_vec[m].get();
+            gamma_t &theta_nk = *theta_nk_ptr_vec[m].get();
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
-
-            // a. Update beta factors based on the new theta
-            beta_dk.reset_stat_only();
-            add_stat_by_row(model_dn, y_dn, STOCH(tt < burnin), STD(false));
-            beta_dk.calibrate();
-
-            // b. Update theta based on the current beta
+            // a. Update theta based on the current beta
             theta_nk.reset_stat_only();
             add_stat_by_col(model_dn, y_dn, STOCH(tt < burnin), STD(true));
             theta_nk.calibrate();
+            // b. Update beta factors based on the new theta
+            theta_nk.reset_stat_only();
+            add_stat_by_row(model_dn, y_dn, STOCH(tt < burnin), STD(false));
+            theta_nk.calibrate();
         }
 
-        theta_nk.calibrate();
+        beta_dk.calibrate();
 
         llik = 0;
 
@@ -196,23 +196,23 @@ asap_fit_nmf_shared_loading(const std::vector<Eigen::MatrixXf> &y_dn_vec,
         }
     }
 
-    Rcpp::List beta_log_mean_list(M);
-    Rcpp::List beta_log_sd_list(M);
-    Rcpp::List beta_mean_list(M);
+    Rcpp::List theta_log_mean_list(M);
+    Rcpp::List theta_log_sd_list(M);
+    Rcpp::List theta_mean_list(M);
 
     for (std::size_t m = 0; m < M; ++m) {
-        beta_mean_list[m] = beta_dk_ptr_vec[m].get()->mean();
-        beta_log_mean_list[m] = beta_dk_ptr_vec[m].get()->log_mean();
-        beta_log_sd_list[m] = beta_dk_ptr_vec[m].get()->log_sd();
+        theta_mean_list[m] = theta_nk_ptr_vec[m].get()->mean();
+        theta_log_mean_list[m] = theta_nk_ptr_vec[m].get()->log_mean();
+        theta_log_sd_list[m] = theta_nk_ptr_vec[m].get()->log_sd();
     }
 
     TLOG_(verbose, "Done");
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
-                              Rcpp::_["theta"] = theta_nk.mean(),
-                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
-                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
-                              Rcpp::_["beta"] = beta_mean_list,
-                              Rcpp::_["log.beta.sd"] = beta_log_sd_list,
-                              Rcpp::_["log.beta"] = beta_log_mean_list);
+                              Rcpp::_["beta"] = beta_dk.mean(),
+                              Rcpp::_["log.beta"] = beta_dk.log_mean(),
+                              Rcpp::_["log.beta.sd"] = beta_dk.log_sd(),
+                              Rcpp::_["theta"] = theta_mean_list,
+                              Rcpp::_["log.theta.sd"] = theta_log_sd_list,
+                              Rcpp::_["log.theta"] = theta_log_mean_list);
 }

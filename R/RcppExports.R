@@ -158,8 +158,8 @@ asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #' }
 #'
 #'
-asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_shared_dict', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_nmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions
@@ -191,8 +191,8 @@ asap_fit_nmf_shared_dict <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0
 #' }
 #'
 #'
-asap_fit_nmf_shared_loading <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_shared_loading', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_nmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_nmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -283,8 +283,8 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_multi_hcat <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 3L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_multi_hcat', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_cbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 3L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -325,8 +325,8 @@ asap_random_bulk_multi_hcat <- function(mtx_files, row_files, col_files, idx_fil
 #' \item `colnames` column (cell) names
 #' }
 #'
-asap_random_bulk_multi_vcat <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_multi_vcat', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_rbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
@@ -402,6 +402,34 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row
 #'
 asap_regression <- function(Y_, log_x, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
     .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, a0, b0, max_iter, do_log1p, verbose)
+}
+
+#' Topic statistics to estimate factor loading
+#'
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
+#' @param idx_file matrix-market colum index file
+#' @param log_x D x K log dictionary/design matrix
+#' @param x_row_names row names log_x (D vector)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item beta dictionary matrix (row x factor)
+#'  \item corr empirical correlation (column x factor)
+#'  \item colsum the sum of each column (column x 1)
+#' }
+#'
+asap_topic_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, logX_vec, x_row_names_vec, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, logX_vec, x_row_names_vec, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Stretch non-negative matrix

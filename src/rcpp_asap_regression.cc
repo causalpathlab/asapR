@@ -132,41 +132,44 @@ asap_topic_stat(const std::string mtx_file,
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     std::vector<std::string> pos2row;
-
     rcpp::util::copy(x_row_names, pos2row);
 
-    //////////////////////////////////////
-    // take care of different row names //
-    //////////////////////////////////////
+    topic_stat_options_t options;
 
-    const Index D = pos2row.size(); // dimensionality
+    options.do_log1p = do_log1p;
+    options.verbose = verbose;
+    options.NUM_THREADS = NUM_THREADS;
+    options.BLOCK_SIZE = BLOCK_SIZE;
+    options.MAX_ROW_WORD = MAX_ROW_WORD;
+    options.ROW_WORD_SEP = ROW_WORD_SEP;
+    options.MAX_COL_WORD = MAX_COL_WORD;
+    options.COL_WORD_SEP = COL_WORD_SEP;
 
-    ASSERT_RETL(log_x.rows() == D,
-                "#Rows in the log_x matrix !=  the size of x_row_names: "
-                    << log_x.rows() << " != " << D);
+    Mat Rtot_nk, Ytot_n;
 
-    std::unordered_map<std::string, Index> row2pos;
-    for (Index r = 0; r < pos2row.size(); ++r) {
-        row2pos[pos2row.at(r)] = r;
+    CHK_RETL_(asap_topic_stat_mtx(mtx_file,
+                                  row_file,
+                                  col_file,
+                                  idx_file,
+                                  log_x,
+                                  pos2row,
+                                  options,
+                                  Rtot_nk,
+                                  Ytot_n),
+              "unable to compute topic statistics");
+
+    const Index N = Rtot_nk.rows(), K = Rtot_nk.cols();
+
+    using namespace rcpp::util;
+    using namespace Rcpp;
+
+    std::vector<std::string> &d_ = pos2row;
+    std::vector<std::string> k_;
+    for (std::size_t k = 1; k <= K; ++k) {
+        k_.push_back(std::to_string(k));
     }
-
-    ASSERT_RETL(row2pos.size() == D, "Redundant row names exist");
-    TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
-
-    ///////////////////////////////
-    // read mtx data information //
-    ///////////////////////////////
-
-    CHK_RETL_(convert_bgzip(mtx_file),
-              "mtx file " << mtx_file << " was not bgzipped.");
-
-    mm_info_reader_t info;
-    CHK_RETL_(peek_bgzf_header(mtx_file, info),
-              "Failed to read the size of this mtx file:" << mtx_file);
-
-    const Index N = info.max_col;        // number of cells
-    const Index K = log_x.cols();        // number of topics
-    const Index block_size = BLOCK_SIZE; // memory block size
+    const std::vector<std::string> file_ { mtx_file };
+    exp_op<Mat> exp;
 
     std::vector<std::string> coln;
     CHK_RETL_(read_line_file(col_file, coln, MAX_COL_WORD, COL_WORD_SEP),
@@ -175,89 +178,7 @@ asap_topic_stat(const std::string mtx_file,
     ASSERT_RETL(N == coln.size(),
                 "Different #columns: " << N << " vs. " << coln.size());
 
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
-                    MAX_ROW_WORD,
-                    ROW_WORD_SEP);
-
-    Mat logX_dk = log_x;
-    TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
-
-    Mat Rtot_nk(N, K);
-    Mat Ytot_n(N, 1);
-    Index Nprocessed = 0;
-
-    if (verbose) {
-        Rcpp::Rcerr << "Calibrating " << N << " columns..." << std::endl;
-    }
-
-    data.relocate_rows(row2pos);
-
-    at_least_one_op<Mat> at_least_one;
-    at_least_zero_op<Mat> at_least_zero;
-    exp_op<Mat> exp;
-    log1p_op<Mat> log1p;
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
-    for (Index lb = 0; lb < N; lb += block_size) {
-        Index ub = std::min(N, block_size + lb);
-        const SpMat y = data.read_reloc(lb, ub);
-
-        ///////////////////////////////////////
-        // do log1p transformation if needed //
-        ///////////////////////////////////////
-
-        Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
-
-        const Index n = y_dn.cols();
-
-        ColVec Y_n = y_dn.colwise().sum().transpose(); // n x 1
-        ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1
-
-        ///////////////////////////
-        // parameter of interest //
-        ///////////////////////////
-
-        Mat R_nk =
-            (y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
-
-#pragma omp critical
-        {
-            for (Index i = 0; i < (ub - lb); ++i) {
-                const Index j = i + lb;
-                Rtot_nk.row(j) = R_nk.row(i);
-                Ytot_n(j, 0) = Y_n(i);
-            }
-
-            Nprocessed += n;
-            if (verbose) {
-                Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
-            } else {
-                Rcpp::Rcerr << "+ " << std::flush;
-                if (Nprocessed % 1000 == 0)
-                    Rcpp::Rcerr << "\r" << std::flush;
-            }
-        } // end of omp critical
-    }
-
-    if (!verbose)
-        Rcpp::Rcerr << std::endl;
-    TLOG_(verbose, "Done");
-
-    using namespace rcpp::util;
-    using namespace Rcpp;
-
-    std::vector<std::string> d_ = pos2row;
-    std::vector<std::string> k_;
-    for (std::size_t k = 1; k <= K; ++k)
-        k_.push_back(std::to_string(k));
-    std::vector<std::string> file_ { mtx_file };
-
-    return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
+    return List::create(_["beta"] = named(log_x.unaryExpr(exp), d_, k_),
                         _["corr"] = named(Rtot_nk, coln, k_),
                         _["colsum"] = named(Ytot_n, coln, file_),
                         _["rownames"] = pos2row,
