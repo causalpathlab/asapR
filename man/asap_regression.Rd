@@ -6,7 +6,7 @@
 \usage{
 asap_regression(
   Y_,
-  log_x,
+  log_beta,
   a0 = 1e-08,
   b0 = 1,
   max_iter = 10L,
@@ -15,7 +15,7 @@ asap_regression(
 )
 }
 \arguments{
-\item{log_x}{D x K log dictionary/design matrix}
+\item{log_beta}{D x K log dictionary/design matrix}
 
 \item{a0}{gamma(a0, b0) (default: 1e-8)}
 

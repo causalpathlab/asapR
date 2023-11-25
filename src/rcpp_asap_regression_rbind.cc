@@ -1,5 +1,115 @@
 #include "rcpp_asap_regression_rbind.hh"
 
+//' Calibrate topic proportions based on sufficient statistics
+//'
+//' @param beta_dk_list a list of dictionary matrices (feature D  x factor K)
+//' @param R_nk_list a list of correlation matrices (sample N x factor K)
+//' @param Y_n_list a list of sum vectors (sample N x 1)
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param max_iter maximum iterations (default: 10)
+//' @param NUM_THREADS number of parallel threads (default: 1)
+//' @param stdize_r standardize correlation matrix R (default: TRUE)
+//' @param verbose (default: TRUE)
+//'
+//' @return a list that contains:
+//' \itemize{
+//'  \item theta (N x K) matrix
+//'  \item log.theta (N x K) log matrix
+//'  \item log.theta.sd (N x K) standard deviation matrix
+//' }
+//'
+// [[Rcpp::export]]
+Rcpp::List
+asap_topic_pmf_rbind(const std::vector<Eigen::MatrixXf> beta_dk_list,
+                     const std::vector<Eigen::MatrixXf> R_nk_list,
+                     const std::vector<Eigen::MatrixXf> Y_n_list,
+                     const double a0 = 1.0,
+                     const double b0 = 1.0,
+                     const std::size_t max_iter = 10,
+                     const std::size_t NUM_THREADS = 1,
+                     const bool stdize_r = true,
+                     const bool verbose = true)
+{
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    exp_op<Mat> exp;
+    softmax_op_t<Mat> softmax;
+
+    using RNG = dqrng::xoshiro256plus;
+    using gamma_t = gamma_param_t<Mat, RNG>;
+    RNG rng;
+
+    Eigen::setNbThreads(NUM_THREADS);
+
+    const Index B = beta_dk_list.size();
+
+    ASSERT_RETL(B > 0, "insufficient data types");
+    ASSERT_RETL(R_nk_list.size() == B, "Need R_nk for each type");
+    ASSERT_RETL(Y_n_list.size() == B, "Need Y_n for each type");
+
+    const Index K = beta_dk_list.at(0).cols();
+    const Index N = R_nk_list.at(0).rows();
+
+    for (Index b = 0; b < B; ++b) {
+        ASSERT_RETL(Y_n_list.at(b).rows() == N,
+                    "check rows in Y_n[" << b << "]");
+        ASSERT_RETL(R_nk_list.at(b).rows() == N,
+                    "check rows in R_nk[" << b << "]");
+        ASSERT_RETL(R_nk_list.at(b).cols() == K,
+                    "check cols in R_nk[" << b << "]");
+        ASSERT_RETL(beta_dk_list.at(b).cols() == K,
+                    "check cols in beta_nk[" << b << "]");
+    }
+
+    TLOG_(verbose, "Checked the input");
+
+    Mat x_nk = Mat::Zero(N, K);
+    Mat r_nk = Mat::Zero(N, K);
+    ColVec Y_n = ColVec::Zero(N);
+
+    for (Index b = 0; b < B; ++b) {
+        const Mat &beta_dk = beta_dk_list.at(b);
+        x_nk += ColVec::Ones(N) * beta_dk.colwise().sum(); // N x K
+        r_nk += R_nk_list.at(b);
+        Y_n += Y_n_list.at(b);
+    }
+
+    TLOG_(verbose, "consolidated statistics");
+
+    if (stdize_r) {
+        standardize_columns_inplace(r_nk);
+        TLOG_(verbose, "standardize correlations");
+    }
+
+    Mat logRho_nk(N, K), rho_nk(N, K);   //
+    gamma_t theta_nk(N, K, a0, b0, rng); // N x K
+    RowVec tempK(K);
+
+    for (std::size_t t = 0; t < max_iter; ++t) {
+
+        logRho_nk = r_nk + theta_nk.log_mean();
+
+        for (Index jj = 0; jj < N; ++jj) {
+            tempK = logRho_nk.row(jj);
+            logRho_nk.row(jj) = softmax.log_row(tempK);
+        }
+        rho_nk = logRho_nk.unaryExpr(exp);
+
+        theta_nk
+            .update((rho_nk.array().colwise() * Y_n.col(0).array()).matrix(),
+                    x_nk);
+        theta_nk.calibrate();
+    }
+
+    TLOG_(verbose, "done");
+
+    return Rcpp::List::create(Rcpp::_["theta"] = theta_nk.mean(),
+                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
+                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd());
+}
+
 //' Topic statistics to estimate factor loading
 //'
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)

@@ -331,10 +331,10 @@ asap_random_bulk_rbind <- function(mtx_files, row_files, col_files, idx_files, n
 
 #' Calibrate topic proportions based on sufficient statistics
 #'
-#' @param X_dk dictionary matrix (feature D  x factor K)
+#' @param beta_dk dictionary matrix (feature D  x factor K)
 #' @param R_nk correlation matrix (sample N x factor K)
 #' @param Y_n sum vector (sample N x 1)
-#' @param a0 gamma(a0, b0) (default: 1e-8)
+#' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of parallel threads (default: 1)
@@ -349,8 +349,8 @@ asap_random_bulk_rbind <- function(mtx_files, row_files, col_files, idx_files, n
 #'  \item log.theta.sd (N x K) standard deviation matrix
 #' }
 #'
-asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, stdize_r = TRUE, verbose = TRUE) {
-    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', X_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
+asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, stdize_r = TRUE, verbose = TRUE) {
+    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', beta_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
 }
 
 #' Topic statistics to estimate factor loading
@@ -359,8 +359,8 @@ asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L,
 #' @param row_file row names file (D x 1)
 #' @param col_file column names file (N x 1)
 #' @param idx_file matrix-market colum index file
-#' @param log_x D x K log dictionary/design matrix
-#' @param x_row_names row names log_x (D vector)
+#' @param log_beta D x K log dictionary/design matrix
+#' @param x_row_names row names log_beta (D vector)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -377,14 +377,14 @@ asap_topic_pmf <- function(X_dk, R_nk, Y_n, a0 = 1e-8, b0 = 1.0, max_iter = 10L,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row_names, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_x, x_row_names, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, x_row_names, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, x_row_names, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Poisson regression to estimate factor loading
 #'
 #' @param Y D x N data matrix
-#' @param log_x D x K log dictionary/design matrix
+#' @param log_beta D x K log dictionary/design matrix
 #' @param a0 gamma(a0, b0) (default: 1e-8)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param do_log1p do log(1+y) transformation (default: FALSE)
@@ -400,8 +400,31 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_x, x_row
 #'  \item colsum (N x 1) column sum vector
 #' }
 #'
-asap_regression <- function(Y_, log_x, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
-    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_x, a0, b0, max_iter, do_log1p, verbose)
+asap_regression <- function(Y_, log_beta, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
+    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_beta, a0, b0, max_iter, do_log1p, verbose)
+}
+
+#' Calibrate topic proportions based on sufficient statistics
+#'
+#' @param beta_dk_list a list of dictionary matrices (feature D  x factor K)
+#' @param R_nk_list a list of correlation matrices (sample N x factor K)
+#' @param Y_n_list a list of sum vectors (sample N x 1)
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param max_iter maximum iterations (default: 10)
+#' @param NUM_THREADS number of parallel threads (default: 1)
+#' @param stdize_r standardize correlation matrix R (default: TRUE)
+#' @param verbose (default: TRUE)
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item theta (N x K) matrix
+#'  \item log.theta (N x K) log matrix
+#'  \item log.theta.sd (N x K) standard deviation matrix
+#' }
+#'
+asap_topic_pmf_rbind <- function(beta_dk_list, R_nk_list, Y_n_list, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 1L, stdize_r = TRUE, verbose = TRUE) {
+    .Call('_asapR_asap_topic_pmf_rbind', PACKAGE = 'asapR', beta_dk_list, R_nk_list, Y_n_list, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
 }
 
 #' Topic statistics to estimate factor loading
@@ -423,9 +446,9 @@ asap_regression <- function(Y_, log_x, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_l
 #'
 #' @return a list that contains:
 #' \itemize{
-#'  \item beta dictionary matrix (row x factor)
-#'  \item corr empirical correlation (column x factor)
-#'  \item colsum the sum of each column (column x 1)
+#'  \item beta.list a list of dictionary matrices (row x factor)
+#'  \item corr.list a list of empirical correlation matrices (column x factor)
+#'  \item colsum.list a list of column sum vectors (column x 1)
 #' }
 #'
 asap_topic_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, logX_vec, x_row_names_vec, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {

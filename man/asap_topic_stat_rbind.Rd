@@ -53,9 +53,9 @@ asap_topic_stat_rbind(
 \value{
 a list that contains:
 \itemize{
-\item beta dictionary matrix (row x factor)
-\item corr empirical correlation (column x factor)
-\item colsum the sum of each column (column x 1)
+\item beta.list a list of dictionary matrices (row x factor)
+\item corr.list a list of empirical correlation matrices (column x factor)
+\item colsum.list a list of column sum vectors (column x 1)
 }
 }
 \description{

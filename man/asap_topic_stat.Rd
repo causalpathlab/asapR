@@ -9,7 +9,7 @@ asap_topic_stat(
   row_file,
   col_file,
   idx_file,
-  log_x,
+  log_beta,
   x_row_names,
   do_log1p = FALSE,
   verbose = FALSE,
@@ -30,9 +30,9 @@ asap_topic_stat(
 
 \item{idx_file}{matrix-market colum index file}
 
-\item{log_x}{D x K log dictionary/design matrix}
+\item{log_beta}{D x K log dictionary/design matrix}
 
-\item{x_row_names}{row names log_x (D vector)}
+\item{x_row_names}{row names log_beta (D vector)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

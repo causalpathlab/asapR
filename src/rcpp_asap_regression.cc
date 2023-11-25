@@ -2,10 +2,10 @@
 
 //' Calibrate topic proportions based on sufficient statistics
 //'
-//' @param X_dk dictionary matrix (feature D  x factor K)
+//' @param beta_dk dictionary matrix (feature D  x factor K)
 //' @param R_nk correlation matrix (sample N x factor K)
 //' @param Y_n sum vector (sample N x 1)
-//' @param a0 gamma(a0, b0) (default: 1e-8)
+//' @param a0 gamma(a0, b0) (default: 1)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of parallel threads (default: 1)
@@ -22,10 +22,10 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_pmf(const Eigen::MatrixXf X_dk,
+asap_topic_pmf(const Eigen::MatrixXf beta_dk,
                const Eigen::MatrixXf R_nk,
                const Eigen::MatrixXf Y_n,
-               const double a0 = 1e-8,
+               const double a0 = 1.0,
                const double b0 = 1.0,
                const std::size_t max_iter = 10,
                const std::size_t NUM_THREADS = 1,
@@ -45,14 +45,14 @@ asap_topic_pmf(const Eigen::MatrixXf X_dk,
 
     Eigen::setNbThreads(NUM_THREADS);
 
-    const Index D = X_dk.rows();
-    const Index K = X_dk.cols();
+    const Index D = beta_dk.rows();
+    const Index K = beta_dk.cols();
     const Index N = R_nk.rows();
 
     ASSERT_RETL(Y_n.rows() == R_nk.rows(),
                 "R and Y must have the same number of rows");
 
-    Mat x_nk = ColVec::Ones(N) * X_dk.colwise().sum(); // N x K
+    Mat x_nk = ColVec::Ones(N) * beta_dk.colwise().sum(); // N x K
 
     Mat logRho_nk(N, K), rho_nk(N, K);
     gamma_t theta_nk(N, K, a0, b0, rng); // N x K
@@ -80,7 +80,7 @@ asap_topic_pmf(const Eigen::MatrixXf X_dk,
         theta_nk.calibrate();
     }
 
-    return Rcpp::List::create(Rcpp::_["beta"] = X_dk,
+    return Rcpp::List::create(Rcpp::_["beta"] = beta_dk,
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["log.theta.sd"] = theta_nk.log_sd());
@@ -92,8 +92,8 @@ asap_topic_pmf(const Eigen::MatrixXf X_dk,
 //' @param row_file row names file (D x 1)
 //' @param col_file column names file (N x 1)
 //' @param idx_file matrix-market colum index file
-//' @param log_x D x K log dictionary/design matrix
-//' @param x_row_names row names log_x (D vector)
+//' @param log_beta D x K log dictionary/design matrix
+//' @param x_row_names row names log_beta (D vector)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -116,7 +116,7 @@ asap_topic_stat(const std::string mtx_file,
                 const std::string row_file,
                 const std::string col_file,
                 const std::string idx_file,
-                const Eigen::MatrixXf log_x,
+                const Eigen::MatrixXf log_beta,
                 const Rcpp::StringVector &x_row_names,
                 const bool do_log1p = false,
                 const bool verbose = false,
@@ -151,7 +151,7 @@ asap_topic_stat(const std::string mtx_file,
                                   row_file,
                                   col_file,
                                   idx_file,
-                                  log_x,
+                                  log_beta,
                                   pos2row,
                                   options,
                                   Rtot_nk,
@@ -178,7 +178,7 @@ asap_topic_stat(const std::string mtx_file,
     ASSERT_RETL(N == coln.size(),
                 "Different #columns: " << N << " vs. " << coln.size());
 
-    return List::create(_["beta"] = named(log_x.unaryExpr(exp), d_, k_),
+    return List::create(_["beta"] = named(log_beta.unaryExpr(exp), d_, k_),
                         _["corr"] = named(Rtot_nk, coln, k_),
                         _["colsum"] = named(Ytot_n, coln, file_),
                         _["rownames"] = pos2row,
@@ -188,7 +188,7 @@ asap_topic_stat(const std::string mtx_file,
 //' Poisson regression to estimate factor loading
 //'
 //' @param Y D x N data matrix
-//' @param log_x D x K log dictionary/design matrix
+//' @param log_beta D x K log dictionary/design matrix
 //' @param a0 gamma(a0, b0) (default: 1e-8)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
@@ -207,7 +207,7 @@ asap_topic_stat(const std::string mtx_file,
 // [[Rcpp::export]]
 Rcpp::List
 asap_regression(const Eigen::MatrixXf Y_,
-                const Eigen::MatrixXf log_x,
+                const Eigen::MatrixXf log_beta,
                 const double a0 = 1e-8,
                 const double b0 = 1.0,
                 const std::size_t max_iter = 10,
@@ -225,11 +225,11 @@ asap_regression(const Eigen::MatrixXf Y_,
 
     Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
-    const Index D = Y_dn.rows();  // number of features
-    const Index N = Y_dn.cols();  // number of samples
-    const Index K = log_x.cols(); // number of topics
+    const Index D = Y_dn.rows();     // number of features
+    const Index N = Y_dn.cols();     // number of samples
+    const Index K = log_beta.cols(); // number of topics
 
-    Mat logX_dk = log_x;
+    Mat logX_dk = log_beta;
 
     using RNG = dqrng::xoshiro256plus;
     using gamma_t = gamma_param_t<Mat, RNG>;
