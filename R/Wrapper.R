@@ -155,7 +155,7 @@ write.sparse <- function(out.mtx, out.rows, out.cols, output){
 #' @param out.hdr output file header
 #'
 #' @return a list of the resulting file names
-vcat.sparse <- function(top.hdr, bottom.hdr, out.hdr){
+rbind.mtx <- function(top.hdr, bottom.hdr, out.hdr){
 
     dir.create(dirname(out.hdr), recursive = TRUE, showWarnings = FALSE)
 
