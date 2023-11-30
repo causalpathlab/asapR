@@ -11,7 +11,9 @@ mmutil_copy_selected_rows(
   r_selected,
   output,
   MAX_ROW_WORD = 2L,
-  ROW_WORD_SEP = "_"
+  ROW_WORD_SEP = "_",
+  MAX_COL_WORD = 100L,
+  COL_WORD_SEP = "@"
 )
 }
 \arguments{

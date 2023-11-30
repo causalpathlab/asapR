@@ -549,8 +549,8 @@ decompose_network <- function(A_dd, beta_dt, cutoff = 1e-8, verbose = TRUE) {
 #' unlink(list.files(pattern = src.hdr))
 #' unlink(list.files(pattern = tgt.hdr))
 #'
-mmutil_copy_selected_rows <- function(mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_') {
-    .Call('_asapR_mmutil_copy_selected_rows', PACKAGE = 'asapR', mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD, ROW_WORD_SEP)
+mmutil_copy_selected_rows <- function(mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_mmutil_copy_selected_rows', PACKAGE = 'asapR', mtx_file, row_file, col_file, r_selected, output, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Take a subset of columns and create a new MTX file-set
@@ -635,6 +635,26 @@ mmutil_info <- function(mtx_file) {
     .Call('_asapR_mmutil_info', PACKAGE = 'asapR', mtx_file)
 }
 
+#' Just read each row name per line
+#'
+#' @param row_file data file
+#'
+#' @return rownames
+#'
+mmutil_rownames <- function(row_file, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_') {
+    .Call('_asapR_mmutil_rownames', PACKAGE = 'asapR', row_file, MAX_ROW_WORD, ROW_WORD_SEP)
+}
+
+#' Just read each col name per line
+#'
+#' @param col_file data file
+#'
+#' @return colnames
+#'
+mmutil_colnames <- function(col_file, MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_mmutil_colnames', PACKAGE = 'asapR', col_file, MAX_COL_WORD, COL_WORD_SEP)
+}
+
 #' Write down sparse matrix to the disk
 #' @param X sparse matrix
 #' @param mtx_file file name
@@ -690,8 +710,8 @@ mmutil_read_rows_columns <- function(mtx_file, memory_location, r_row_index, r_c
 #' @param gam_beta a parameter for Gamma(alpha, beta)
 #' @param rseed random seed
 #'
-mmutil_simulate_poisson_mixture <- function(r_mu_list, Ncell, output, dir_alpha = 1.0, gam_alpha = 2.0, gam_beta = 2.0, rseed = 42L) {
-    .Call('_asapR_mmutil_simulate_poisson_mixture', PACKAGE = 'asapR', r_mu_list, Ncell, output, dir_alpha, gam_alpha, gam_beta, rseed)
+mmutil_simulate_poisson_mixture <- function(r_mu_list, Ncell, output, dir_alpha = 1.0, gam_alpha = 2.0, gam_beta = 2.0, rseed = 42L, MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_mmutil_simulate_poisson_mixture', PACKAGE = 'asapR', r_mu_list, Ncell, output, dir_alpha, gam_alpha, gam_beta, rseed, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Simulation Poisson data based on Mu
@@ -706,7 +726,7 @@ mmutil_simulate_poisson_mixture <- function(r_mu_list, Ncell, output, dir_alpha 
 #'
 #' @return a list of file names: {output}.{mtx,rows,cols}.gz
 #'
-mmutil_simulate_poisson <- function(mu, rho, output, r_indv = NULL, rseed = 42L) {
-    .Call('_asapR_mmutil_simulate_poisson', PACKAGE = 'asapR', mu, rho, output, r_indv, rseed)
+mmutil_simulate_poisson <- function(mu, rho, output, r_indv = NULL, rseed = 42L, MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_mmutil_simulate_poisson', PACKAGE = 'asapR', mu, rho, output, r_indv, rseed, MAX_COL_WORD, COL_WORD_SEP)
 }
 
