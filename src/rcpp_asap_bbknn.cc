@@ -264,9 +264,14 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     List knn_list = build_sparse_list(Wsym);
 
+    std::vector<std::vector<Index>> r_glob_idx;
+    for (Index j = 0; j < global_index.size(); ++j) {
+        r_glob_idx.emplace_back(convert_r_index(global_index.at(j)));
+    }
+
     return List::create(_["adjusted"] = named_rows(Vadj, global_names),
                         _["names"] = global_names,
-                        _["indexes"] = global_index,
+                        _["indexes"] = r_glob_idx,
                         _["batches"] = convert_r_index(batches),
                         _["knn"] = knn_list);
 }
