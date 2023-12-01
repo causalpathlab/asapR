@@ -9,10 +9,11 @@ asap_interaction_topic_stat(
   row_file,
   col_file,
   idx_file,
-  log_x,
-  x_row_names,
+  log_beta,
+  beta_row_names,
   W_nn_list,
   A_dd_list = NULL,
+  do_stdize_beta = TRUE,
   do_product = FALSE,
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
@@ -32,13 +33,15 @@ asap_interaction_topic_stat(
 
 \item{idx_file}{matrix-market colum index file}
 
-\item{log_x}{D x K log dictionary/design matrix}
+\item{log_beta}{D x K log dictionary/design matrix}
 
-\item{x_row_names}{row names log_x (D vector)}
+\item{beta_row_names}{row names log_beta (D vector)}
 
 \item{W_nn_list}{list(src.index, tgt.index, \link{weights}) for columns}
 
 \item{A_dd_list}{list(src.index, tgt.index, \link{weights}) for features}
+
+\item{do_stdize_beta}{use standardized log_beta (default: TRUE)}
 
 \item{do_product}{yi * yj for interaction (default: FALSE)}
 

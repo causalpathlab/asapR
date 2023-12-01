@@ -9,8 +9,9 @@ asap_topic_stat_rbind(
   row_files,
   col_files,
   idx_files,
-  logX_vec,
+  log_beta_vec,
   beta_row_names_vec,
+  do_stdize_beta = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -22,7 +23,9 @@ asap_topic_stat_rbind(
 )
 }
 \arguments{
-\item{do_log1p}{do log(1+y) transformation}
+\item{do_stdize_beta}{use standardized log_beta (default: TRUE)}
+
+\item{do_log1p}{do log(1+y) transformation (default: FALSE)}
 
 \item{verbose}{verbosity}
 

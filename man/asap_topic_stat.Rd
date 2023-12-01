@@ -11,6 +11,7 @@ asap_topic_stat(
   idx_file,
   log_beta,
   beta_row_names,
+  do_stdize_beta = TRUE,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -33,6 +34,8 @@ asap_topic_stat(
 \item{log_beta}{D x K log dictionary/design matrix}
 
 \item{beta_row_names}{row names log_beta (D vector)}
+
+\item{do_stdize_beta}{use standardized log_beta (Default: TRUE)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

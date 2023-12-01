@@ -118,7 +118,8 @@ asap_topic_pmf_rbind(const std::vector<Eigen::MatrixXf> beta_dk_list,
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
 //' @param beta_row_names row names log_x (D vector)
-//' @param do_log1p do log(1+y) transformation
+//' @param do_stdize_beta use standardized log_beta (default: TRUE)
+//' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -140,8 +141,9 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
                       const std::vector<std::string> row_files,
                       const std::vector<std::string> col_files,
                       const std::vector<std::string> idx_files,
-                      const std::vector<Eigen::MatrixXf> &logX_vec,
+                      const std::vector<Eigen::MatrixXf> &log_beta_vec,
                       const std::vector<Rcpp::StringVector> &beta_row_names_vec,
+                      const bool do_stdize_beta = false,
                       const bool do_log1p = false,
                       const bool verbose = false,
                       const std::size_t NUM_THREADS = 1,
@@ -157,6 +159,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
 
     topic_stat_options_t options;
 
+    options.do_stdize_x = do_stdize_beta;
     options.do_log1p = do_log1p;
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;
@@ -171,7 +174,8 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
     ASSERT_RETL(B > 0, "Empty mtx file names");
     ASSERT_RETL(row_files.size() == B, "Need a row file for each data type");
     ASSERT_RETL(col_files.size() == B, "Need a col file for each data type");
-    ASSERT_RETL(logX_vec.size() == B, "Need a logX matrix for each data type");
+    ASSERT_RETL(log_beta_vec.size() == B,
+                "Need a log_beta matrix for each data type");
     ASSERT_RETL(beta_row_names_vec.size() == B,
                 "Need a rownames vector for each data type");
 
@@ -203,7 +207,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
 
-        const Mat log_x = logX_vec.at(b);
+        const Mat log_x = log_beta_vec.at(b);
         const std::vector<std::string> pos2row =
             Rcpp::as<std::vector<std::string>>(beta_row_names_vec.at(b));
 

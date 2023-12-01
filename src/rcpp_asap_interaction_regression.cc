@@ -6,11 +6,13 @@
 //' @param row_file row names file (D x 1)
 //' @param col_file column names file (N x 1)
 //' @param idx_file matrix-market colum index file
-//' @param log_x D x K log dictionary/design matrix
-//' @param x_row_names row names log_x (D vector)
+//' @param log_beta D x K log dictionary/design matrix
+//' @param beta_row_names row names log_beta (D vector)
 //' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
 //'
 //' @param A_dd_list list(src.index, tgt.index, [weights]) for features
+//'
+//' @param do_stdize_beta use standardized log_beta (default: TRUE)
 //' @param do_product yi * yj for interaction (default: FALSE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -35,10 +37,11 @@ asap_interaction_topic_stat(
     const std::string row_file,
     const std::string col_file,
     const std::string idx_file,
-    const Eigen::MatrixXf log_x,
-    const Rcpp::StringVector &x_row_names,
+    const Eigen::MatrixXf log_beta,
+    const Rcpp::StringVector &beta_row_names,
     const Rcpp::List W_nn_list,
     const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
+    const bool do_stdize_beta = true,
     const bool do_product = false,
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
@@ -54,7 +57,7 @@ asap_interaction_topic_stat(
 
     std::vector<std::string> pos2row;
 
-    rcpp::util::copy(x_row_names, pos2row);
+    rcpp::util::copy(beta_row_names, pos2row);
 
     //////////////////////////////////////
     // take care of different row names //
@@ -62,9 +65,9 @@ asap_interaction_topic_stat(
 
     const Index D = pos2row.size(); // dimensionality
 
-    ASSERT_RETL(log_x.rows() == D,
-                "#Rows in the log_x matrix !=  the size of x_row_names: "
-                    << log_x.rows() << " != " << D);
+    ASSERT_RETL(log_beta.rows() == D,
+                "#Rows in the log_beta matrix !=  the size of beta_row_names: "
+                    << log_beta.rows() << " != " << D);
 
     std::unordered_map<std::string, Index> row2pos;
     for (Index r = 0; r < pos2row.size(); ++r) {
@@ -86,7 +89,7 @@ asap_interaction_topic_stat(
               "Failed to read the size of this mtx file:" << mtx_file);
 
     const Index N = info.max_col;        // number of cells
-    const Index K = log_x.cols();        // number of topics
+    const Index K = log_beta.cols();     // number of topics
     const Index block_size = BLOCK_SIZE; // memory block size
 
     std::vector<std::string> coln;
@@ -122,7 +125,10 @@ asap_interaction_topic_stat(
     // Take sufficient statistics //
     ////////////////////////////////
 
-    Mat logX_dk = log_x;
+    Mat logX_dk = log_beta;
+    if (do_stdize_beta) {
+        standardize_columns_inplace(logX_dk);
+    }
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
 
     const Index Nedge = W_nn.nonZeros();

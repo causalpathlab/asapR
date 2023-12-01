@@ -94,6 +94,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //' @param idx_file matrix-market colum index file
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
+//' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -118,6 +119,7 @@ asap_topic_stat(const std::string mtx_file,
                 const std::string idx_file,
                 const Eigen::MatrixXf log_beta,
                 const Rcpp::StringVector &beta_row_names,
+                const bool do_stdize_beta = true,
                 const bool do_log1p = false,
                 const bool verbose = false,
                 const std::size_t NUM_THREADS = 1,
@@ -136,6 +138,7 @@ asap_topic_stat(const std::string mtx_file,
 
     topic_stat_options_t options;
 
+    options.do_stdize_x = do_stdize_beta;
     options.do_log1p = do_log1p;
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;

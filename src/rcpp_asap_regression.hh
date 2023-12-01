@@ -14,6 +14,7 @@ struct topic_stat_options_t {
     char ROW_WORD_SEP;
     std::size_t MAX_COL_WORD;
     char COL_WORD_SEP;
+    bool do_stdize_x;
 };
 
 template <typename Derived1, typename Derived2, typename Derived3, typename OPT>
@@ -41,7 +42,11 @@ asap_topic_stat_mtx(const std::string mtx_file,
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    const Derived1 &logX_dk = _log_x.derived();
+    Derived1 logX_dk = _log_x.derived();
+    if (options.do_stdize_x) {
+        standardize_columns_inplace(logX_dk);
+    }
+
     Derived2 &Rtot_nk = _r_nk.derived();
     Derived3 &Ytot_n = _y_n.derived();
 
