@@ -117,7 +117,7 @@ asap_topic_pmf_rbind(const std::vector<Eigen::MatrixXf> beta_dk_list,
 //' @param col_file column names file (N x 1)
 //' @param idx_file matrix-market colum index file
 //' @param log_x D x K log dictionary/design matrix
-//' @param x_row_names row names log_x (D vector)
+//' @param beta_row_names row names log_x (D vector)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -141,7 +141,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
                       const std::vector<std::string> col_files,
                       const std::vector<std::string> idx_files,
                       const std::vector<Eigen::MatrixXf> &logX_vec,
-                      const std::vector<Rcpp::StringVector> &x_row_names_vec,
+                      const std::vector<Rcpp::StringVector> &beta_row_names_vec,
                       const bool do_log1p = false,
                       const bool verbose = false,
                       const std::size_t NUM_THREADS = 1,
@@ -172,7 +172,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
     ASSERT_RETL(row_files.size() == B, "Need a row file for each data type");
     ASSERT_RETL(col_files.size() == B, "Need a col file for each data type");
     ASSERT_RETL(logX_vec.size() == B, "Need a logX matrix for each data type");
-    ASSERT_RETL(x_row_names_vec.size() == B,
+    ASSERT_RETL(beta_row_names_vec.size() == B,
                 "Need a rownames vector for each data type");
 
     ASSERT_RETL(all_files_exist(mtx_files, verbose),
@@ -205,7 +205,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
 
         const Mat log_x = logX_vec.at(b);
         const std::vector<std::string> pos2row =
-            Rcpp::as<std::vector<std::string>>(x_row_names_vec.at(b));
+            Rcpp::as<std::vector<std::string>>(beta_row_names_vec.at(b));
 
         Mat Rtot_nk, Ytot_n;
         CHK_RETL_(asap_topic_stat_mtx(mtx_files.at(b),
@@ -252,6 +252,6 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
     return Rcpp::List::create(Rcpp::_["beta.list"] = beta_dk_list,
                               Rcpp::_["corr.list"] = R_nk_list,
                               Rcpp::_["colsum.list"] = Y_n_list,
-                              Rcpp::_["rownames.list"] = x_row_names_vec,
+                              Rcpp::_["rownames.list"] = beta_row_names_vec,
                               Rcpp::_["colnames.list"] = colnames_list);
 }

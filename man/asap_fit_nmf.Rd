@@ -51,10 +51,13 @@ asap_fit_nmf(
 \value{
 a list that contains:
 \itemize{
-\item \code{log.likelihood} Log-likelihood trace
-\item \code{std_log_x} Standardized log-dictionary (gene x factor)
-\item \code{corr} Empirical correlation (sample x factor)
-\item \code{model} A list: beta (gene x factor) and theta (sample x factor)
+\item log.likelihood log-likelihood trace
+\item theta loading (sample x factor)
+\item log.theta log-loading (sample x factor)
+\item log.theta.sd sd(log-loading) (sample x factor)
+\item beta dictionary (gene x factor)
+\item log.beta log dictionary (gene x factor)
+\item log.beta.sd sd(log-dictionary) (gene x factor)
 }
 }
 \description{

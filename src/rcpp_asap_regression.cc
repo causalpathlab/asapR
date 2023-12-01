@@ -93,7 +93,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //' @param col_file column names file (N x 1)
 //' @param idx_file matrix-market colum index file
 //' @param log_beta D x K log dictionary/design matrix
-//' @param x_row_names row names log_beta (D vector)
+//' @param beta_row_names row names log_beta (D vector)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -117,7 +117,7 @@ asap_topic_stat(const std::string mtx_file,
                 const std::string col_file,
                 const std::string idx_file,
                 const Eigen::MatrixXf log_beta,
-                const Rcpp::StringVector &x_row_names,
+                const Rcpp::StringVector &beta_row_names,
                 const bool do_log1p = false,
                 const bool verbose = false,
                 const std::size_t NUM_THREADS = 1,
@@ -132,7 +132,7 @@ asap_topic_stat(const std::string mtx_file,
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     std::vector<std::string> pos2row;
-    rcpp::util::copy(x_row_names, pos2row);
+    rcpp::util::copy(beta_row_names, pos2row);
 
     topic_stat_options_t options;
 

@@ -212,7 +212,7 @@ asap_fit_nmf_cbind(const std::vector<Eigen::MatrixXf> &y_dn_vec,
                               Rcpp::_["beta"] = beta_dk.mean(),
                               Rcpp::_["log.beta"] = beta_dk.log_mean(),
                               Rcpp::_["log.beta.sd"] = beta_dk.log_sd(),
-                              Rcpp::_["theta"] = theta_mean_list,
-                              Rcpp::_["log.theta.sd"] = theta_log_sd_list,
-                              Rcpp::_["log.theta"] = theta_log_mean_list);
+                              Rcpp::_["theta.list"] = theta_mean_list,
+                              Rcpp::_["log.theta.sd.list"] = theta_log_sd_list,
+                              Rcpp::_["log.theta.list"] = theta_log_mean_list);
 }

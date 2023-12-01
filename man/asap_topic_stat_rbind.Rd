@@ -10,7 +10,7 @@ asap_topic_stat_rbind(
   col_files,
   idx_files,
   logX_vec,
-  x_row_names_vec,
+  beta_row_names_vec,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -48,7 +48,7 @@ asap_topic_stat_rbind(
 
 \item{log_x}{D x K log dictionary/design matrix}
 
-\item{x_row_names}{row names log_x (D vector)}
+\item{beta_row_names}{row names log_x (D vector)}
 }
 \value{
 a list that contains:

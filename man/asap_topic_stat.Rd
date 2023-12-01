@@ -10,7 +10,7 @@ asap_topic_stat(
   col_file,
   idx_file,
   log_beta,
-  x_row_names,
+  beta_row_names,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 1L,
@@ -32,7 +32,7 @@ asap_topic_stat(
 
 \item{log_beta}{D x K log dictionary/design matrix}
 
-\item{x_row_names}{row names log_beta (D vector)}
+\item{beta_row_names}{row names log_beta (D vector)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

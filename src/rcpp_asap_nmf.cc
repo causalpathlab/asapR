@@ -23,10 +23,13 @@ using model_t = asap_nmf_model_t<RNG>;
 //'
 //' @return a list that contains:
 //'  \itemize{
-//'   \item `log.likelihood` Log-likelihood trace
-//'   \item `std_log_x` Standardized log-dictionary (gene x factor)
-//'   \item `corr` Empirical correlation (sample x factor)
-//'   \item `model` A list: beta (gene x factor) and theta (sample x factor)
+//'   \item log.likelihood log-likelihood trace
+//'   \item theta loading (sample x factor)
+//'   \item log.theta log-loading (sample x factor)
+//'   \item log.theta.sd sd(log-loading) (sample x factor)
+//'   \item beta dictionary (gene x factor)
+//'   \item log.beta log dictionary (gene x factor)
+//'   \item log.beta.sd sd(log-dictionary) (gene x factor)
 //' }
 //'
 //'
@@ -101,11 +104,14 @@ asap_fit_nmf(Rcpp::NumericMatrix &Y_,
         train_nmf(model, Y_dn, null_data, null_data, llik_trace, options);
     }
 
-    Mat std_log_x, R_nk;
-    std::tie(std_log_x, R_nk) = model.log_topic_correlation(Y_dn);
+    // Mat std_log_x, R_nk;
+    // std::tie(std_log_x, R_nk) = model.log_topic_correlation(Y_dn);
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
-                              Rcpp::_["std_log_x"] = std_log_x,
-                              Rcpp::_["corr"] = R_nk,
-                              Rcpp::_["model"] = rcpp_list_out(model));
+                              Rcpp::_["beta"] = model.beta_dk.mean(),
+                              Rcpp::_["log.beta"] = model.beta_dk.log_mean(),
+                              Rcpp::_["log.beta.sd"] = model.beta_dk.log_sd(),
+                              Rcpp::_["theta"] = model.theta_nk.mean(),
+                              Rcpp::_["log.theta.sd"] = model.theta_nk.log_sd(),
+                              Rcpp::_["log.theta"] = model.theta_nk.log_mean());
 }

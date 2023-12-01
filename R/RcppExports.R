@@ -118,10 +118,13 @@ asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, 
 #'
 #' @return a list that contains:
 #'  \itemize{
-#'   \item `log.likelihood` Log-likelihood trace
-#'   \item `std_log_x` Standardized log-dictionary (gene x factor)
-#'   \item `corr` Empirical correlation (sample x factor)
-#'   \item `model` A list: beta (gene x factor) and theta (sample x factor)
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log dictionary (gene x factor)
+#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
 #' }
 #'
 #'
@@ -182,11 +185,11 @@ asap_fit_nmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' @return a list that contains:
 #'  \itemize{
 #'   \item log.likelihood log-likelihood trace
-#'   \item theta dictionary (sample x factor)
-#'   \item log.theta log-dictionary (sample x factor)
-#'   \item log.theta.sd sd(log-dictionary) (sample x factor)
-#'   \item beta a list of loading matrices (gene x factor)
-#'   \item log.beta a list of log loadings (gene x factor)
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta a list of dictionary matrices (gene x factor)
+#'   \item log.beta a list of log dictionary (gene x factor)
 #'   \item log.beta.sd a list of standard deviations (gene x factor)
 #' }
 #'
@@ -360,7 +363,7 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #' @param col_file column names file (N x 1)
 #' @param idx_file matrix-market colum index file
 #' @param log_beta D x K log dictionary/design matrix
-#' @param x_row_names row names log_beta (D vector)
+#' @param beta_row_names row names log_beta (D vector)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -377,8 +380,8 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, x_row_names, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, x_row_names, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Poisson regression to estimate factor loading
@@ -434,7 +437,7 @@ asap_topic_pmf_rbind <- function(beta_dk_list, R_nk_list, Y_n_list, a0 = 1.0, b0
 #' @param col_file column names file (N x 1)
 #' @param idx_file matrix-market colum index file
 #' @param log_x D x K log dictionary/design matrix
-#' @param x_row_names row names log_x (D vector)
+#' @param beta_row_names row names log_x (D vector)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -451,8 +454,8 @@ asap_topic_pmf_rbind <- function(beta_dk_list, R_nk_list, Y_n_list, a0 = 1.0, b0
 #'  \item colsum.list a list of column sum vectors (column x 1)
 #' }
 #'
-asap_topic_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, logX_vec, x_row_names_vec, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, logX_vec, x_row_names_vec, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_topic_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, logX_vec, beta_row_names_vec, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, logX_vec, beta_row_names_vec, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Stretch non-negative matrix

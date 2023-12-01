@@ -51,11 +51,11 @@ asap_fit_nmf_rbind(
 a list that contains:
 \itemize{
 \item log.likelihood log-likelihood trace
-\item theta dictionary (sample x factor)
-\item log.theta log-dictionary (sample x factor)
-\item log.theta.sd sd(log-dictionary) (sample x factor)
-\item beta a list of loading matrices (gene x factor)
-\item log.beta a list of log loadings (gene x factor)
+\item theta loading (sample x factor)
+\item log.theta log-loading (sample x factor)
+\item log.theta.sd sd(log-loading) (sample x factor)
+\item beta a list of dictionary matrices (gene x factor)
+\item log.beta a list of log dictionary (gene x factor)
 \item log.beta.sd a list of standard deviations (gene x factor)
 }
 }
