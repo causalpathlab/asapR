@@ -230,10 +230,15 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     for (Index b = 1; b < B; ++b) {
         std::vector<Index> &globs = global_index[b];
 
-        ColVec delta = ColVec::Zero(rank);
-        Scalar denom = 0;
-
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
         for (Index j : globs) {
+
+            ColVec delta = ColVec::Zero(rank);
+            Scalar denom = 0;
+
             for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
                 const Index i = it.index();        // other index
                 const Index a = batches.at(i);     // batch membership
@@ -243,14 +248,19 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
                     denom += wji;
                 }
             }
-        }
 
-        if (denom > 1e-8) {
-            delta /= denom;
-        }
+            if (denom > 1e-8) {
+                delta /= denom;
+            }
 
-        for (Index j : globs) {
-            Vadj.col(j) = V_kn.col(j) - delta;
+#pragma omp critical
+            {
+                ////////////////////////////////
+                // May create over-adjustment //
+                ////////////////////////////////
+
+                Vadj.col(j) = V_kn.col(j) - delta;
+            }
         }
 
     } // for each batch
