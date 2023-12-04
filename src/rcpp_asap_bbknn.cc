@@ -235,7 +235,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
         for (Index j : globs) {
             for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
-                const Index i = it.col();          // row major
+                const Index i = it.index();        // other index
                 const Index a = batches.at(i);     // batch membership
                 if (a < b) {                       // mingle toward
                     const Scalar wji = it.value(); // the previous batches

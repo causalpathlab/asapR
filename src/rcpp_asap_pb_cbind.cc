@@ -269,11 +269,12 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
 
     ASSERT_RETL(vv.rows() == Ntot, " failed SVD for Q");
 
-    Mat Q_nk = Q_kn.transpose();      // N x K
-    Mat RD = standardize_columns(vv); // N x K
-    TLOG_(verbose, "random dictionary: " << RD.rows() << " x " << RD.cols());
+    Mat Q_nk = Q_kn.transpose();           // N x K
+    Mat Qstd_nk = standardize_columns(vv); // N x K
 
-    TLOG_(verbose, "SVD on the projected: " << RD.rows() << " x " << RD.cols());
+    TLOG_(verbose,
+          "SVD on the projected: " << Qstd_nk.rows() << " x "
+                                   << Qstd_nk.cols());
 
     /////////////////////////////////////////////////////
     // Step 3. sorting through an implicit binary tree //
@@ -286,7 +287,7 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
         auto binary_shift = [&k](const Scalar &x) -> Index {
             return x > 0. ? (1 << k) : 0;
         };
-        bb += RD.col(k).unaryExpr(binary_shift);
+        bb += Qstd_nk.col(k).unaryExpr(binary_shift);
     }
 
     TLOG_(verbose, "Assigned random membership: [0, " << bb.maxCoeff() << ")");
@@ -421,9 +422,9 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
 
         TLOG_(verbose,
               "Building annoy index using random proj. results "
-                  << RD.rows() << " x " << RD.cols());
+                  << Qstd_nk.rows() << " x " << Qstd_nk.cols());
 
-        const Index rank = RD.cols();
+        const Index rank = Qstd_nk.cols();
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -438,7 +439,7 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
 
             for (Index loc = 0; loc < Nb; ++loc) {
                 const Index glob = batch_cells.at(loc);
-                Q.col(loc) = RD.row(glob).transpose();
+                Q.col(loc) = Qstd_nk.row(glob).transpose();
             }
 
             CHECK(mtx_ptr[b]->build_index(Q, verbose));
@@ -489,7 +490,7 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
 
                 nneigh = 0;
 
-                Eigen::Map<Mat>(query.data(), 1, rank) = RD.row(glob);
+                Eigen::Map<Mat>(query.data(), 1, rank) = Qstd_nk.row(glob);
 
                 for (Index b = 0; b < B; ++b) {
                     if (a != b) {
@@ -645,7 +646,7 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
     std::vector<std::string> b_ = mtx_files;
 
     if (!save_rand_proj) {
-        Q_nk.resize(0, 0);
+        Qstd_nk.resize(0, 0);
     }
 
     TLOG_(verbose, "Done");
@@ -663,7 +664,7 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
-                        _["rand.proj"] = Q_nk,
+                        _["rand.proj"] = Qstd_nk,
                         _["colnames"] = columns,
                         _["rownames"] = pos2row);
 }
