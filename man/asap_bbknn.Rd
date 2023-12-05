@@ -10,7 +10,6 @@ asap_bbknn(
   KNN_PER_BATCH = 3L,
   BLOCK_SIZE = 100L,
   NUM_THREADS = 1L,
-  IP_DISTANCE = FALSE,
   verbose = TRUE
 )
 }
@@ -24,8 +23,6 @@ asap_bbknn(
 \item{BLOCK_SIZE}{each parallel job size (default: 100)}
 
 \item{NUM_THREADS}{number of parallel threads (default: 1)}
-
-\item{IP_DISTANCE}{inner product distance (default: FALSE)}
 
 \item{verbose}{(default: TRUE)}
 }

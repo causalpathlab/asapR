@@ -8,7 +8,6 @@
 #' @param KNN_PER_BATCH (default: 3)
 #' @param BLOCK_SIZE each parallel job size (default: 100)
 #' @param NUM_THREADS number of parallel threads (default: 1)
-#' @param IP_DISTANCE inner product distance (default: FALSE)
 #' @param verbose (default: TRUE)
 #'
 #' @return a list that contains:
@@ -19,8 +18,8 @@
 #'  \item knn edges
 #' }
 #'
-asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, IP_DISTANCE = FALSE, verbose = TRUE) {
-    .Call('_asapR_asap_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, IP_DISTANCE, verbose)
+asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZE = 100L, NUM_THREADS = 1L, verbose = TRUE) {
+    .Call('_asapR_asap_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
 }
 
 #' Generate approximate pseudo-bulk interaction data by random projections
@@ -408,6 +407,35 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, be
 #'
 asap_regression <- function(Y_, log_beta, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
     .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_beta, a0, b0, max_iter, do_log1p, verbose)
+}
+
+#' Topic statistics to estimate factor loading
+#'
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
+#' @param idx_file matrix-market colum index file
+#' @param log_beta D x K log dictionary/design matrix
+#' @param beta_row_names row names log_beta (D vector)
+#' @param do_stdize_beta use standardized log_beta (default: TRUE)
+#' @param do_log1p do log(1+y) transformation (default: FALSE)
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item beta.list a list of dictionary matrices (row x factor)
+#'  \item corr.list a list of empirical correlation matrices (column x factor)
+#'  \item colsum.list a list of column sum vectors (column x 1)
+#' }
+#'
+asap_topic_stat_cbind <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

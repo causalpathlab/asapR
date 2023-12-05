@@ -74,6 +74,8 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
                        const char COL_WORD_SEP = '@')
 {
 
+    using namespace asap::pb;
+
     log1p_op<Mat> log1p;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;

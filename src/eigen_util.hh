@@ -731,14 +731,14 @@ scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
 
 template <typename Derived, typename Derived2>
 void
-residual_columns(Eigen::MatrixBase<Derived> &_yy,
-                 const Eigen::MatrixBase<Derived2> &_xx,
-                 const typename Derived::Scalar eps = 1e-8)
+residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
+                         const Eigen::MatrixBase<Derived2> &_xx,
+                         const typename Derived::Scalar eps = 1e-8)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
 
-    const Derived &Yraw = _yy.derived();
+    const Derived Yraw = _yy.derived(); // copy to avoid aliasing issues
     Derived &Yout = _yy.derived();
     const Derived2 &X = _xx.derived();
     using ColVec = typename Eigen::internal::plain_col_type<Derived>::type;

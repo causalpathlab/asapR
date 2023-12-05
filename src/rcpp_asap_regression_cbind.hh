@@ -5,5 +5,6 @@
 #include "rcpp_asap_batch.hh"
 #include "rcpp_asap_mtx_data.hh"
 #include "rcpp_asap_regression.hh"
+#include "rcpp_asap_bbknn.hh"
 
 #endif

@@ -5,6 +5,8 @@
 #ifndef RCPP_ASAP_PB_HH_
 #define RCPP_ASAP_PB_HH_
 
+namespace asap { namespace pb {
+
 template <typename Derived>
 void
 sample_random_projection(const Index D,
@@ -143,4 +145,5 @@ apply_mtx_row_sd(const std::string mtx_file,
     return EXIT_SUCCESS;
 }
 
+}} // asap::pb
 #endif

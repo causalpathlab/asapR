@@ -7,7 +7,6 @@
 //' @param KNN_PER_BATCH (default: 3)
 //' @param BLOCK_SIZE each parallel job size (default: 100)
 //' @param NUM_THREADS number of parallel threads (default: 1)
-//' @param IP_DISTANCE inner product distance (default: FALSE)
 //' @param verbose (default: TRUE)
 //'
 //' @return a list that contains:
@@ -25,7 +24,6 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
            const std::size_t KNN_PER_BATCH = 3,
            const std::size_t BLOCK_SIZE = 100,
            const std::size_t NUM_THREADS = 1,
-           const bool IP_DISTANCE = false,
            const bool verbose = true)
 {
 
@@ -75,10 +73,6 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     // step 1. Build annoy indexes //
     /////////////////////////////////
 
-    using index_ptr = std::shared_ptr<annoy_index_t>;
-    std::vector<index_ptr> idx_ptr_vec;
-    idx_ptr_vec.reserve(B);
-
     Mat V_kn(rank, Ntot);
 
     std::vector<std::vector<Index>> global_index;
@@ -88,137 +82,62 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
         Index offset = 0;
         for (std::size_t b = 0; b < data_nk_vec.size(); ++b) {
             const Eigen::MatrixXf &data_nk = data_nk_vec[b];
-
             const std::size_t rank = data_nk.cols();
-            idx_ptr_vec.emplace_back(std::make_shared<annoy_index_t>(rank));
             global_index.emplace_back(std::vector<Index> {});
 
-            annoy_index_t &index = *idx_ptr_vec[b].get();
             std::vector<Index> &globs = global_index[b];
             globs.reserve(data_nk.rows());
 
             Mat vsub_kn = data_nk.transpose();
-            if (IP_DISTANCE) {
-                normalize_columns_inplace(vsub_kn);
-            }
-            std::vector<Scalar> vec(rank);
-
             for (Index j = 0; j < vsub_kn.cols(); ++j) {
                 const Index glob = offset + j;
                 batches[glob] = b;
                 V_kn.col(glob) = vsub_kn.col(j);
                 globs.emplace_back(glob);
-                Eigen::Map<Mat>(vec.data(), rank, 1) = vsub_kn.col(j);
-                index.add_item(j, vec.data()); // allocate the size up to j
             }
 
-            index.build(50);
             TLOG_(verbose, "Populated " << vsub_kn.cols() << " items");
             offset += vsub_kn.cols();
         }
     }
+
+    using index_ptr = std::shared_ptr<annoy_index_t>;
+    std::vector<index_ptr> idx_ptr_vec;
+    idx_ptr_vec.reserve(B);
+    {
+        using namespace asap::bbknn;
+        for (std::size_t b = 0; b < data_nk_vec.size(); ++b) {
+            idx_ptr_vec.emplace_back(
+                build_euclidean_annoy(data_nk_vec.at(b), NUM_THREADS));
+        }
+    }
+
     TLOG("Built " << idx_ptr_vec.size() << " ANNOY indexes for fast look-ups");
 
     ///////////////////////////////////////////////////
     // step 2. build mutual kNN graph across batches //
     ///////////////////////////////////////////////////
 
-    using RNG = dqrng::xoshiro256plus;
-    RNG rng;
+    asap::bbknn::options_t options;
+    options.block_size = BLOCK_SIZE;
+    options.num_threads = NUM_THREADS;
+    options.knn_per_batch = KNN_PER_BATCH;
 
     SpMat Wsym;
-
-    // 2a. Randomly distribute Ntot indexes
-    // 2b. For each bucket accumulate backbone
     {
-        std::vector<Index> _jobs(Ntot);
-        std::iota(_jobs.begin(), _jobs.end(), 0);
-        std::for_each(_jobs.begin(), _jobs.end(), [&BLOCK_SIZE](auto &x) {
-            return x / BLOCK_SIZE;
-        });
+        std::vector<std::tuple<Index, Index, Scalar>> knn_raw;
+        ASSERT_RETL(asap::bbknn::build_knn(V_kn,
+                                           global_index,
+                                           idx_ptr_vec,
+                                           options,
+                                           knn_raw),
+                    "Failed to build the k-MN backbone");
 
-        std::vector<std::vector<Index>> job_vec = make_index_vec_vec(_jobs);
-        std::vector<std::tuple<Index, Index, Scalar>> backbone_raw;
-
-        Index Nprocessed = 0;
-
-#if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
-#pragma omp for
-#endif
-        for (Index job = 0; job < job_vec.size(); ++job) {
-            const std::vector<Index> &_cells = job_vec.at(job);
-
-            std::vector<Scalar> query(rank);
-
-            for (Index glob_i : _cells) {
-                Eigen::Map<Mat>(query.data(), rank, 1) = V_kn.col(glob_i);
-
-                std::vector<Scalar> dist_ij;
-                std::vector<Scalar> weight_ij;
-                std::vector<Index> pair_ij;
-
-                // for each batch
-                for (Index b = 0; b < B; ++b) {
-                    annoy_index_t &index = *idx_ptr_vec[b].get();
-                    std::vector<Index> &globs = global_index[b];
-
-                    const std::size_t nsearch =
-                        std::min(KNN_PER_BATCH, globs.size());
-                    std::vector<Index> neigh;
-                    std::vector<Scalar> dist;
-
-                    index.get_nns_by_vector(query.data(),
-                                            nsearch,
-                                            -1,
-                                            &neigh,
-                                            &dist);
-                    for (std::size_t i = 0; i < nsearch; ++i) {
-                        const Scalar d = dist.at(i);
-                        const Index j = neigh.at(i);
-                        const Index glob_j = globs.at(j);
-
-                        if (glob_i != glob_j) {
-                            pair_ij.emplace_back(glob_j);
-                            dist_ij.emplace_back(d);
-                            weight_ij.emplace_back(0);
-                        }
-                    }
-                } // batches
-
-                const std::size_t deg_ij = pair_ij.size();
-                mmutil::match::normalize_weights(deg_ij, dist_ij, weight_ij);
-
-#pragma omp critical
-                {
-                    for (std::size_t k = 0; k < deg_ij; ++k) {
-                        backbone_raw.emplace_back(glob_i,
-                                                  pair_ij.at(k),
-                                                  weight_ij.at(k));
-                    }
-                }
-            }
-#pragma omp critical
-            {
-                Nprocessed += 1;
-                if (verbose) {
-                    Rcpp::Rcerr << "\rProcessed: " << Nprocessed << std::flush;
-                } else {
-                    Rcpp::Rcerr << "+ " << std::flush;
-                    if (Nprocessed % 100 == 0)
-                        Rcpp::Rcerr << "\r" << std::flush;
-                }
-            }
-
-        } // jobs
-
-        auto backbone_rec = mmutil::match::keep_reciprocal_knn(backbone_raw);
-        SpMat W = build_eigen_sparse(backbone_rec, Ntot, Ntot);
+        auto knn_rec = mmutil::match::keep_reciprocal_knn(knn_raw);
+        SpMat W = build_eigen_sparse(knn_rec, Ntot, Ntot);
         SpMat Wt = W.transpose();
         Wsym = (W + Wt) * 0.5;
-
-    } // end of Wsym
-
+    }
     TLOG_(verbose, "Constructed BB-kNN graph");
 
     /////////////////////////////////////
@@ -229,6 +148,8 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     for (Index b = 1; b < B; ++b) {
         std::vector<Index> &globs = global_index[b];
+
+        // TODO: group-wise adjustment
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -269,10 +190,23 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     Vadj.transposeInPlace();
 
+    SpMat Wout;
+    {
+        TLOG_(verbose, "Recalibrate kNN graph");
+        Mat data_nk = Vadj;
+        auto idx_ptr = asap::bbknn::build_euclidean_annoy(data_nk, NUM_THREADS);
+
+        std::vector<std::tuple<Index, Index, Scalar>> knn_raw;
+        Mat data_kn = data_nk.transpose();
+        build_knn(data_kn, idx_ptr, options, knn_raw);
+
+        SpMat W = build_eigen_sparse(knn_raw, Ntot, Ntot);
+        SpMat Wt = W.transpose();
+        Wout = (W + Wt) * 0.5;
+    }
+
     using namespace rcpp::util;
     using namespace Rcpp;
-
-    List knn_list = build_sparse_list(Wsym);
 
     std::vector<std::vector<Index>> r_glob_idx;
     for (Index j = 0; j < global_index.size(); ++j) {
@@ -283,5 +217,6 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
                         _["names"] = global_names,
                         _["indexes"] = r_glob_idx,
                         _["batches"] = convert_r_index(batches),
-                        _["knn"] = knn_list);
+                        _["knn"] = build_sparse_list(Wsym),
+                        _["knn.adj"] = build_sparse_list(Wout));
 }

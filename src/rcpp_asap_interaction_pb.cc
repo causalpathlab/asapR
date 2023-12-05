@@ -69,6 +69,8 @@ asap_interaction_random_bulk(
     const bool verbose = false)
 {
 
+    using namespace asap::pb;
+
     log1p_op<Mat> log1p;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;

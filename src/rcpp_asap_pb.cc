@@ -64,6 +64,8 @@ asap_random_bulk(
     const char COL_WORD_SEP = '@')
 {
 
+    using namespace asap::pb;
+
     log1p_op<Mat> log1p;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
 
@@ -201,7 +203,7 @@ asap_random_bulk(
     // Regress out X_nr
     if (X_nr.cols() > 0 && X_nr.rows() == N) {
         Mat Qt = Q_kn.transpose(); // N x K
-        residual_columns(Qt, X_nr);
+        residual_columns_inplace(Qt, X_nr);
         standardize_columns_inplace(Qt);
         Q_kn = Qt.transpose();
 
@@ -213,7 +215,7 @@ asap_random_bulk(
     // Regress out YtX_nr
     if (YtX_nr.cols() > 0 && YtX_nr.rows() == N) {
         Mat Qt = Q_kn.transpose(); // N x K
-        residual_columns(Qt, YtX_nr);
+        residual_columns_inplace(Qt, YtX_nr);
         standardize_columns_inplace(Qt);
         Q_kn = Qt.transpose();
 
