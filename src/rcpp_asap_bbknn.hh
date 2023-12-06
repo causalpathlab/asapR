@@ -235,7 +235,7 @@ build_knn(const Eigen::MatrixBase<Derived> &query_kn,
     }     // for each job
 
     if (verbose) {
-        Rcpp::Rcerr << "Processed " << Nprocessed << " pairs" << std::endl;
+        Rcpp::Rcerr << "\nProcessed " << Nprocessed << " pairs" << std::endl;
     } else {
         Rcpp::Rcerr << std::endl;
     }

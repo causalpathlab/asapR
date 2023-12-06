@@ -75,7 +75,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
 
     Mat V_kn(rank, Ntot);
 
-    std::vector<std::vector<Index>> global_index;
+    std::vector<std::vector<Index>> global_index_batches;
     std::vector<Index> batches(Ntot);
     {
         V_kn.setZero();
@@ -83,9 +83,9 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
         for (std::size_t b = 0; b < data_nk_vec.size(); ++b) {
             const Eigen::MatrixXf &data_nk = data_nk_vec[b];
             const std::size_t rank = data_nk.cols();
-            global_index.emplace_back(std::vector<Index> {});
+            global_index_batches.emplace_back(std::vector<Index> {});
 
-            std::vector<Index> &globs = global_index[b];
+            std::vector<Index> &globs = global_index_batches[b];
             globs.reserve(data_nk.rows());
 
             Mat vsub_kn = data_nk.transpose();
@@ -126,12 +126,12 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     SpMat Wsym;
     {
         std::vector<std::tuple<Index, Index, Scalar>> knn_raw;
-        ASSERT_RETL(asap::bbknn::build_knn(V_kn,
-                                           global_index,
-                                           idx_ptr_vec,
-                                           options,
-                                           knn_raw),
-                    "Failed to build the k-MN backbone");
+        CHK_RETL_(asap::bbknn::build_knn(V_kn,
+                                         global_index_batches,
+                                         idx_ptr_vec,
+                                         options,
+                                         knn_raw),
+                  "Failed to build the k-NN backbone");
 
         auto knn_rec = mmutil::match::keep_reciprocal_knn(knn_raw);
         SpMat W = build_eigen_sparse(knn_rec, Ntot, Ntot);
@@ -147,26 +147,60 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     Mat Vadj = V_kn;
 
     for (Index b = 1; b < B; ++b) {
-        std::vector<Index> &globs = global_index[b];
+        std::vector<Index> &globs = global_index_batches[b];
 
-        // TODO: group-wise adjustment
-
+        // a. Assign membership
+        std::vector<Index> membership;
+        Mat data_kn(V_kn.rows(), globs.size());
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index j : globs) {
+        for (Index l = 0; l < globs.size(); ++l) {
+            data_kn.col(l) = V_kn.col(globs.at(l));
+        }
 
-            ColVec delta = ColVec::Zero(rank);
+        // b. Orthogonalize
+        Mat ortho_nk;
+
+        if (data_kn.cols() < 1000) {
+            Eigen::BDCSVD<Mat> svd;
+            svd.compute(data_kn, Eigen::ComputeThinU | Eigen::ComputeThinV);
+            ortho_nk = svd.matrixV();
+        } else {
+            const std::size_t lu_iter = 5;
+            RandomizedSVD<Mat> svd(data_kn.rows(), lu_iter);
+            svd.compute(data_kn);
+            ortho_nk = svd.matrixV();
+        }
+
+        // c. Reasonable groups
+        standardize_columns_inplace(ortho_nk);
+        asap::pb::binary_shift_membership(ortho_nk, membership);
+        auto groups = make_index_vec_vec(membership);
+
+        TLOG_(verbose, "Found " << groups.size() << " groups");
+
+        // d. Adjust group by group
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+        for (std::vector<Index> &locals : groups) {
+
+            ColVec delta = ColVec::Zero(data_kn.rows());
             Scalar denom = 0;
 
-            for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
-                const Index i = it.index();        // other index
-                const Index a = batches.at(i);     // batch membership
-                if (a < b) {                       // mingle toward
-                    const Scalar wji = it.value(); // the previous batches
-                    delta += (V_kn.col(j) - Vadj.col(i)) * wji;
-                    denom += wji;
+            for (Index l : locals) {
+                const Index j = globs.at(l); // this index
+                for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
+                    const Index i = it.index();        // other index
+                    const Index a = batches.at(i);     // batch membership
+                    if (a < b) {                       // mingle toward
+                        const Scalar wji = it.value(); // the previous
+                        delta += (V_kn.col(j) - Vadj.col(i)) * wji;
+                        denom += wji;
+                    }
                 }
             }
 
@@ -174,19 +208,18 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
                 delta /= denom;
             }
 
-#pragma omp critical
-            {
-                ////////////////////////////////
-                // May create over-adjustment //
-                ////////////////////////////////
-
-                Vadj.col(j) = V_kn.col(j) - delta;
+            for (Index l : locals) {
+                const Index j = globs.at(l); // this index
+                for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
+                    const Index i = it.index(); // other index
+                    Vadj.col(j) = V_kn.col(j) - delta;
+                }
             }
         }
 
-    } // for each batch
+        TLOG_(verbose, "Successfully adjusted the batch [" << b << "]");
 
-    TLOG_(verbose, "Successfully adjusted weights");
+    } // for each batch
 
     Vadj.transposeInPlace();
 
@@ -209,8 +242,8 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> &data_nk_vec,
     using namespace Rcpp;
 
     std::vector<std::vector<Index>> r_glob_idx;
-    for (Index j = 0; j < global_index.size(); ++j) {
-        r_glob_idx.emplace_back(convert_r_index(global_index.at(j)));
+    for (Index j = 0; j < global_index_batches.size(); ++j) {
+        r_glob_idx.emplace_back(convert_r_index(global_index_batches.at(j)));
     }
 
     return List::create(_["adjusted"] = named_rows(Vadj, global_names),
