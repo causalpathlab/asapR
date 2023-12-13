@@ -13,7 +13,7 @@ using model_t = asap_nmf_model_t<RNG>;
 //' @param min_iter min number of optimization steps
 //' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
-//' @param a0 gamma(a0, b0) default: a0 = 1e-8
+//' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
 //' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
@@ -42,7 +42,7 @@ asap_fit_nmf(Rcpp::NumericMatrix &Y_,
              const Rcpp::Nullable<Rcpp::List> r_A_nn_list = R_NilValue,
              const std::size_t burnin = 0,
              const bool verbose = true,
-             const double a0 = 1e-8,
+             const double a0 = 1,
              const double b0 = 1,
              const bool do_log1p = false,
              const std::size_t rseed = 1337,

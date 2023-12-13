@@ -33,7 +33,7 @@ asap_topic_stat_cbind(
     const std::vector<std::string> col_files,
     const std::vector<std::string> idx_files,
     const Eigen::MatrixXf log_beta,
-    const Rcpp::StringVector &beta_row_names,
+    const Rcpp::StringVector beta_row_names,
     const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
     const bool do_stdize_beta = false,
     const bool do_log1p = false,
