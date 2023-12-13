@@ -140,8 +140,11 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
         std::vector<std::string> col_b;
-        CHECK(
-            read_line_file(col_files.at(b), col_b, MAX_COL_WORD, COL_WORD_SEP))
+        CHK_RETL_(read_line_file(col_files.at(b),
+                                 col_b,
+                                 MAX_COL_WORD,
+                                 COL_WORD_SEP),
+                  "unable to read " << col_files.at(b))
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
     }
 

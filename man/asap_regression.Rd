@@ -7,7 +7,7 @@
 asap_regression(
   Y_,
   log_beta,
-  a0 = 1e-08,
+  a0 = 1,
   b0 = 1,
   max_iter = 10L,
   do_log1p = FALSE,

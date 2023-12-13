@@ -405,7 +405,7 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, be
 #'  \item colsum (N x 1) column sum vector
 #' }
 #'
-asap_regression <- function(Y_, log_beta, a0 = 1e-8, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
+asap_regression <- function(Y_, log_beta, a0 = 1.0, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
     .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_beta, a0, b0, max_iter, do_log1p, verbose)
 }
 
@@ -434,8 +434,8 @@ asap_regression <- function(Y_, log_beta, a0 = 1e-8, b0 = 1.0, max_iter = 10L, d
 #'  \item colsum.list a list of column sum vectors (column x 1)
 #' }
 #'
-asap_topic_stat_cbind <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_topic_stat_cbind <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

@@ -54,7 +54,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 
     Mat x_nk = ColVec::Ones(N) * beta_dk.colwise().sum(); // N x K
 
-    Mat logRho_nk(N, K), rho_nk(N, K);
+    Mat logRho_nk(N, K), rho_nk(N, K);   // N x K
     gamma_t theta_nk(N, K, a0, b0, rng); // N x K
 
     RowVec tempK(K);
@@ -211,7 +211,7 @@ asap_topic_stat(const std::string mtx_file,
 Rcpp::List
 asap_regression(const Eigen::MatrixXf Y_,
                 const Eigen::MatrixXf log_beta,
-                const double a0 = 1e-8,
+                const double a0 = 1.0,
                 const double b0 = 1.0,
                 const std::size_t max_iter = 10,
                 const bool do_log1p = false,

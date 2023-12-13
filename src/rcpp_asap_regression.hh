@@ -56,6 +56,8 @@ asap_topic_stat_mtx(const std::string mtx_file,
 
     const Index D = pos2row.size(); // dimensionality
 
+    ASSERT_RET(D > 0, "No features found!");
+
     ASSERT_RET(logX_dk.rows() == D,
                "#Rows in the logX_dk matrix !=  the size of x_row_names: "
                    << logX_dk.rows() << " != " << D);
@@ -130,6 +132,8 @@ asap_topic_stat_mtx(const std::string mtx_file,
 
         Mat R_nk =
             (y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
+
+        R_nk /= static_cast<Scalar>(D); // to reduce scales
 
 #pragma omp critical
         {
