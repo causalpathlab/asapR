@@ -49,29 +49,32 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
-                       const std::vector<std::string> row_files,
-                       const std::vector<std::string> col_files,
-                       const std::vector<std::string> idx_files,
-                       const std::size_t num_factors,
-                       const bool take_union_rows = false,
-                       const std::size_t rseed = 42,
-                       const bool verbose = true,
-                       const std::size_t NUM_THREADS = 1,
-                       const std::size_t BLOCK_SIZE = 100,
-                       const bool do_batch_adj = true,
-                       const bool do_log1p = false,
-                       const bool do_down_sample = true,
-                       const bool save_rand_proj = false,
-                       const std::size_t KNN_CELL = 3,
-                       const std::size_t CELL_PER_SAMPLE = 100,
-                       const std::size_t BATCH_ADJ_ITER = 100,
-                       const double a0 = 1e-8,
-                       const double b0 = 1,
-                       const std::size_t MAX_ROW_WORD = 2,
-                       const char ROW_WORD_SEP = '_',
-                       const std::size_t MAX_COL_WORD = 100,
-                       const char COL_WORD_SEP = '@')
+asap_random_bulk_cbind(
+    const std::vector<std::string> mtx_files,
+    const std::vector<std::string> row_files,
+    const std::vector<std::string> col_files,
+    const std::vector<std::string> idx_files,
+    const std::size_t num_factors,
+    const Rcpp::Nullable<Rcpp::StringVector> r_batch_names = R_NilValue,
+    const bool rename_columns = true,
+    const bool take_union_rows = false,
+    const std::size_t rseed = 42,
+    const bool verbose = true,
+    const std::size_t NUM_THREADS = 1,
+    const std::size_t BLOCK_SIZE = 100,
+    const bool do_batch_adj = true,
+    const bool do_log1p = false,
+    const bool do_down_sample = true,
+    const bool save_rand_proj = false,
+    const std::size_t KNN_CELL = 3,
+    const std::size_t CELL_PER_SAMPLE = 100,
+    const std::size_t BATCH_ADJ_ITER = 100,
+    const double a0 = 1,
+    const double b0 = 1,
+    const std::size_t MAX_ROW_WORD = 2,
+    const char ROW_WORD_SEP = '_',
+    const std::size_t MAX_COL_WORD = 100,
+    const char COL_WORD_SEP = '@')
 {
 
     using namespace asap::pb;
@@ -101,6 +104,19 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
             CHK_RETL(build_mmutil_index(mtx_files.at(b), idx_files.at(b)));
             TLOG_(verbose, "built the missing index: " << idx_files.at(b));
         }
+    }
+
+    std::vector<std::string> batch_names;
+
+    if (rename_columns) {
+        if (r_batch_names.isNotNull()) {
+            batch_names = rcpp::util::copy(Rcpp::StringVector(r_batch_names));
+        } else {
+            for (Index b = 0; b < B; ++b) {
+                batch_names.emplace_back(std::to_string(b + 1));
+            }
+        }
+        ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
     }
 
     TLOG_(verbose, "Checked the files");
@@ -145,6 +161,12 @@ asap_random_bulk_cbind(const std::vector<std::string> mtx_files,
                                  MAX_COL_WORD,
                                  COL_WORD_SEP),
                   "unable to read " << col_files.at(b))
+        if (rename_columns) {
+            const std::string bname = batch_names.at(b);
+            auto app_b = [&bname](std::string &x) { x + "_" + bname; };
+            std::for_each(col_b.begin(), col_b.end(), app_b);
+        }
+
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
     }
 

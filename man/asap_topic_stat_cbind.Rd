@@ -12,6 +12,8 @@ asap_topic_stat_cbind(
   log_beta,
   beta_row_names,
   log_delta = NULL,
+  r_batch_names = NULL,
+  rename_columns = TRUE,
   do_stdize_beta = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,

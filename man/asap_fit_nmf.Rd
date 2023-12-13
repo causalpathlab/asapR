@@ -12,7 +12,7 @@ asap_fit_nmf(
   r_A_nn_list = NULL,
   burnin = 0L,
   verbose = TRUE,
-  a0 = 1e-08,
+  a0 = 1,
   b0 = 1,
   do_log1p = FALSE,
   rseed = 1337L,
@@ -32,7 +32,7 @@ asap_fit_nmf(
 
 \item{verbose}{verbosity}
 
-\item{a0}{gamma(a0, b0) default: a0 = 1e-8}
+\item{a0}{gamma(a0, b0) default: a0 = 1}
 
 \item{b0}{gamma(a0, b0) default: b0 = 1}
 

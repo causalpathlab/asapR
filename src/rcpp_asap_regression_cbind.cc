@@ -35,6 +35,8 @@ asap_topic_stat_cbind(
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
     const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
+    const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names = R_NilValue,
+    const bool rename_columns = true,
     const bool do_stdize_beta = false,
     const bool do_log1p = false,
     const bool verbose = false,
@@ -86,6 +88,19 @@ asap_topic_stat_cbind(
             CHK_RETL(build_mmutil_index(mtx_files.at(b), idx_files.at(b)));
             TLOG_(verbose, "built the missing index: " << idx_files.at(b));
         }
+    }
+
+    std::vector<std::string> batch_names;
+
+    if (rename_columns) {
+        if (r_batch_names.isNotNull()) {
+            batch_names = rcpp::util::copy(Rcpp::StringVector(r_batch_names));
+        } else {
+            for (Index b = 0; b < B; ++b) {
+                batch_names.emplace_back(std::to_string(b + 1));
+            }
+        }
+        ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
     }
 
     TLOG_(verbose, "Checked the files");
@@ -141,6 +156,13 @@ asap_topic_stat_cbind(
                                  MAX_COL_WORD,
                                  COL_WORD_SEP),
                   "unable to read " << col_files.at(b))
+
+        if (rename_columns) {
+            const std::string bname = batch_names.at(b);
+            auto app_b = [&bname](std::string &x) { x + "_" + bname; };
+            std::for_each(col_b.begin(), col_b.end(), app_b);
+        }
+
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
 
         const Index ub = columns.size();
