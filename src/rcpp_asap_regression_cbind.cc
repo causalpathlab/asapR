@@ -159,7 +159,7 @@ asap_topic_stat_cbind(
 
         if (rename_columns) {
             const std::string bname = batch_names.at(b);
-            auto app_b = [&bname](std::string &x) { x + "_" + bname; };
+            auto app_b = [&bname](std::string &x) { x += "_" + bname; };
             std::for_each(col_b.begin(), col_b.end(), app_b);
         }
 
