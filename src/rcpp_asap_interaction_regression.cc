@@ -38,7 +38,7 @@ asap_interaction_topic_stat(
     const std::string col_file,
     const std::string idx_file,
     const Eigen::MatrixXf log_beta,
-    const Rcpp::StringVector &beta_row_names,
+    const Rcpp::StringVector beta_row_names,
     const Rcpp::List W_nn_list,
     const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
     const bool do_stdize_beta = true,
