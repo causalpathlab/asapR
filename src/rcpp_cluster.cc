@@ -14,7 +14,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-fit_poisson_cluster_rows(const Eigen::MatrixXf &X,
+fit_poisson_cluster_rows(const Eigen::MatrixXf X,
                          const std::size_t Ltrunc,
                          const double alpha = 1,
                          const double a0 = 1e-2,

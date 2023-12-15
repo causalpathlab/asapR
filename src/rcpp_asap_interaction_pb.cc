@@ -311,13 +311,6 @@ asap_interaction_random_bulk(
     std::vector<Index> r_positions(positions.size());
     convert_r_index(positions, r_positions);
 
-    // std::vector<std::string> s_;
-    // for (std::size_t s = 1; s <= S; ++s) {
-    //     s_.push_back(std::to_string(s));
-    // }
-
-    // std::vector<std::string> d_ = row_names;
-
     if (!save_rand_proj) {
         Q_km.resize(0, 0);
     }

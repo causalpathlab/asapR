@@ -9,8 +9,8 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor> &A_dd,
-                  const Eigen::MatrixXd &beta_dt,
+decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor> A_dd,
+                  const Eigen::MatrixXd beta_dt,
                   const double cutoff = 1e-8,
                   const bool verbose = true)
 {
@@ -37,7 +37,7 @@ decompose_network(const Eigen::SparseMatrix<double, Eigen::ColMajor> &A_dd,
                 beta_dt.row(j).cwiseProduct(beta_dt.row(i)).maxCoeff(&k);
                 rows.emplace_back(i + 1); // 1-based
                 cols.emplace_back(j + 1); // 1-based
-                ks.emplace_back(k + 1); // 1-based
+                ks.emplace_back(k + 1);   // 1-based
                 weights.emplace_back(it.value());
             }
         }

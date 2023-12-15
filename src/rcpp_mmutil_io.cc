@@ -90,7 +90,7 @@ mmutil_colnames(const std::string col_file,
 //' @return EXIT_SUCCESS or EXIT_FAILURE
 // [[Rcpp::export]]
 int
-mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> &X,
+mmutil_write_mtx(const Eigen::SparseMatrix<float, Eigen::ColMajor> X,
                  const std::string mtx_file)
 {
 

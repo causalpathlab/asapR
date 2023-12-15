@@ -56,7 +56,7 @@ mmutil_read_index(const std::string index_file)
 // [[Rcpp::export]]
 bool
 mmutil_check_index(const std::string mtx_file,
-                   const Rcpp::NumericVector &index_tab)
+                   const Rcpp::NumericVector index_tab)
 {
     CHK_RET(mmutil::bgzf::convert_bgzip(mtx_file));
     using namespace mmutil::index;

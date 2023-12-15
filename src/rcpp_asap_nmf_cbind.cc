@@ -35,7 +35,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf_cbind(const std::vector<Eigen::MatrixXf> &y_dn_vec,
+asap_fit_nmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const std::size_t maxK,
                    const std::size_t max_iter = 100,
                    const std::size_t burnin = 0,

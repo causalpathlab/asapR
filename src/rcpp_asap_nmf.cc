@@ -35,7 +35,7 @@ using model_t = asap_nmf_model_t<RNG>;
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf(Rcpp::NumericMatrix &Y_,
+asap_fit_nmf(const Eigen::MatrixXf Y_,
              const std::size_t maxK,
              const std::size_t max_iter = 100,
              const Rcpp::Nullable<Rcpp::List> r_A_dd_list = R_NilValue,
@@ -54,8 +54,7 @@ asap_fit_nmf(Rcpp::NumericMatrix &Y_,
     TLOG_(verbose, Eigen::nbThreads() << " threads");
 
     log1p_op<Mat> log1p;
-    Mat Y_dn =
-        do_log1p ? Rcpp::as<Mat>(Y_).unaryExpr(log1p) : Rcpp::as<Mat>(Y_);
+    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
     TLOG_(verbose, "Data: " << Y_dn.rows() << " x " << Y_dn.cols());
 

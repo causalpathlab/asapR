@@ -50,7 +50,7 @@ Rcpp::List
 mmutil_copy_selected_rows(const std::string mtx_file,
                           const std::string row_file,
                           const std::string col_file,
-                          const Rcpp::StringVector &r_selected,
+                          const Rcpp::StringVector r_selected,
                           const std::string output,
                           const std::size_t MAX_ROW_WORD = 2,
                           const char ROW_WORD_SEP = '_',

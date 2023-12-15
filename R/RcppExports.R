@@ -22,6 +22,20 @@ asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZ
     .Call('_asapR_asap_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
 }
 
+#' Topic deconvolution
+#'
+#' @param bulk_dm Convoluted bulk data
+#' @param bulk_row_names row names of bulk_data (D vector)
+#' @param log_beta log dictionary matrix (D x K)
+#' @param beta_row_names row names log_beta (D vector)
+#' @param Ref_nk reference correlation data (N x K)
+#' @param do_stdize_beta use standardized log_beta (default: TRUE)
+#'
+#'
+asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, Ref_nk, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, KNN_PER_SAMPLE = 15L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_deconv_stat', PACKAGE = 'asapR', bulk_dm, bulk_row_names, log_beta, beta_row_names, Ref_nk, rseed, verbose, NUM_THREADS, KNN_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+}
+
 #' Generate approximate pseudo-bulk interaction data by random projections
 #'
 #' @param mtx_file matrix-market-formatted data file (bgzip)
