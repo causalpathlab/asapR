@@ -110,12 +110,18 @@ asap_random_bulk_cbind(
 
     if (rename_columns) {
         if (r_batch_names.isNotNull()) {
-            batch_names = rcpp::util::copy(Rcpp::StringVector(r_batch_names));
+            rcpp::util::copy(Rcpp::StringVector(r_batch_names), batch_names);
         } else {
             for (Index b = 0; b < B; ++b) {
                 batch_names.emplace_back(std::to_string(b + 1));
             }
         }
+
+        if (verbose) {
+            for (auto b : batch_names)
+                TLOG("batch: " << b)
+        }
+
         ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
     }
 

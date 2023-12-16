@@ -133,7 +133,7 @@ asap_topic_stat_mtx(const std::string mtx_file,
         Mat R_nk =
             (y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
 
-        R_nk /= static_cast<Scalar>(D); // to reduce scales
+        R_nk /= std::sqrt(static_cast<Scalar>(D)); // to reduce scales
 
 #pragma omp critical
         {
