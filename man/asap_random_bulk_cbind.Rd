@@ -23,7 +23,8 @@ asap_random_bulk_cbind(
   do_log1p = FALSE,
   do_down_sample = TRUE,
   save_rand_proj = FALSE,
-  KNN_CELL = 3L,
+  weighted_rand_proj = FALSE,
+  KNN_CELL = 10L,
   CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
   a0 = 1,
@@ -63,7 +64,9 @@ asap_random_bulk_cbind(
 
 \item{save_rand_proj}{save random projection (default: FALSE)}
 
-\item{KNN_CELL}{k-NN cells per batch between different batches (default: 3)}
+\item{weighted_rand_proj}{save random projection (default: FALSE)}
+
+\item{KNN_CELL}{k-NN cells per batch between different batches (default: 10)}
 
 \item{CELL_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
 

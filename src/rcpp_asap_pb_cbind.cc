@@ -18,7 +18,8 @@
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: TRUE)
 //' @param save_rand_proj save random projection (default: FALSE)
-//' @param KNN_CELL k-NN cells per batch between different batches (default: 3)
+//' @param weighted_rand_proj save random projection (default: FALSE)
+//' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
@@ -66,7 +67,8 @@ asap_random_bulk_cbind(
     const bool do_log1p = false,
     const bool do_down_sample = true,
     const bool save_rand_proj = false,
-    const std::size_t KNN_CELL = 3,
+    const bool weighted_rand_proj = false,
+    const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
     const double a0 = 1,
@@ -203,6 +205,21 @@ asap_random_bulk_cbind(
                         MAX_ROW_WORD,
                         ROW_WORD_SEP);
 
+        Mat r_kd = R_kd;
+
+        if (weighted_rand_proj) {
+            apply_mtx_row_sd(mtx_files.at(b),
+                             idx_files.at(b),
+                             r_kd,
+                             verbose,
+                             NUM_THREADS,
+                             BLOCK_SIZE,
+                             do_log1p);
+            if (verbose) {
+                TLOG("Weighted random projection matrix");
+            }
+        }
+
         // Find features in the global mapping
         Mat R_matched_kd(K, data.info.max_row);
         R_matched_kd.setZero();
@@ -213,7 +230,7 @@ asap_random_bulk_cbind(
             const std::string &r = sub_rows.at(ri);
             if (row2pos.count(r) > 0) {
                 const Index d = row2pos.at(r);
-                R_matched_kd.col(ri) = R_kd.col(d);
+                R_matched_kd.col(ri) = r_kd.col(d);
             }
         }
 
