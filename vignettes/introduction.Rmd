@@ -11,6 +11,7 @@ theme_set(theme_classic())
 
 ```{r simulation}
 library(asapR)
+library(pheatmap)
 set.seed(1331)
 d <- 500
 n <- 5000
@@ -44,11 +45,11 @@ How can we estimate cell topic proportions ASAP?
 ## Step 1: Fast pseudo-bulk sampling
 
 ```{r step1}
-.bulk <- asap_random_bulk_data(asap.data$mtx,
-                               asap.data$row,
-                               asap.data$col,
-                               asap.data$idx,
-                               num_factors = 5)
+.bulk <- asap_random_bulk(asap.data$mtx,
+                          asap.data$row,
+                          asap.data$col,
+                          asap.data$idx,
+                          num_factors = 5)
 ```
 
 We can squeeze `r .info$max.col` cells into `r ncol(.bulk$PB)` pseudo-bulk samples.
@@ -59,7 +60,7 @@ Y <- stretch_matrix_columns(.bulk$PB)*100
 Some gene-gene correlation structures are preserved in the PB data.
 
 ```{r fig_pb_y, fig.width=7, fig.height=4}
-heatmap(t(Y))
+pheatmap(t(Y))
 ```
 
 ## Step 2: Non-negative Matrix Factorization to learn the definition of "topics"
@@ -97,7 +98,7 @@ plot.struct <- function(.prop){
 ```
 
 ```{r fig_struct_bulk, fig.width=7, fig.height=3}
-.bulk.topic <- pmf2topic(.nmf$model$beta, .nmf$model$theta)
+.bulk.topic <- pmf2topic(.nmf$beta, .nmf$theta)
 plot.struct(.bulk.topic$prop) +
     xlab("pseudobulk samples")
 ```
@@ -110,8 +111,8 @@ plot.struct(.bulk.topic$prop) +
                          asap.data$row,
                          asap.data$col,
                          asap.data$idx,
-                         log_x = .nmf$std_log_x,
-                         .bulk$rownames)
+                         log_beta = .nmf$log.beta,
+                         beta_row_names = .bulk$rownames)
 
 R <- apply(.stat$corr, 2, scale)
 ```
@@ -131,16 +132,16 @@ for(k in 1:4){
 We can quantify topic proportions based on the correlation results.
 
 ```{r}
-.pmf <- asap_topic_pmf(.nmf$model$beta, R, .stat$colsum, max_iter = 10)
+.pmf <- asap_topic_pmf(.nmf$beta, R, .stat$colsum, max_iter = 10)
 .topic <- pmf2topic(.pmf$beta, .pmf$theta)
 ```
 
 ```{r fig_topic_heatmap, fig.width=8, fig.height=3}
-heatmap(t(.topic$prop[order(kk),]), Rowv=NA, Colv=NA)
+pheatmap(t(.topic$prop[order(kk),]), Rowv=NA, Colv=NA)
 ```
 
 ```{r fig_true_topic_heatmap, fig.width=8, fig.height=3}
-heatmap(t(vv[order(kk),]), Rowv=NA, Colv=NA)
+pheatmap(t(vv[order(kk),]), Rowv=NA, Colv=NA)
 ```
 
 ```{r fig_topic_pmf_cell, fig.width=7, fig.height=2}

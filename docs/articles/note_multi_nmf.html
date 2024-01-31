@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
       </span>
     </div>
 
@@ -50,12 +50,6 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
-      <a href="../articles/example_allen_brain.html">8. Example: Brain cell type annotation</a>
-    </li>
-    <li>
-      <a href="../articles/example_brain_tumour.html">9. An example of brain tumour data analysis across multiple batches</a>
-    </li>
-    <li>
       <a href="../articles/introduction.html">1. Introduction: We want cell topic estimation ASAP</a>
     </li>
     <li>
@@ -63,6 +57,9 @@
     </li>
     <li>
       <a href="../articles/note_faster_nmf_approximation.html">3. Expedite Poisson-NMF estimation via alternating regression models</a>
+    </li>
+    <li>
+      <a href="../articles/note_interaction_topic.html"></a>
     </li>
     <li>
       <a href="../articles/note_multi_nmf.html">4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
@@ -80,7 +77,7 @@
 
       
 
-      </header><script src="note_multi_nmf_files/accessible-code-block-0.0.1/empty-anchor.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
       <h1 data-toc-skip>4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</h1>
@@ -107,6 +104,7 @@
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">asapR</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">pheatmap</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1331</span><span class="op">)</span></span>
 <span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fl">1000</span></span>
@@ -134,16 +132,16 @@
 <code class="sourceCode R"><span><span class="va">u0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="va">uu</span>, <span class="fl">0</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">uu</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">.out0</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/asap_fit_nmf.html">asap_fit_nmf</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">y1</span>, <span class="va">y2</span>, <span class="va">y3</span>, <span class="va">u0</span><span class="op">)</span> <span class="op">*</span> <span class="fl">10</span>, maxK<span class="op">=</span><span class="fl">7</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">log.beta</span><span class="op">[</span><span class="va">gg</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">log.beta</span><span class="op">[</span><span class="va">gg</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-3-1.png" width="480"></p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[</span><span class="va">kk</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta1"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">kk</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta1"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-4-1.png" width="480"></p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[</span><span class="va">kk</span> <span class="op">+</span> <span class="va">n</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta2"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">kk</span> <span class="op">+</span> <span class="va">n</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta2"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-5-1.png" width="480"></p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">model</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[</span><span class="va">kk</span> <span class="op">+</span> <span class="fl">2</span><span class="op">*</span><span class="va">n</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta3"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out0</span><span class="op">$</span><span class="va">theta</span><span class="op">[</span><span class="va">kk</span> <span class="op">+</span> <span class="fl">2</span><span class="op">*</span><span class="va">n</span>, <span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta3"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-6-1.png" width="480"></p>
 </div>
 <div class="section level3">
@@ -151,18 +149,18 @@
 </h3>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">u0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmax</a></span><span class="op">(</span><span class="va">uu</span>, <span class="fl">0</span><span class="op">)</span>, <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">uu</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">.out</span> <span class="op">&lt;-</span>  <span class="fu"><a href="../reference/asap_fit_nmf_shared_dict.html">asap_fit_nmf_shared_dict</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">y1</span>, <span class="va">y2</span>, <span class="va">y3</span>, <span class="va">u0</span><span class="op">)</span>, a0 <span class="op">=</span> <span class="fl">1e-2</span>, b0 <span class="op">=</span> <span class="fl">1</span>, maxK<span class="op">=</span><span class="fl">7</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">.out</span> <span class="op">&lt;-</span>  <span class="fu"><a href="../reference/asap_fit_nmf_cbind.html">asap_fit_nmf_cbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">y1</span>, <span class="va">y2</span>, <span class="va">y3</span>, <span class="va">u0</span><span class="op">)</span>, a0 <span class="op">=</span> <span class="fl">1e-2</span>, b0 <span class="op">=</span> <span class="fl">1</span>, maxK<span class="op">=</span><span class="fl">7</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="va">gg</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">beta</span><span class="op">[</span><span class="va">gg</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"beta"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-8-1.png" width="480"></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta1 (1 + 2)"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">theta.list</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta1 (1 + 2)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-9-1.png" width="480"></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta2 (3 + 4)"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">theta.list</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta2 (3 + 4)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-10-1.png" width="480"></p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/heatmap.html" class="external-link">heatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">log.theta</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, main <span class="op">=</span> <span class="st">"theta3 (4 + 5)"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/pheatmap/man/pheatmap.html" class="external-link">pheatmap</a></span><span class="op">(</span><span class="va">.out</span><span class="op">$</span><span class="va">theta.list</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="va">kk</span>,<span class="op">]</span>, Rowv<span class="op">=</span><span class="cn">NA</span>, Colv<span class="op">=</span><span class="cn">NA</span>, scale <span class="op">=</span> <span class="st">"row"</span>, main <span class="op">=</span> <span class="st">"theta3 (4 + 5)"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="note_multi_nmf_files/figure-html/unnamed-chunk-11-1.png" width="480"></p>
 </div>
   </div>
@@ -182,7 +180,7 @@
 
 <div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer>

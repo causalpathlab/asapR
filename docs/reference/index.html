@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
       </span>
     </div>
 
@@ -41,6 +41,9 @@
       <a href="../articles/note_faster_nmf_approximation.html">3. Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
     <li>
+      <a href="../articles/note_interaction_topic.html"></a>
+    </li>
+    <li>
       <a href="../articles/note_multi_nmf.html">4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
     </li>
   </ul></li>
@@ -61,25 +64,51 @@
           <p class="section-desc"></p>
         </th>
       </tr></tbody><tbody><tr><td>
-          <p><code><a href="asap_adjust_corr_bbknn.html">asap_adjust_corr_bbknn()</a></code> </p>
+          <p><code><a href="asap_bbknn.html">asap_bbknn()</a></code> </p>
         </td>
         <td><p>Reconcile multi-batch matrices by batch-balancing KNN</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_deconv_stat.html">asap_deconv_stat()</a></code> </p>
+        </td>
+        <td><p>Topic deconvolution</p></td>
       </tr><tr><td>
           <p><code><a href="asap_fit_nmf.html">asap_fit_nmf()</a></code> </p>
         </td>
         <td><p>A quick NMF estimation based on alternating Poisson regressions</p></td>
       </tr><tr><td>
-          <p><code><a href="asap_fit_nmf_shared_dict.html">asap_fit_nmf_shared_dict()</a></code> </p>
+          <p><code><a href="asap_fit_nmf_cbind.html">asap_fit_nmf_cbind()</a></code> </p>
         </td>
-        <td><p>A quick NMF estimation based on alternating Poisson regressions</p></td>
+        <td><p>A quick NMF estimation based on alternating Poisson regressions
+while sharing a dictionary/factors matrix</p></td>
       </tr><tr><td>
-          <p><code><a href="asap_random_bulk_data.html">asap_random_bulk_data()</a></code> </p>
+          <p><code><a href="asap_fit_nmf_rbind.html">asap_fit_nmf_rbind()</a></code> </p>
+        </td>
+        <td><p>A quick NMF estimation based on alternating Poisson regressions
+while sharing a factor loading/topic proportion matrix</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_interaction_random_bulk.html">asap_interaction_random_bulk()</a></code> </p>
+        </td>
+        <td><p>Generate approximate pseudo-bulk interaction data by random projections</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_interaction_topic_stat.html">asap_interaction_topic_stat()</a></code> </p>
+        </td>
+        <td><p>Topic statistics to estimate factor loading</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_random_bulk.html">asap_random_bulk()</a></code> </p>
         </td>
         <td><p>Generate approximate pseudo-bulk data by random projections</p></td>
       </tr><tr><td>
-          <p><code><a href="asap_random_bulk_data_multi.html">asap_random_bulk_data_multi()</a></code> </p>
+          <p><code><a href="asap_random_bulk_cbind.html">asap_random_bulk_cbind()</a></code> </p>
         </td>
-        <td><p>Generate approximate pseudo-bulk data by random projections</p></td>
+        <td><p>Generate approximate pseudo-bulk data by random projections
+while sharing rows/features across multiple data sets.
+Horizontal concatenation.</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_random_bulk_rbind.html">asap_random_bulk_rbind()</a></code> </p>
+        </td>
+        <td><p>Generate approximate pseudo-bulk data by random projections
+while sharing columns/cells across multiple data sets.
+Vertical concatenation.</p></td>
       </tr><tr><td>
           <p><code><a href="asap_regression.html">asap_regression()</a></code> </p>
         </td>
@@ -89,9 +118,25 @@
         </td>
         <td><p>Calibrate topic proportions based on sufficient statistics</p></td>
       </tr><tr><td>
+          <p><code><a href="asap_topic_pmf_rbind.html">asap_topic_pmf_rbind()</a></code> </p>
+        </td>
+        <td><p>Calibrate topic proportions based on sufficient statistics</p></td>
+      </tr><tr><td>
           <p><code><a href="asap_topic_stat.html">asap_topic_stat()</a></code> </p>
         </td>
         <td><p>Topic statistics to estimate factor loading</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_topic_stat_cbind.html">asap_topic_stat_cbind()</a></code> </p>
+        </td>
+        <td><p>Topic statistics to estimate factor loading</p></td>
+      </tr><tr><td>
+          <p><code><a href="asap_topic_stat_rbind.html">asap_topic_stat_rbind()</a></code> </p>
+        </td>
+        <td><p>Topic statistics to estimate factor loading</p></td>
+      </tr><tr><td>
+          <p><code><a href="collapse_network.html">collapse_network()</a></code> </p>
+        </td>
+        <td><p>Collapse N x N adjacency network into S x S</p></td>
       </tr><tr><td>
           <p><code><a href="decompose_network.html">decompose_network()</a></code> </p>
         </td>
@@ -112,6 +157,10 @@
           <p><code><a href="mmutil_check_index.html">mmutil_check_index()</a></code> </p>
         </td>
         <td><p>Check if the index tab is valid</p></td>
+      </tr><tr><td>
+          <p><code><a href="mmutil_colnames.html">mmutil_colnames()</a></code> </p>
+        </td>
+        <td><p>Just read each col name per line</p></td>
       </tr><tr><td>
           <p><code><a href="mmutil_copy_selected_columns.html">mmutil_copy_selected_columns()</a></code> </p>
         </td>
@@ -141,6 +190,10 @@
         </td>
         <td><p>Read a subset of rows and columns from the data matrix</p></td>
       </tr><tr><td>
+          <p><code><a href="mmutil_rownames.html">mmutil_rownames()</a></code> </p>
+        </td>
+        <td><p>Just read each row name per line</p></td>
+      </tr><tr><td>
           <p><code><a href="mmutil_simulate_poisson.html">mmutil_simulate_poisson()</a></code> </p>
         </td>
         <td><p>Simulation Poisson data based on Mu</p></td>
@@ -162,6 +215,10 @@ The same idea was first coined by <code>fastTopics</code> paper.</p></td>
         </td>
         <td><p>Create 2D projection of topic proportions</p></td>
       </tr><tr><td>
+          <p><code><a href="rbind.mtx.html">rbind(<i>&lt;mtx&gt;</i>)</a></code> </p>
+        </td>
+        <td><p>A wrapper function that concatenates two files vertically</p></td>
+      </tr><tr><td>
           <p><code><a href="read.mtx.dense.html">read.mtx.dense()</a></code> </p>
         </td>
         <td><p>A wrapper function to read a dense submatrix</p></td>
@@ -177,10 +234,6 @@ The same idea was first coined by <code>fastTopics</code> paper.</p></td>
           <p><code><a href="stretch_matrix_columns.html">stretch_matrix_columns()</a></code> </p>
         </td>
         <td><p>Stretch non-negative matrix</p></td>
-      </tr><tr><td>
-          <p><code><a href="vcat.sparse.html">vcat.sparse()</a></code> </p>
-        </td>
-        <td><p>A wrapper function that concatenates two files vertically</p></td>
       </tr><tr><td>
           <p><code><a href="write.sparse.html">write.sparse()</a></code> </p>
         </td>
@@ -198,7 +251,7 @@ The same idea was first coined by <code>fastTopics</code> paper.</p></td>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.6.</p>
 </div>
 
       </footer></div>
