@@ -137,11 +137,11 @@ We can quantify topic proportions based on the correlation results.
 ```
 
 ```{r fig_topic_heatmap, fig.width=8, fig.height=3}
-pheatmap(t(.topic$prop[order(kk),]), Rowv=NA, Colv=NA)
+pheatmap(t(.topic$prop[order(kk),]), Rowv=NA, Colv=NA, cluster_cols = F)
 ```
 
 ```{r fig_true_topic_heatmap, fig.width=8, fig.height=3}
-pheatmap(t(vv[order(kk),]), Rowv=NA, Colv=NA)
+pheatmap(t(vv[order(kk),]), Rowv=NA, Colv=NA, cluster_cols = F)
 ```
 
 ```{r fig_topic_pmf_cell, fig.width=7, fig.height=2}

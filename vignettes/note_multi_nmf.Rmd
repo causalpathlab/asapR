@@ -49,19 +49,19 @@ u0 <- cbind(pmax(uu, 0), -pmin(uu, 0))
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out0$log.beta[gg, ], Rowv=NA, Colv=NA, scale = "row", main = "beta")
+pheatmap(.out0$log.beta[gg, ], Rowv=NA, Colv=NA, scale = "row", main = "beta", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out0$theta[kk, ], Rowv=NA, Colv=NA, scale = "row", main = "theta1")
+pheatmap(.out0$theta[kk, ], Rowv=NA, Colv=NA, scale = "row", main = "theta1", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out0$theta[kk + n, ], Rowv=NA, Colv=NA, scale = "row", main = "theta2")
+pheatmap(.out0$theta[kk + n, ], Rowv=NA, Colv=NA, scale = "row", main = "theta2", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out0$theta[kk + 2*n, ], Rowv=NA, Colv=NA, scale = "row", main = "theta3")
+pheatmap(.out0$theta[kk + 2*n, ], Rowv=NA, Colv=NA, scale = "row", main = "theta3", cluster_rows = F, cluster_cols = F)
 ```
 
 ### A shared dictionary $\beta$, separate loading matrices $\theta$
@@ -72,17 +72,17 @@ u0 <- cbind(pmax(uu, 0), -pmin(uu, 0))
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out$beta[gg,], Rowv=NA, Colv=NA, scale = "row", main = "beta")
+pheatmap(.out$beta[gg,], Rowv=NA, Colv=NA, scale = "row", main = "beta", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out$theta.list[[1]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta1 (1 + 2)")
+pheatmap(.out$theta.list[[1]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta1 (1 + 2)", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out$theta.list[[2]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta2 (3 + 4)")
+pheatmap(.out$theta.list[[2]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta2 (3 + 4)", cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=4}
-pheatmap(.out$theta.list[[3]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta3 (4 + 5)")
+pheatmap(.out$theta.list[[3]][kk,], Rowv=NA, Colv=NA, scale = "row", main = "theta3 (4 + 5)", cluster_rows = F, cluster_cols = F)
 ```

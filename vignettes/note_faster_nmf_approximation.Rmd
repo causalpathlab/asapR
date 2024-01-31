@@ -100,6 +100,6 @@ pheatmap(out$beta)
 
 ```{r fig.width=5, fig.height=5}
 v.order <- order(apply(vv, 1, which.max))
-pheatmap(out$theta[v.order, ], Rowv=NA, Colv=NA, scales="row")
+pheatmap(out$theta[v.order, ], Rowv=NA, Colv=NA, scales="row", cluster_rows = F)
 ```
 

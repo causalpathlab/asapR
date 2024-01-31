@@ -320,7 +320,7 @@ plot(.tsne[,1], .tsne[,2], col=batch, pch=19, cex=.5, main="after batch adj",
 Without any batch correction:
 
 ```{r fig.width=5, fig.height=5}
-pheatmap(.nmf0$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row")
+pheatmap(.nmf0$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row", cluster_rows = F)
 ```
 
 ```{r}
@@ -330,7 +330,7 @@ table(kk, apply(.nmf0$theta, 1, which.max))
 With batch correction:
 
 ```{r fig.width=5, fig.height=5}
-pheatmap(.nmf1$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row")
+pheatmap(.nmf1$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row", cluster_rows = F)
 ```
 
 ```{r}
