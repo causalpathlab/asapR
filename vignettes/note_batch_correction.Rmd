@@ -15,6 +15,7 @@ $$\mathbb{E}\!\left[\ln Y_{gj}\right] = \ln \left( \sum_{t} \beta_{gt} \theta_{j
 
 
 ```{r simulation_to_confirm}
+library(pheatmap)
 set.seed(1331)
 
 m <- 500 # genes
@@ -319,20 +320,20 @@ plot(.tsne[,1], .tsne[,2], col=batch, pch=19, cex=.5, main="after batch adj",
 Without any batch correction:
 
 ```{r fig.width=5, fig.height=5}
-heatmap(.nmf0$model$theta[order(kk), ], Rowv=NA, Colv=NA)
+pheatmap(.nmf0$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row")
 ```
 
 ```{r}
-table(kk, apply(.nmf0$model$theta, 1, which.max))
+table(kk, apply(.nmf0$theta, 1, which.max))
 ```
 
 With batch correction:
 
 ```{r fig.width=5, fig.height=5}
-heatmap(.nmf1$model$theta[order(kk), ], Rowv=NA, Colv=NA)
+pheatmap(.nmf1$theta[order(kk), ], Rowv=NA, Colv=NA, scales="row")
 ```
 
 ```{r}
-table(kk, apply(.nmf1$model$theta, 1, which.max))
+table(kk, apply(.nmf1$theta, 1, which.max))
 ```
 

@@ -1,12 +1,11 @@
-pandoc: 2.9.2.1
-pkgdown: 2.0.7
+pandoc: '2.12'
+pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
-  example_allen_brain: example_allen_brain.html
-  example_brain_tumour: example_brain_tumour.html
   introduction: introduction.html
   note_batch_correction: note_batch_correction.html
   note_faster_nmf_approximation: note_faster_nmf_approximation.html
+  note_interaction_topic: note_interaction_topic.html
   note_multi_nmf: note_multi_nmf.html
-last_built: 2023-07-16T02:37Z
+last_built: 2024-01-31T18:39Z
 

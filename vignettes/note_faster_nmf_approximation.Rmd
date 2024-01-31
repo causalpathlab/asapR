@@ -78,6 +78,7 @@ $$L
 
 ```{r}
 library(asapR)
+library(pheatmap)
 
 set.seed(1331)
 d <- 1000
@@ -94,11 +95,11 @@ out <- asap_fit_nmf(Y, 5)
 ```
 
 ```{r fig.width=5, fig.height=5}
-heatmap(out$model$beta)
+pheatmap(out$beta)
 ```
 
 ```{r fig.width=5, fig.height=5}
 v.order <- order(apply(vv, 1, which.max))
-heatmap(out$model$theta[v.order, ], Rowv=NA, Colv=NA)
+pheatmap(out$theta[v.order, ], Rowv=NA, Colv=NA, scales="row")
 ```
 

@@ -79,7 +79,7 @@ names(.nmf)
 ```
 
 ```{r fig_nmf_log_x, fig.width=6, fig.height=3}
-heatmap(t(.nmf$std_log_x[gg, ]), Rowv=NA, Colv=NA, scale="none", main="logX")
+pheatmap(t(.nmf$log.beta[gg, ]), Rowv=NA, Colv=NA, scale="none", main="logBeta")
 ```
 
 Some convenient routine to create the structure plot of a topic proportion matrix.
