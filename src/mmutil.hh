@@ -30,7 +30,6 @@
 using Scalar = float;
 using SpMat = Eigen::SparseMatrix<Scalar, Eigen::ColMajor>;
 using Index = SpMat::Index;
-using MSpMat = Eigen::MappedSparseMatrix<Scalar>;
 
 using Mat = typename Eigen::
     Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;

@@ -302,8 +302,59 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_cbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_cbind_ <- function(y_dn_vec, num_factors, r_row_names = NULL, r_batch_names = NULL, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_cbind_', PACKAGE = 'asapR', y_dn_vec, num_factors, r_row_names, r_batch_names, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+}
+
+#' Generate approximate pseudo-bulk data by random projections
+#' while sharing rows/features across multiple data sets.
+#' Horizontal concatenation.
+#'
+#' @param mtx_files matrix-market-formatted data files (bgzip)
+#' @param row_files row names (gene/feature names)
+#' @param col_files column names (cell/column names)
+#' @param idx_files matrix-market colum index files
+#' @param num_factors a desired number of random factors
+#' @param take_union_rows take union of rows (default: FALSE)
+#' @param rseed random seed
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param do_batch_adj (default: FALSE)
+#' @param do_log1p log(x + 1) transformation (default: FALSE)
+#' @param do_down_sample down-sampling (default: TRUE)
+#' @param save_rand_proj save random projection (default: FALSE)
+#' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
+#' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
+#' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
+#' @param a0 gamma(a0, b0) (default: 1e-8)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+#' @return a list
+#' \itemize{
+#' \item `PB` pseudobulk (average) data (feature x sample)
+#' \item `sum` pseudobulk (sum) data (feature x sample)
+#' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
+#' \item `sum_db` batch-specific sum (feature x batch)
+#' \item `size` size per sample (sample x 1)
+#' \item `prob_bs` batch-specific frequency (batch x sample)
+#' \item `size_bs` batch-specific size (batch x sample)
+#' \item `batch.effect` batch effect (feature x batch)
+#' \item `log.batch.effect` log batch effect (feature x batch)
+#' \item `batch.names` batch names (batch x 1)
+#' \item `positions` pseudobulk sample positions (cell x 1)
+#' \item `rand.dict` random dictionary (proj factor x feature)
+#' \item `rand.proj` random projection results (sample x proj factor)
+#' \item `colnames` column (cell) names
+#' \item `rownames` feature (gene) names
+#' }
+#'
+asap_random_bulk_cbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -405,7 +456,7 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, be
 #'
 #' @param Y D x N data matrix
 #' @param log_beta D x K log dictionary/design matrix
-#' @param a0 gamma(a0, b0) (default: 1e-8)
+#' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param do_log1p do log(1+y) transformation (default: FALSE)
 #' @param verbose verbosity (default: false)
@@ -422,6 +473,30 @@ asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, be
 #'
 asap_regression <- function(Y_, log_beta, a0 = 1.0, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
     .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_beta, a0, b0, max_iter, do_log1p, verbose)
+}
+
+#' Poisson regression to estimate factor loading
+#'
+#' @param Y D x N data matrix
+#' @param log_beta D x K log dictionary/design matrix
+#' @param log_delta D x B log batch effect matrix
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param do_log1p do log(1+y) transformation (default: FALSE)
+#' @param verbose verbosity (default: false)
+#'
+#' @return a list that contains:
+#' \itemize{
+#'  \item beta (D x K) matrix
+#'  \item theta (N x K) matrix
+#'  \item log.theta (N x K) log matrix
+#'  \item log.theta.sd (N x K) standard deviation matrix
+#'  \item corr (N x K) topic correlation matrix
+#'  \item colsum (N x 1) column sum vector
+#' }
+#'
+asap_regression_ipw <- function(Y_, log_beta, log_delta, a0 = 1.0, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
+    .Call('_asapR_asap_regression_ipw', PACKAGE = 'asapR', Y_, log_beta, log_delta, a0, b0, max_iter, do_log1p, verbose)
 }
 
 #' Topic statistics to estimate factor loading

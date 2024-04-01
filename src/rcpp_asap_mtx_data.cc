@@ -16,6 +16,7 @@ mtx_data_t::read(const Index lb, const Index ub)
 SpMat
 mtx_data_t::read_reloc(const Index lb, const Index ub)
 {
+    ASSERT(has_reloc, "should have assigned the relocation vector");
     return A * read(lb, ub);
 }
 
@@ -38,6 +39,7 @@ mtx_data_t::relocate_rows(const std::unordered_map<std::string, Index> &row2pos)
     }
     A.reserve(triplets.size());
     A.setFromTriplets(triplets.begin(), triplets.end());
+    has_reloc = true;
 }
 
 SpMat
@@ -46,6 +48,7 @@ mtx_data_t::read_matched_reloc(const std::vector<Scalar> &query,
                                std::vector<Index> &neigh_index,
                                std::vector<Scalar> &neigh_dist)
 {
+    ASSERT(has_reloc, "should have assigned the relocation vector");
     return A * read_matched(query, knn, neigh_index, neigh_dist);
 }
 
@@ -63,13 +66,14 @@ mtx_data_t::read_matched(const std::vector<Scalar> &query,
 }
 
 SpMat
-mtx_data_t::read_reloc(std::vector<Index> &index)
+mtx_data_t::read_reloc(const std::vector<Index> &index)
 {
+    ASSERT(has_reloc, "should have assigned the relocation vector");
     return A * read(index);
 }
 
 SpMat
-mtx_data_t::read(std::vector<Index> &index)
+mtx_data_t::read(const std::vector<Index> &index)
 {
     return mmutil::io::read_eigen_sparse_subset_col(mtx_file, mtx_idx, index);
 }
@@ -80,6 +84,8 @@ mtx_data_t::knn_search(const std::vector<Scalar> &query,
                        std::vector<Index> &neigh_index,
                        std::vector<Scalar> &neigh_dist)
 {
+    ASSERT(has_index, "should have built the ANNOY index");
+
     annoy_index_t &index = *index_ptr.get();
     const std::size_t nn = Q_kn.cols();
     const std::size_t nsearch = std::min(knn, nn);

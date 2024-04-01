@@ -362,36 +362,37 @@ row_score_sd(const Eigen::SparseMatrixBase<Derived> &_xx)
     return ret;
 }
 
-template <typename Derived, typename ROWS>
+template <typename Derived, typename COLS>
 inline Eigen::SparseMatrix<typename Derived::Scalar, //
-                           Eigen::ColMajor,          //
-                           std::ptrdiff_t>
-row_sub(const Eigen::SparseMatrixBase<Derived> &_mat, const ROWS &sub_rows)
+                           Eigen::ColMajor>
+col_sub(const Eigen::SparseMatrixBase<Derived> &_mat, const COLS &sub_cols)
 {
-    using SpMat = typename Eigen::
-        SparseMatrix<typename Derived::Scalar, Eigen::ColMajor, std::ptrdiff_t>;
+    using SpMat =
+        typename Eigen::SparseMatrix<typename Derived::Scalar, Eigen::ColMajor>;
 
     using Index = typename SpMat::Index;
     using Scalar = typename SpMat::Scalar;
     const SpMat &mat = _mat.derived();
 
-    SpMat ret(sub_rows.size(), mat.cols());
+    // ASSERT(!mat.IsRowMajor, "column major");
+
+    SpMat ret(mat.rows(), sub_cols.size());
 
     using ET = Eigen::Triplet<Scalar>;
 
     std::vector<ET> triples;
 
-    Index rr = 0;
+    Index cc = 0;
 
-    for (Index r : sub_rows) {
-        if (r < 0 || r >= mat.rows())
+    for (Index c : sub_cols) {
+        if (c < 0 || c >= mat.cols())
             continue;
 
-        for (typename SpMat::InnerIterator it(mat, r); it; ++it) {
-            triples.push_back(ET(rr, it.col(), it.value()));
+        for (typename SpMat::InnerIterator it(mat, c); it; ++it) {
+            triples.push_back(ET(it.row(), cc, it.value()));
         }
 
-        ++rr;
+        ++cc;
     }
 
     ret.reserve(triples.size());

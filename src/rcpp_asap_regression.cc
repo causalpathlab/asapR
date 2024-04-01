@@ -192,7 +192,7 @@ asap_topic_stat(const std::string mtx_file,
 //'
 //' @param Y D x N data matrix
 //' @param log_beta D x K log dictionary/design matrix
-//' @param a0 gamma(a0, b0) (default: 1e-8)
+//' @param a0 gamma(a0, b0) (default: 1)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity (default: false)
@@ -216,6 +216,101 @@ asap_regression(const Eigen::MatrixXf Y_,
                 const std::size_t max_iter = 10,
                 const bool do_log1p = false,
                 const bool verbose = true)
+{
+
+    exp_op<Mat> exp;
+    at_least_one_op<Mat> at_least_one;
+    softmax_op_t<Mat> softmax;
+    log1p_op<Mat> log1p;
+
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+
+    const Index D = Y_dn.rows();     // number of features
+    const Index N = Y_dn.cols();     // number of samples
+    const Index K = log_beta.cols(); // number of topics
+
+    Mat logX_dk = log_beta;
+
+    using RNG = dqrng::xoshiro256plus;
+    using gamma_t = gamma_param_t<Mat, RNG>;
+    RNG rng;
+
+    Mat logRho_nk(Y_dn.cols(), K), rho_nk(Y_dn.cols(), K);
+
+    gamma_t theta_nk(Y_dn.cols(), K, a0, b0, rng); // N x K
+
+    const ColVec Y_n = Y_dn.colwise().sum().transpose();
+    const ColVec Y_n1 = Y_n.unaryExpr(at_least_one);
+
+    // X[j,k] = sum_i X[i,k]
+    RowVec Xsum = logX_dk.unaryExpr(exp).colwise().sum();
+    Mat x_nk = ColVec::Ones(N) * Xsum; // n x K
+    Mat R_nk = (Y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
+
+    if (verbose)
+        TLOG("Correlation with the topics");
+
+    RowVec tempK(K);
+
+    for (std::size_t t = 0; t < max_iter; ++t) {
+
+        logRho_nk = R_nk + theta_nk.log_mean();
+
+        for (Index jj = 0; jj < Y_dn.cols(); ++jj) {
+            tempK = logRho_nk.row(jj);
+            logRho_nk.row(jj) = softmax.log_row(tempK);
+        }
+        rho_nk = logRho_nk.unaryExpr(exp);
+
+        theta_nk.update((rho_nk.array().colwise() * Y_n.array()).matrix(),
+                        x_nk);
+        theta_nk.calibrate();
+    }
+
+    if (verbose)
+        TLOG("Calibrated topic portions");
+
+    return Rcpp::List::create(Rcpp::_["beta"] = logX_dk.unaryExpr(exp),
+                              Rcpp::_["theta"] = theta_nk.mean(),
+                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
+                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
+                              Rcpp::_["corr"] = R_nk,
+                              Rcpp::_["colsum"] = Y_n);
+}
+
+//' Poisson regression to estimate factor loading
+//'
+//' @param Y D x N data matrix
+//' @param log_beta D x K log dictionary/design matrix
+//' @param log_delta D x B log batch effect matrix
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param do_log1p do log(1+y) transformation (default: FALSE)
+//' @param verbose verbosity (default: false)
+//'
+//' @return a list that contains:
+//' \itemize{
+//'  \item beta (D x K) matrix
+//'  \item theta (N x K) matrix
+//'  \item log.theta (N x K) log matrix
+//'  \item log.theta.sd (N x K) standard deviation matrix
+//'  \item corr (N x K) topic correlation matrix
+//'  \item colsum (N x 1) column sum vector
+//' }
+//'
+// [[Rcpp::export]]
+Rcpp::List
+asap_regression_ipw(const Eigen::MatrixXf Y_,
+                    const Eigen::MatrixXf log_beta,
+                    const Eigen::MatrixXf log_delta,
+                    const double a0 = 1.0,
+                    const double b0 = 1.0,
+                    const std::size_t max_iter = 10,
+                    const bool do_log1p = false,
+                    const bool verbose = true)
 {
 
     exp_op<Mat> exp;

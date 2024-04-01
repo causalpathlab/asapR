@@ -7,6 +7,24 @@
 
 namespace asap { namespace pb {
 
+struct options_t {
+
+    Index K;
+    std::size_t rseed;
+    bool verbose;
+    std::size_t NUM_THREADS;
+    std::size_t BLOCK_SIZE;
+    bool do_batch_adj;
+    bool do_log1p;
+    bool do_down_sample;
+    bool save_rand_proj;
+    std::size_t KNN_CELL;
+    std::size_t CELL_PER_SAMPLE;
+    std::size_t BATCH_ADJ_ITER;
+    double a0;
+    double b0;
+};
+
 template <typename Derived>
 void
 sample_random_projection(const Index D,

@@ -1,5 +1,11 @@
 #include "rcpp_asap_pb_cbind.hh"
 
+template <typename T>
+Rcpp::List run_asap_pb_cbind(std::vector<T> &data_loaders,
+                             const std::vector<std::string> &pos2row,
+                             const std::vector<std::string> &columns,
+                             const asap::pb::options_t &options);
+
 //' Generate approximate pseudo-bulk data by random projections
 //' while sharing rows/features across multiple data sets.
 //' Horizontal concatenation.
@@ -50,6 +56,177 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
+asap_random_bulk_cbind_(
+    const std::vector<Eigen::SparseMatrix<float>> y_dn_vec,
+    const std::size_t num_factors,
+    const Rcpp::Nullable<Rcpp::StringVector> r_row_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> r_batch_names = R_NilValue,
+    const std::size_t rseed = 42,
+    const bool verbose = true,
+    const std::size_t NUM_THREADS = 1,
+    const std::size_t BLOCK_SIZE = 100,
+    const bool do_batch_adj = true,
+    const bool do_log1p = false,
+    const bool do_down_sample = true,
+    const bool save_rand_proj = false,
+    const std::size_t KNN_CELL = 10,
+    const std::size_t CELL_PER_SAMPLE = 100,
+    const std::size_t BATCH_ADJ_ITER = 100,
+    const double a0 = 1,
+    const double b0 = 1)
+{
+    using namespace asap::pb;
+    log1p_op<Mat> log1p;
+
+    const Index B = y_dn_vec.size();
+    ASSERT_RETL(B > 0, "at least 1 batch is needed");
+
+    auto count_add_cols = [](Index a, auto &y) -> Index {
+        return a + y.cols();
+    };
+
+    const Index Ntot =
+        std::accumulate(y_dn_vec.begin(), y_dn_vec.end(), 0, count_add_cols);
+
+    const Index K = num_factors; // tree depths in implicit bisection
+    Index D = 0;                 // dimensionality
+
+    for (const auto &y_dn : y_dn_vec) {
+        if (D == 0) {
+            D = y_dn.rows();
+        } else {
+            ASSERT_RETL(y_dn.rows() == D,
+                        "Found inconsistent # rows: "
+                            << "the previous data: " << D << " vs. "
+                            << "this data:" << y_dn.rows());
+        }
+    }
+
+    TLOG_(verbose, Ntot << " columns");
+
+    std::vector<std::string> batch_names, pos2row;
+
+    if (r_batch_names.isNotNull()) {
+        rcpp::util::copy(Rcpp::StringVector(r_batch_names), batch_names);
+    } else {
+        for (Index b = 0; b < B; ++b) {
+            batch_names.emplace_back(std::to_string(b + 1));
+        }
+    }
+
+    if (r_row_names.isNotNull()) {
+        rcpp::util::copy(Rcpp::StringVector(r_row_names), pos2row);
+    } else {
+        for (Index r = 0; r < D; ++r) {
+            pos2row.emplace_back(std::to_string(r + 1));
+        }
+    }
+
+    std::unordered_map<std::string, Index> row2pos;
+    for (Index r = 0; r < pos2row.size(); ++r) {
+        row2pos[pos2row.at(r)] = r;
+    }
+
+    ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
+    ASSERT_RETL(pos2row.size() == D, "check the r_row_names");
+
+    std::vector<std::string> columns;
+    columns.reserve(Ntot);
+
+    std::vector<eigenSparse_data_t> data_loaders;
+
+    for (Index b = 0; b < B; ++b) {
+        data_loaders.emplace_back(eigenSparse_data_t(y_dn_vec.at(b), pos2row));
+    }
+
+    for (Index b = 0; b < B; ++b) {
+        data_loaders.at(b).relocate_rows(row2pos);
+    }
+
+    // assign unique column names
+    {
+        for (Index b = 0; b < B; ++b) {
+            const std::string bname = batch_names.at(b);
+            for (Index j = 0; j < data_loaders.at(b).info.max_col; ++j) {
+                columns.emplace_back(std::to_string(j + 1) + "_" + bname);
+            }
+        }
+    }
+
+    /////////////////////////
+    // run the PB routines //
+    /////////////////////////
+
+    options_t options;
+
+    options.K = num_factors;
+
+    options.do_batch_adj = do_batch_adj;
+    options.do_log1p = do_log1p;
+    options.do_down_sample = do_down_sample;
+    options.save_rand_proj = save_rand_proj;
+    options.KNN_CELL = KNN_CELL;
+    options.CELL_PER_SAMPLE = CELL_PER_SAMPLE;
+    options.BATCH_ADJ_ITER = BATCH_ADJ_ITER;
+    options.a0 = a0;
+    options.b0 = b0;
+    options.rseed = rseed;
+    options.verbose = verbose;
+    options.NUM_THREADS = NUM_THREADS;
+    options.BLOCK_SIZE = BLOCK_SIZE;
+
+    return run_asap_pb_cbind(data_loaders, pos2row, columns, options);
+}
+
+//' Generate approximate pseudo-bulk data by random projections
+//' while sharing rows/features across multiple data sets.
+//' Horizontal concatenation.
+//'
+//' @param mtx_files matrix-market-formatted data files (bgzip)
+//' @param row_files row names (gene/feature names)
+//' @param col_files column names (cell/column names)
+//' @param idx_files matrix-market colum index files
+//' @param num_factors a desired number of random factors
+//' @param take_union_rows take union of rows (default: FALSE)
+//' @param rseed random seed
+//' @param verbose verbosity
+//' @param NUM_THREADS number of threads in data reading
+//' @param BLOCK_SIZE disk I/O block size (number of columns)
+//' @param do_batch_adj (default: FALSE)
+//' @param do_log1p log(x + 1) transformation (default: FALSE)
+//' @param do_down_sample down-sampling (default: TRUE)
+//' @param save_rand_proj save random projection (default: FALSE)
+//' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
+//' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
+//' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
+//' @param a0 gamma(a0, b0) (default: 1e-8)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+//' @param ROW_WORD_SEP word separation character to replace white space
+//' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+//' @param COL_WORD_SEP word separation character to replace white space
+//'
+//' @return a list
+//' \itemize{
+//' \item `PB` pseudobulk (average) data (feature x sample)
+//' \item `sum` pseudobulk (sum) data (feature x sample)
+//' \item `matched.sum` kNN-matched pseudobulk data (feature x sample)
+//' \item `sum_db` batch-specific sum (feature x batch)
+//' \item `size` size per sample (sample x 1)
+//' \item `prob_bs` batch-specific frequency (batch x sample)
+//' \item `size_bs` batch-specific size (batch x sample)
+//' \item `batch.effect` batch effect (feature x batch)
+//' \item `log.batch.effect` log batch effect (feature x batch)
+//' \item `batch.names` batch names (batch x 1)
+//' \item `positions` pseudobulk sample positions (cell x 1)
+//' \item `rand.dict` random dictionary (proj factor x feature)
+//' \item `rand.proj` random projection results (sample x proj factor)
+//' \item `colnames` column (cell) names
+//' \item `rownames` feature (gene) names
+//' }
+//'
+// [[Rcpp::export]]
+Rcpp::List
 asap_random_bulk_cbind(
     const std::vector<std::string> mtx_files,
     const std::vector<std::string> row_files,
@@ -67,7 +244,6 @@ asap_random_bulk_cbind(
     const bool do_log1p = false,
     const bool do_down_sample = true,
     const bool save_rand_proj = false,
-    const bool weighted_rand_proj = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
@@ -81,9 +257,23 @@ asap_random_bulk_cbind(
 
     using namespace asap::pb;
 
-    log1p_op<Mat> log1p;
-    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
-    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+    options_t options;
+
+    options.K = num_factors;
+
+    options.do_batch_adj = do_batch_adj;
+    options.do_log1p = do_log1p;
+    options.do_down_sample = do_down_sample;
+    options.save_rand_proj = save_rand_proj;
+    options.KNN_CELL = KNN_CELL;
+    options.CELL_PER_SAMPLE = CELL_PER_SAMPLE;
+    options.BATCH_ADJ_ITER = BATCH_ADJ_ITER;
+    options.a0 = a0;
+    options.b0 = b0;
+    options.rseed = rseed;
+    options.verbose = verbose;
+    options.NUM_THREADS = NUM_THREADS;
+    options.BLOCK_SIZE = BLOCK_SIZE;
 
     const Index B = mtx_files.size();
 
@@ -129,9 +319,9 @@ asap_random_bulk_cbind(
 
     TLOG_(verbose, "Checked the files");
 
-    ////////////////////////////
-    // first read global rows //
-    ////////////////////////////
+    //////////////////////////////////
+    // first figure out global rows //
+    //////////////////////////////////
 
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
@@ -146,8 +336,6 @@ asap_random_bulk_cbind(
 
     ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
 
-    const Index D = pos2row.size(); // dimensionality
-    const Index K = num_factors;    // tree depths in implicit bisection
     auto count_add_cols = [](Index a, std::string mtx) -> Index {
         mm_info_reader_t info;
         CHECK(peek_bgzf_header(mtx, info));
@@ -155,9 +343,6 @@ asap_random_bulk_cbind(
     };
     const Index Ntot =
         std::accumulate(mtx_files.begin(), mtx_files.end(), 0, count_add_cols);
-    const Index block_size = BLOCK_SIZE;
-
-    TLOG_(verbose, D << " x " << Ntot);
 
     std::vector<std::string> columns;
     columns.reserve(Ntot);
@@ -177,6 +362,67 @@ asap_random_bulk_cbind(
 
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
     }
+
+    //////////////////////////////////
+    // build a list of data loaders //
+    //////////////////////////////////
+
+    std::vector<mtx_data_t> data_loaders;
+
+    for (Index b = 0; b < B; ++b) {
+        data_loaders.emplace_back(mtx_data_t(mtx_data_t::MTX(mtx_files.at(b)),
+                                             mtx_data_t::ROW(row_files.at(b)),
+                                             mtx_data_t::IDX(idx_files.at(b)),
+                                             MAX_ROW_WORD,
+                                             ROW_WORD_SEP));
+    }
+
+    for (Index b = 0; b < B; ++b) {
+        data_loaders.at(b).relocate_rows(row2pos);
+    }
+
+    return run_asap_pb_cbind(data_loaders, pos2row, columns, options);
+}
+
+template <typename T>
+Rcpp::List
+run_asap_pb_cbind(std::vector<T> &data_loaders,
+                  const std::vector<std::string> &pos2row,
+                  const std::vector<std::string> &columns,
+                  const asap::pb::options_t &options)
+{
+
+    using namespace asap::pb;
+
+    const Index B = data_loaders.size();
+    const Index D = pos2row.size();    // dimensionality
+    const Index Ntot = columns.size(); // samples
+
+    const Index K = options.K;
+
+    const bool do_batch_adj = options.do_batch_adj;
+    const bool do_log1p = options.do_log1p;
+    const bool do_down_sample = options.do_down_sample;
+    const bool save_rand_proj = options.save_rand_proj;
+    const std::size_t KNN_CELL = options.KNN_CELL;
+    const std::size_t CELL_PER_SAMPLE = options.CELL_PER_SAMPLE;
+    const std::size_t BATCH_ADJ_ITER = options.BATCH_ADJ_ITER;
+    const double a0 = options.a0;
+    const double b0 = options.b0;
+    const std::size_t rseed = options.rseed;
+    const bool verbose = options.verbose;
+    const std::size_t NUM_THREADS = options.NUM_THREADS;
+    const Index block_size = options.BLOCK_SIZE;
+
+    log1p_op<Mat> log1p;
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    TLOG_(verbose, D << " x " << Ntot);
+
+    ASSERT_RETL(Ntot > 0, "Ntot must be positive");
+
+    ASSERT_RETL(Ntot > K, "Ntot should be more than K factors");
 
     /////////////////////////////////////////////
     // Step 1. sample random projection matrix //
@@ -199,42 +445,7 @@ asap_random_bulk_cbind(
 
     for (Index b = 0; b < B; ++b) {
 
-        mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
-                        mtx_data_t::ROW(row_files.at(b)),
-                        mtx_data_t::IDX(idx_files.at(b)),
-                        MAX_ROW_WORD,
-                        ROW_WORD_SEP);
-
-        Mat r_kd = R_kd;
-
-        if (weighted_rand_proj) {
-            apply_mtx_row_sd(mtx_files.at(b),
-                             idx_files.at(b),
-                             r_kd,
-                             verbose,
-                             NUM_THREADS,
-                             BLOCK_SIZE,
-                             do_log1p);
-            if (verbose) {
-                TLOG("Weighted random projection matrix");
-            }
-        }
-
-        // Find features in the global mapping
-        Mat R_matched_kd(K, data.info.max_row);
-        R_matched_kd.setZero();
-
-        std::vector<std::string> &sub_rows = data.sub_rows;
-
-        for (Index ri = 0; ri < sub_rows.size(); ++ri) {
-            const std::string &r = sub_rows.at(ri);
-            if (row2pos.count(r) > 0) {
-                const Index d = row2pos.at(r);
-                R_matched_kd.col(ri) = r_kd.col(d);
-            }
-        }
-
-        const Index Nb = data.info.max_col;
+        const Index Nb = data_loaders.at(b).info.max_col;
         batch_glob_map.emplace_back(std::vector<Index> {});
 
 #if defined(_OPENMP)
@@ -244,9 +455,11 @@ asap_random_bulk_cbind(
         for (Index lb = 0; lb < Nb; lb += block_size) {
 
             const Index ub = std::min(Nb, block_size + lb);
-            Mat y_dn = do_log1p ? data.read(lb, ub).unaryExpr(log1p) :
-                                  data.read(lb, ub);
-            Mat temp_kn = R_matched_kd * y_dn;
+            Mat y_dn = do_log1p ?
+                data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p) :
+                data_loaders.at(b).read_reloc(lb, ub);
+
+            Mat temp_kn = R_kd * y_dn;
 
 #pragma omp critical
             {
@@ -304,9 +517,11 @@ asap_random_bulk_cbind(
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
+    const std::size_t too_many_columns = 1000;
+
     Mat vv;
 
-    if (Q_kn.cols() < 1000) {
+    if (Q_kn.cols() < too_many_columns) {
         Eigen::BDCSVD<Mat> svd;
         svd.compute(Q_kn, Eigen::ComputeThinU | Eigen::ComputeThinV);
         vv = svd.matrixV();
@@ -406,16 +621,9 @@ asap_random_bulk_cbind(
 
         for (Index b = 0; b < B; ++b) { // each batch
 
-            mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
-                            mtx_data_t::ROW(row_files.at(b)),
-                            mtx_data_t::IDX(idx_files.at(b)),
-                            MAX_ROW_WORD,
-                            ROW_WORD_SEP);
-
-            const Index Nb = data.info.max_col;
+            const Index Nb = data_loaders.at(b).info.max_col;
 
             TLOG_(verbose, Nb << " samples");
-            data.relocate_rows(row2pos);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -424,7 +632,7 @@ asap_random_bulk_cbind(
             for (Index lb = 0; lb < Nb; lb += block_size) {
 
                 const Index ub = std::min(Nb, block_size + lb);
-                const Mat y = data.read_reloc(lb, ub);
+                const Mat y = data_loaders.at(b).read_reloc(lb, ub);
 
                 for (Index loc = 0; loc < (ub - lb); ++loc) {
                     const Index glob = loc + lb + offset;
@@ -459,17 +667,6 @@ asap_random_bulk_cbind(
 
     if (B > 1 && do_batch_adj) {
 
-        std::vector<std::shared_ptr<mtx_data_t>> mtx_ptr;
-        for (Index b = 0; b < B; ++b) {
-            mtx_ptr.emplace_back(
-                std::make_shared<mtx_data_t>(mtx_data_t::MTX(mtx_files.at(b)),
-                                             mtx_data_t::ROW(row_files.at(b)),
-                                             mtx_data_t::IDX(idx_files.at(b)),
-                                             MAX_ROW_WORD,
-                                             ROW_WORD_SEP));
-            mtx_ptr[b]->relocate_rows(row2pos);
-        }
-
         TLOG_(verbose,
               "Building annoy index using random proj. results "
                   << Qstd_nk.rows() << " x " << Qstd_nk.cols());
@@ -492,7 +689,7 @@ asap_random_bulk_cbind(
                 Q.col(loc) = Qstd_nk.row(glob).transpose();
             }
 
-            CHECK(mtx_ptr[b]->build_index(Q, verbose));
+            CHECK(data_loaders.at(b).build_index(Q, verbose));
             TLOG_(verbose, "Built annoy index [" << (b + 1) << "]");
         }
 
@@ -545,15 +742,16 @@ asap_random_bulk_cbind(
                 for (Index b = 0; b < B; ++b) {
                     if (a != b) {
 
-                        mtx_data_t &mtx = *mtx_ptr[b].get();
+                        // mtx_data_t &mtx = *mtx_ptr[b].get();
 
                         std::vector<Index> neigh_index;
                         std::vector<Scalar> neigh_dist;
 
-                        const Mat z = mtx.read_matched_reloc(query,
-                                                             KNN_CELL,
-                                                             neigh_index,
-                                                             neigh_dist);
+                        const Mat z =
+                            data_loaders.at(b).read_matched_reloc(query,
+                                                                  KNN_CELL,
+                                                                  neigh_index,
+                                                                  neigh_dist);
 
                         for (Index k = 0; k < z.cols(); ++k) {
                             z_per_cell.col(nneigh) = z.col(k);
@@ -693,7 +891,6 @@ asap_random_bulk_cbind(
     std::vector<std::string> s_;
     for (std::size_t s = 1; s <= S; ++s)
         s_.push_back(std::to_string(s));
-    std::vector<std::string> b_ = mtx_files;
 
     if (!save_rand_proj) {
         Qstd_nk.resize(0, 0);
@@ -704,13 +901,12 @@ asap_random_bulk_cbind(
     return List::create(_["PB"] = named(mu_ds, d_, s_),
                         _["sum"] = named(ysum_ds, d_, s_),
                         _["matched.sum"] = named(zsum_ds, d_, s_),
-                        _["sum_db"] = named(delta_num_db, d_, b_),
+                        _["sum_db"] = named_rows(delta_num_db, d_),
                         _["size"] = size_s,
-                        _["prob_bs"] = named(prob_bs, b_, s_),
-                        _["size_bs"] = named(n_bs, b_, s_),
-                        _["batch.effect"] = named(delta_db, d_, b_),
-                        _["log.batch.effect"] = named(log_delta_db, d_, b_),
-                        _["mtx.files"] = mtx_files,
+                        _["prob_sb"] = named_rows(prob_bs.transpose(), s_),
+                        _["size_sb"] = named_rows(n_bs.transpose(), s_),
+                        _["batch.effect"] = named_rows(delta_db, d_),
+                        _["log.batch.effect"] = named_rows(log_delta_db, d_),
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
