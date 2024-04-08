@@ -448,55 +448,37 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_nmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_nmf_stat', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
-#' Poisson regression to estimate factor loading
+#' Topic statistics to estimate factor loading
 #'
-#' @param Y D x N data matrix
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
+#' @param idx_file matrix-market colum index file
 #' @param log_beta D x K log dictionary/design matrix
-#' @param a0 gamma(a0, b0) (default: 1)
-#' @param b0 gamma(a0, b0) (default: 1)
-#' @param do_log1p do log(1+y) transformation (default: FALSE)
-#' @param verbose verbosity (default: false)
+#' @param beta_row_names row names log_beta (D vector)
+#' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
 #'
 #' @return a list that contains:
 #' \itemize{
-#'  \item beta (D x K) matrix
-#'  \item theta (N x K) matrix
-#'  \item log.theta (N x K) log matrix
-#'  \item log.theta.sd (N x K) standard deviation matrix
-#'  \item corr (N x K) topic correlation matrix
-#'  \item colsum (N x 1) column sum vector
+#'  \item beta dictionary matrix (row x factor)
+#'  \item corr empirical correlation (column x factor)
+#'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_regression <- function(Y_, log_beta, a0 = 1.0, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
-    .Call('_asapR_asap_regression', PACKAGE = 'asapR', Y_, log_beta, a0, b0, max_iter, do_log1p, verbose)
-}
-
-#' Poisson regression to estimate factor loading
-#'
-#' @param Y D x N data matrix
-#' @param log_beta D x K log dictionary/design matrix
-#' @param log_delta D x B log batch effect matrix
-#' @param a0 gamma(a0, b0) (default: 1)
-#' @param b0 gamma(a0, b0) (default: 1)
-#' @param do_log1p do log(1+y) transformation (default: FALSE)
-#' @param verbose verbosity (default: false)
-#'
-#' @return a list that contains:
-#' \itemize{
-#'  \item beta (D x K) matrix
-#'  \item theta (N x K) matrix
-#'  \item log.theta (N x K) log matrix
-#'  \item log.theta.sd (N x K) standard deviation matrix
-#'  \item corr (N x K) topic correlation matrix
-#'  \item colsum (N x 1) column sum vector
-#' }
-#'
-asap_regression_ipw <- function(Y_, log_beta, log_delta, a0 = 1.0, b0 = 1.0, max_iter = 10L, do_log1p = FALSE, verbose = TRUE) {
-    .Call('_asapR_asap_regression_ipw', PACKAGE = 'asapR', Y_, log_beta, log_delta, a0, b0, max_iter, do_log1p, verbose)
+asap_topic_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Topic statistics to estimate factor loading

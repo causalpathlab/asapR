@@ -424,6 +424,14 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     ASSERT_RETL(Ntot > K, "Ntot should be more than K factors");
 
+    {
+        Index ntot = 0;
+        for (Index b = 0; b < B; ++b) { // each batch
+            ntot += data_loaders.at(b).info.max_col;
+        }
+        ASSERT_RETL(Ntot == ntot, "|column names| != columns(data)");
+    }
+
     /////////////////////////////////////////////
     // Step 1. sample random projection matrix //
     /////////////////////////////////////////////
@@ -590,6 +598,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     std::vector<std::vector<Index>> pb_cells = make_index_vec_vec(positions);
 
     const Index NA_POS = S;
+
     if (do_down_sample) {
         TLOG_(verbose, "down-sampling to " << CELL_PER_SAMPLE << " per sample");
         down_sample_vec_vec(pb_cells, CELL_PER_SAMPLE, rng);

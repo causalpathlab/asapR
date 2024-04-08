@@ -4,8 +4,11 @@
 #include "rcpp_asap.hh"
 #include "rcpp_asap_batch.hh"
 #include "rcpp_asap_mtx_data.hh"
+#include "rcpp_asap_eigenSparse_data.hh"
 
-struct topic_stat_options_t {
+namespace asap { namespace regression {
+
+struct stat_options_t {
     bool do_log1p;
     bool verbose;
     std::size_t NUM_THREADS;
@@ -17,29 +20,86 @@ struct topic_stat_options_t {
     bool do_stdize_x;
 };
 
-template <typename Derived1, typename Derived2, typename Derived3, typename OPT>
+template <typename Data,
+          typename Derived1,
+          typename Derived2,
+          typename Derived3>
+int run_nmf_stat(Data &data,
+                 const Eigen::MatrixBase<Derived1> &_log_x,
+                 const std::vector<std::string> &pos2row,
+                 const stat_options_t &options,
+                 Eigen::MatrixBase<Derived2> &_r_nk,
+                 Eigen::MatrixBase<Derived3> &_y_n);
+
+template <typename Data,
+          typename Derived0,
+          typename Derived1,
+          typename Derived2,
+          typename Derived3>
+int run_nmf_stat_ipw(Data &data,
+                     const Eigen::MatrixBase<Derived0> &_log_x,
+                     const Eigen::MatrixBase<Derived1> &_log_x0,
+                     const std::vector<std::string> &pos2row,
+                     const stat_options_t &options,
+                     Eigen::MatrixBase<Derived2> &_r_nk,
+                     Eigen::MatrixBase<Derived3> &_y_n);
+
+template <typename Derived1, typename Derived2, typename Derived3>
 int
-asap_topic_stat_mtx(const std::string mtx_file,
-                    const std::string row_file,
-                    const std::string col_file,
-                    const std::string idx_file,
-                    const Eigen::MatrixBase<Derived1> &_log_x,
-                    const std::vector<std::string> &pos2row,
-                    const OPT &options,
-                    Eigen::MatrixBase<Derived2> &_r_nk,
-                    Eigen::MatrixBase<Derived3> &_y_n)
+nmf_stat_mtx(const std::string mtx_file,
+             const std::string row_file,
+             const std::string col_file,
+             const std::string idx_file,
+             const Eigen::MatrixBase<Derived1> &_log_x,
+             const std::vector<std::string> &pos2row,
+             const stat_options_t &options,
+             Eigen::MatrixBase<Derived2> &_r_nk,
+             Eigen::MatrixBase<Derived3> &_y_n)
+{
+    mtx_data_t data(mtx_data_t::MTX { mtx_file },
+                    mtx_data_t::ROW { row_file },
+                    mtx_data_t::IDX { idx_file },
+                    options.MAX_ROW_WORD,
+                    options.ROW_WORD_SEP);
+    return run_nmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
+}
+
+template <typename Derived1, typename Derived2, typename Derived3>
+int
+nmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
+          const Eigen::MatrixBase<Derived1> &_log_x,
+          const std::vector<std::string> &pos2row,
+          const stat_options_t &options,
+          Eigen::MatrixBase<Derived2> &_r_nk,
+          Eigen::MatrixBase<Derived3> &_y_n)
+{
+    eigenSparse_data_t data(y_dn, pos2row);
+    return run_nmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
+}
+
+////////////////////////////
+// implementation details //
+////////////////////////////
+
+template <typename Data,
+          typename Derived1,
+          typename Derived2,
+          typename Derived3>
+int
+run_nmf_stat(Data &data,
+             const Eigen::MatrixBase<Derived1> &_log_x,
+             const std::vector<std::string> &pos2row,
+             const stat_options_t &options,
+             Eigen::MatrixBase<Derived2> &_r_nk,
+             Eigen::MatrixBase<Derived3> &_y_n)
 {
 
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS = options.NUM_THREADS;
     const std::size_t BLOCK_SIZE = options.BLOCK_SIZE;
-    const std::size_t MAX_ROW_WORD = options.MAX_ROW_WORD;
-    const char ROW_WORD_SEP = options.ROW_WORD_SEP;
-    const std::size_t MAX_COL_WORD = options.MAX_COL_WORD;
-    const char COL_WORD_SEP = options.COL_WORD_SEP;
 
-    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
+    // using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     Derived1 logX_dk = _log_x.derived();
@@ -70,26 +130,9 @@ asap_topic_stat_mtx(const std::string mtx_file,
     ASSERT_RET(row2pos.size() == D, "Redundant row names exist");
     TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
-    ///////////////////////////////
-    // read mtx data information //
-    ///////////////////////////////
-
-    CHK_RET_(convert_bgzip(mtx_file),
-             "mtx file " << mtx_file << " was not bgzipped.");
-
-    mm_info_reader_t info;
-    CHK_RET_(peek_bgzf_header(mtx_file, info),
-             "Failed to read the size of this mtx file:" << mtx_file);
-
-    const Index N = info.max_col;        // number of cells
+    const Index N = data.info.max_col;
     const Index K = logX_dk.cols();      // number of topics
     const Index block_size = BLOCK_SIZE; // memory block size
-
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
-                    MAX_ROW_WORD,
-                    ROW_WORD_SEP);
 
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
     Rtot_nk.resize(N, K);
@@ -97,7 +140,7 @@ asap_topic_stat_mtx(const std::string mtx_file,
     Index Nprocessed = 0;
 
     if (verbose) {
-        Rcpp::Rcerr << "Calibrating " << N << " columns..." << std::endl;
+        Rcpp::Rcerr << "Calibrating " << N << " samples..." << std::endl;
     }
 
     data.relocate_rows(row2pos);
@@ -159,54 +202,41 @@ asap_topic_stat_mtx(const std::string mtx_file,
     return EXIT_SUCCESS;
 }
 
-template <typename Derived1,
+template <typename Data,
           typename Derived0,
+          typename Derived1,
           typename Derived2,
-          typename Derived3,
-          typename OPT>
+          typename Derived3>
 int
-asap_topic_stat_ipw_mtx(const std::string mtx_file,
-                        const std::string row_file,
-                        const std::string col_file,
-                        const std::string idx_file,
-                        const Eigen::MatrixBase<Derived1> &_log_x,
-                        const Eigen::MatrixBase<Derived0> &_log_w,
-                        const std::vector<std::string> &pos2row,
-                        const OPT &options,
-                        Eigen::MatrixBase<Derived2> &_r_nk,
-                        Eigen::MatrixBase<Derived3> &_y_n)
+run_nmf_stat_ipw(Data &data,
+                 const Eigen::MatrixBase<Derived0> &_log_x,
+                 const Eigen::MatrixBase<Derived1> &_log_x0,
+                 const std::vector<std::string> &pos2row,
+                 const stat_options_t &options,
+                 Eigen::MatrixBase<Derived2> &_r_nk,
+                 Eigen::MatrixBase<Derived3> &_y_n)
 {
 
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS = options.NUM_THREADS;
     const std::size_t BLOCK_SIZE = options.BLOCK_SIZE;
-    const std::size_t MAX_ROW_WORD = options.MAX_ROW_WORD;
-    const char ROW_WORD_SEP = options.ROW_WORD_SEP;
-    const std::size_t MAX_COL_WORD = options.MAX_COL_WORD;
-    const char COL_WORD_SEP = options.COL_WORD_SEP;
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    Derived1 logX_dk = _log_x.derived();
+    Derived0 logX_dk = _log_x.derived();
     if (options.do_stdize_x) {
         standardize_columns_inplace(logX_dk);
     }
 
+    Derived1 logX0_db = _log_x0.derived();
+    if (options.do_stdize_x) {
+        standardize_columns_inplace(logX0_db);
+    }
+
     Derived2 &Rtot_nk = _r_nk.derived();
     Derived3 &Ytot_n = _y_n.derived();
-
-    Derived0 logW_db = _log_w.derived();
-
-    ///////////////////////////////////
-    // check inverse weight features //
-    ///////////////////////////////////
-
-    ASSERT_RET(logW_db.rows() == logX_dk.rows(),
-               "X and W should have the same number of rows");
-
-    const Index B = logW_db.cols(); // batches
 
     //////////////////////////////////////
     // take care of different row names //
@@ -228,26 +258,10 @@ asap_topic_stat_ipw_mtx(const std::string mtx_file,
     ASSERT_RET(row2pos.size() == D, "Redundant row names exist");
     TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
-    ///////////////////////////////
-    // read mtx data information //
-    ///////////////////////////////
-
-    CHK_RET_(convert_bgzip(mtx_file),
-             "mtx file " << mtx_file << " was not bgzipped.");
-
-    mm_info_reader_t info;
-    CHK_RET_(peek_bgzf_header(mtx_file, info),
-             "Failed to read the size of this mtx file:" << mtx_file);
-
-    const Index N = info.max_col;        // number of cells
+    const Index N = data.info.max_col;
     const Index K = logX_dk.cols();      // number of topics
+    const Index B = logX0_db.cols();     // number of batches
     const Index block_size = BLOCK_SIZE; // memory block size
-
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
-                    MAX_ROW_WORD,
-                    ROW_WORD_SEP);
 
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
     Rtot_nk.resize(N, K);
@@ -255,7 +269,7 @@ asap_topic_stat_ipw_mtx(const std::string mtx_file,
     Index Nprocessed = 0;
 
     if (verbose) {
-        Rcpp::Rcerr << "Calibrating " << N << " columns..." << std::endl;
+        Rcpp::Rcerr << "Calibrating " << N << " samples..." << std::endl;
     }
 
     data.relocate_rows(row2pos);
@@ -292,31 +306,31 @@ asap_topic_stat_ipw_mtx(const std::string mtx_file,
         //////////////////////////////
 
         Mat log_r0_nb =
-            (y_dn.transpose() * logW_db).array().colwise() / Y_n1.array();
+            (y_dn.transpose() * logX0_db).array().colwise() / Y_n1.array();
 
         for (Index j = 0; j < n; ++j) {
             tempB = log_r0_nb.row(j);
             log_r0_nb.row(j) = softmax.log_row(tempB);
         }
 
-        Mat y0_dn = logW_db * (log_r0_nb.unaryExpr(exp)).transpose();
+        Mat y0_dn =
+            logX0_db.unaryExpr(exp) * (log_r0_nb.unaryExpr(exp)).transpose();
 
-        // TODO
-        // ( sum_g Y(g,j) logX(g, k) / Y0(g,j) ) / ( sum_g Y(g,j) / Y0(g,j) )
+        ColVec Y0_n = y0_dn.colwise().sum().transpose(); // n x 1
+        ColVec Y0_n1 = Y0_n.unaryExpr(at_least_one);     // n x 1
 
         ///////////////////////////
         // parameter of interest //
         ///////////////////////////
 
-        // TODO: stabilize Y/Y0
-
-        // ColVec Y_n = y_dn.colwise().sum().transpose(); // n x 1
-        // ColVec Y_n1 = Y_n.unaryExpr(at_least_one);     // n x 1
-
         Mat R_nk =
             (y_dn.transpose() * logX_dk).array().colwise() / Y_n1.array();
 
-        // TODO
+        // Adjust R0_nk
+        Mat R0_nk =
+            (y0_dn.transpose() * logX_dk).array().colwise() / Y0_n1.array();
+
+        residual_columns_inplace(R_nk, R0_nk);
 
 #pragma omp critical
         {
@@ -344,4 +358,5 @@ asap_topic_stat_ipw_mtx(const std::string mtx_file,
     return EXIT_SUCCESS;
 }
 
+}} // namespace asap::regression
 #endif

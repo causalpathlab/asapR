@@ -157,7 +157,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    topic_stat_options_t options;
+    asap::regression::stat_options_t options;
 
     options.do_stdize_x = do_stdize_beta;
     options.do_log1p = do_log1p;
@@ -212,15 +212,15 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
             Rcpp::as<std::vector<std::string>>(beta_row_names_vec.at(b));
 
         Mat Rtot_nk, Ytot_n;
-        CHK_RETL_(asap_topic_stat_mtx(mtx_files.at(b),
-                                      row_files.at(b),
-                                      col_files.at(b),
-                                      idx_files.at(b),
-                                      log_x,
-                                      pos2row,
-                                      options,
-                                      Rtot_nk,
-                                      Ytot_n),
+        CHK_RETL_(asap::regression::nmf_stat_mtx(mtx_files.at(b),
+                                                 row_files.at(b),
+                                                 col_files.at(b),
+                                                 idx_files.at(b),
+                                                 log_x,
+                                                 pos2row,
+                                                 options,
+                                                 Rtot_nk,
+                                                 Ytot_n),
                   "unable to compute topic statistics [ " << (b + 1) << " ]");
 
         const Index N = Rtot_nk.rows(), K = Rtot_nk.cols();

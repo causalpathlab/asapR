@@ -48,7 +48,7 @@ asap_topic_stat_cbind(
     const char COL_WORD_SEP = '@')
 {
 
-    topic_stat_options_t options;
+    asap::regression::stat_options_t options;
 
     options.do_stdize_x = do_stdize_beta;
     options.do_log1p = do_log1p;
@@ -116,10 +116,6 @@ asap_topic_stat_cbind(
 
     TLOG_(verbose, "Found " << Ntot << " columns");
 
-    /////////////////////////////////////////////////////////////////////
-    // 1. Compute correlation matrices based on log_beta and log_delta //
-    /////////////////////////////////////////////////////////////////////
-
     std::vector<std::string> pos2row;
     rcpp::util::copy(beta_row_names, pos2row);
 
@@ -138,8 +134,7 @@ asap_topic_stat_cbind(
         logDelta_db.setZero();
     }
 
-    Mat R1_nk = Mat::Zero(Ntot, K), Y1_n = Mat::Zero(Ntot, 1);
-    Mat R0_nb = Mat::Zero(Ntot, B);
+    Mat R_nk = Mat::Zero(Ntot, K), Y_n = Mat::Zero(Ntot, 1);
 
     std::vector<std::string> columns;
     columns.reserve(Ntot);
@@ -167,46 +162,30 @@ asap_topic_stat_cbind(
 
         const Index ub = columns.size();
 
-        Mat r1_b_nk, y1_b_n;
+        mtx_data_t data(mtx_data_t::MTX { mtx_files.at(b) },
+                        mtx_data_t::ROW { row_files.at(b) },
+                        mtx_data_t::IDX { idx_files.at(b) },
+                        options.MAX_ROW_WORD,
+                        options.ROW_WORD_SEP);
 
-        CHK_RETL_(asap_topic_stat_mtx(mtx_files.at(b),
-                                      row_files.at(b),
-                                      col_files.at(b),
-                                      idx_files.at(b),
-                                      logBeta_dk,
-                                      pos2row,
-                                      options,
-                                      r1_b_nk,
-                                      y1_b_n),
-                  "unable to compute beta stat: " << (b + 1) << "/B");
+        Mat r_b_nk, y_b_n;
 
-        R1_nk.middleRows(lb, r1_b_nk.rows()) = r1_b_nk;
-        Y1_n.middleRows(lb, y1_b_n.rows()) = y1_b_n;
+        CHK_RETL_(asap::regression::run_nmf_stat_ipw(data,
+                                                     logBeta_dk,
+                                                     logDelta_db,
+                                                     pos2row,
+                                                     options,
+                                                     r_b_nk,
+                                                     y_b_n),
+                  "unable to compute topic statistics");
 
-        Mat r0_b_nb, y0_b_n;
+        R_nk.middleRows(lb, r_b_nk.rows()) = r_b_nk;
+        Y_n.middleRows(lb, y_b_n.rows()) = y_b_n;
 
-        CHK_RETL_(asap_topic_stat_mtx(mtx_files.at(b),
-                                      row_files.at(b),
-                                      col_files.at(b),
-                                      idx_files.at(b),
-                                      logDelta_db,
-                                      pos2row,
-                                      options,
-                                      r0_b_nb,
-                                      y0_b_n),
-                  "unable to compute delta stat: " << (b + 1) << "/B");
-
-        R0_nb.middleRows(lb, r0_b_nb.rows()) = r0_b_nb;
+        TLOG_(verbose, "processed  [ " << (b + 1) << " ] / [ " << B << " ]");
     }
 
     TLOG_(verbose, "Got em all");
-
-    ///////////////////////////////////////////
-    // 2. Regress out batch-specific effects //
-    ///////////////////////////////////////////
-
-    TLOG_(verbose, "Regressing out putative batch effects");
-    residual_columns_inplace(R1_nk, R0_nb);
 
     using namespace rcpp::util;
     using namespace Rcpp;
@@ -222,8 +201,8 @@ asap_topic_stat_cbind(
     exp_op<Mat> exp;
 
     return List::create(_["beta"] = named(logBeta_dk.unaryExpr(exp), d_, k_),
-                        _["corr"] = named(R1_nk, columns, k_),
-                        _["colsum"] = named_rows(Y1_n, columns),
+                        _["corr"] = named(R_nk, columns, k_),
+                        _["colsum"] = named_rows(Y_n, columns),
                         _["rownames"] = pos2row,
                         _["colnames"] = columns);
 }
