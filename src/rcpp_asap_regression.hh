@@ -3,8 +3,8 @@
 
 #include "rcpp_asap.hh"
 #include "rcpp_asap_batch.hh"
-#include "rcpp_asap_mtx_data.hh"
-#include "rcpp_asap_eigenSparse_data.hh"
+#include "rcpp_mtx_data.hh"
+#include "rcpp_eigenSparse_data.hh"
 
 namespace asap { namespace regression {
 
@@ -56,9 +56,10 @@ nmf_stat_mtx(const std::string mtx_file,
              Eigen::MatrixBase<Derived2> &_r_nk,
              Eigen::MatrixBase<Derived3> &_y_n)
 {
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
+    mtx_data_t data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
+                                mtx_tuple_t::ROW(row_file),
+                                mtx_tuple_t::COL(col_file),
+                                mtx_tuple_t::IDX(idx_file)),
                     options.MAX_ROW_WORD,
                     options.ROW_WORD_SEP);
     return run_nmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);

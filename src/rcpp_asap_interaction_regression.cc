@@ -100,9 +100,10 @@ asap_interaction_topic_stat(
     ASSERT_RETL(N == coln.size(),
                 "Different #columns: " << N << " vs. " << coln.size());
 
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
+    mtx_data_t data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
+                                mtx_tuple_t::ROW(row_file),
+                                mtx_tuple_t::COL(col_file),
+                                mtx_tuple_t::IDX(idx_file)),
                     MAX_ROW_WORD,
                     ROW_WORD_SEP);
 

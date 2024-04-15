@@ -370,11 +370,14 @@ asap_random_bulk_cbind(
     std::vector<mtx_data_t> data_loaders;
 
     for (Index b = 0; b < B; ++b) {
-        data_loaders.emplace_back(mtx_data_t(mtx_data_t::MTX(mtx_files.at(b)),
-                                             mtx_data_t::ROW(row_files.at(b)),
-                                             mtx_data_t::IDX(idx_files.at(b)),
-                                             MAX_ROW_WORD,
-                                             ROW_WORD_SEP));
+
+        const mtx_tuple_t tup(mtx_tuple_t::MTX { mtx_files.at(b) },
+                              mtx_tuple_t::ROW { row_files.at(b) },
+                              mtx_tuple_t::COL { col_files.at(b) },
+                              mtx_tuple_t::IDX { idx_files.at(b) });
+
+        data_loaders.emplace_back(
+            mtx_data_t { tup, MAX_ROW_WORD, ROW_WORD_SEP });
     }
 
     for (Index b = 0; b < B; ++b) {
@@ -750,8 +753,6 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
                 for (Index b = 0; b < B; ++b) {
                     if (a != b) {
-
-                        // mtx_data_t &mtx = *mtx_ptr[b].get();
 
                         std::vector<Index> neigh_index;
                         std::vector<Scalar> neigh_dist;

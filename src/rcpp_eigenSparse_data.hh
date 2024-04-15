@@ -3,33 +3,10 @@
 #include "RcppAnnoy.h"
 #define ANNOYLIB_MULTITHREADED_BUILD 1
 
-#ifndef RCPP_ASAP_MTX_DATA_HH_
-#define RCPP_ASAP_MTX_DATA_HH_
+#ifndef RCPP_EIGENSPARSE_DATA_HH_
+#define RCPP_EIGENSPARSE_DATA_HH_
 
-struct mtx_data_t {
-    struct MTX {
-        MTX(const std::string v)
-            : val(v)
-        {
-        }
-        const std::string val;
-    };
-
-    struct ROW {
-        ROW(const std::string v)
-            : val(v)
-        {
-        }
-        const std::string val;
-    };
-
-    struct IDX {
-        IDX(const std::string v)
-            : val(v)
-        {
-        }
-        const std::string val;
-    };
+struct eigenSparse_data_t {
 
     using annoy_index_t = Annoy::AnnoyIndex<Index,
                                             Scalar,
@@ -37,22 +14,20 @@ struct mtx_data_t {
                                             Kiss64Random,
                                             RcppAnnoyIndexThreadPolicy>;
 
-    explicit mtx_data_t(const MTX &mtx,
-                        const ROW &row,
-                        const IDX &idx,
-                        const std::size_t MAX_ROW_WORD = 2,
-                        const char ROW_WORD_SEP = '_')
-        : mtx_file(mtx.val)
-        , row_file(row.val)
-        , idx_file(idx.val)
+    explicit eigenSparse_data_t(const SpMat &_data,
+                                const std::vector<std::string> &_row_names)
+        : data(_data)
+        , sub_rows(_row_names)
     {
-        CHECK(peek_bgzf_header(mtx_file, info));
-        CHECK(read_mmutil_index(idx_file, mtx_idx));
-        sub_rows.reserve(info.max_row);
-        CHECK(read_line_file(row_file, sub_rows, MAX_ROW_WORD, ROW_WORD_SEP));
-
         has_index = false;
         has_reloc = false;
+
+        info.max_row = data.rows();
+        info.max_col = data.cols();
+        info.max_elem = data.nonZeros();
+
+        ASSERT(data.rows() == sub_rows.size(),
+               "row names should match with data.rows");
 
         A.resize(info.max_row, info.max_row);
         A.setZero();
@@ -84,8 +59,9 @@ struct mtx_data_t {
     }
 
     SpMat read(const Index lb, const Index ub);
-    SpMat read(const std::vector<Index> &index);
     SpMat read_reloc(const Index lb, const Index ub);
+
+    SpMat read(const std::vector<Index> &index);
     SpMat read_reloc(const std::vector<Index> &index);
 
     SpMat read_matched(const std::vector<Scalar> &query,
@@ -106,11 +82,8 @@ struct mtx_data_t {
                     std::vector<Scalar> &neigh_dist);
 
 public:
-    const std::string mtx_file;
-    const std::string row_file;
-    const std::string idx_file;
-    std::vector<Index> mtx_idx;
-    std::vector<std::string> sub_rows;
+    const SpMat &data;
+    const std::vector<std::string> &sub_rows;
 
     mm_info_reader_t info;
 

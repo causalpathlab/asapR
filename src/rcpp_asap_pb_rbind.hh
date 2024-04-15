@@ -3,7 +3,8 @@
 
 #include "rcpp_asap.hh"
 #include "rcpp_asap_stat.hh"
-#include "rcpp_asap_mtx_data.hh"
+#include "rcpp_mtx_data.hh"
+#include "rcpp_eigenSparse_data.hh"
 #include "rcpp_asap_util.hh"
 #include "rcpp_asap_pb.hh"
 

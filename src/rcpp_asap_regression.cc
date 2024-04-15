@@ -261,11 +261,12 @@ asap_topic_stat_mtx(
     Mat Rtot_nk, Ytot_n, delta_db;
     exp_op<Mat> exp;
 
-    mtx_data_t data(mtx_data_t::MTX { mtx_file },
-                    mtx_data_t::ROW { row_file },
-                    mtx_data_t::IDX { idx_file },
-                    options.MAX_ROW_WORD,
-                    options.ROW_WORD_SEP);
+    mtx_tuple_t tup(mtx_tuple_t::MTX { mtx_file },
+                    mtx_tuple_t::ROW { row_file },
+                    mtx_tuple_t::COL { col_file },
+                    mtx_tuple_t::IDX { idx_file });
+
+    mtx_data_t data(tup, options.MAX_ROW_WORD, options.ROW_WORD_SEP);
 
     if (r_log_delta.isNotNull()) {
         Mat log_delta = Rcpp::as<Mat>(r_log_delta);

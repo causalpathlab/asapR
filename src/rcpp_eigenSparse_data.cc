@@ -1,4 +1,4 @@
-#include "rcpp_asap_eigenSparse_data.hh"
+#include "rcpp_eigenSparse_data.hh"
 
 SpMat
 eigenSparse_data_t::read(const Index lb, const Index ub)

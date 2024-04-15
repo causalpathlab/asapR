@@ -96,9 +96,10 @@ asap_interaction_random_bulk(
     ASSERT_RETL(Ncell == col_names.size(),
                 "|cols| " << col_names.size() << " != " << Ncell);
 
-    mtx_data_t mtx_data(mtx_data_t::MTX(mtx_file),
-                        mtx_data_t::ROW(row_file),
-                        mtx_data_t::IDX(idx_file),
+    mtx_data_t mtx_data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
+                                    mtx_tuple_t::ROW(row_file),
+                                    mtx_tuple_t::COL(col_file),
+                                    mtx_tuple_t::IDX(idx_file)),
                         MAX_ROW_WORD,
                         ROW_WORD_SEP);
 

@@ -1,4 +1,4 @@
-#include "rcpp_asap_mtx_data.hh"
+#include "rcpp_mtx_data.hh"
 
 SpMat
 mtx_data_t::read(const Index lb, const Index ub)

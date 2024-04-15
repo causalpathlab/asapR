@@ -162,9 +162,10 @@ asap_topic_stat_cbind(
 
         const Index ub = columns.size();
 
-        mtx_data_t data(mtx_data_t::MTX { mtx_files.at(b) },
-                        mtx_data_t::ROW { row_files.at(b) },
-                        mtx_data_t::IDX { idx_files.at(b) },
+        mtx_data_t data(mtx_tuple_t(mtx_tuple_t::MTX { mtx_files.at(b) },
+                                    mtx_tuple_t::ROW { row_files.at(b) },
+                                    mtx_tuple_t::COL { col_files.at(b) },
+                                    mtx_tuple_t::IDX { idx_files.at(b) }),
                         options.MAX_ROW_WORD,
                         options.ROW_WORD_SEP);
 

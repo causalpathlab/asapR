@@ -131,11 +131,12 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
 
-        mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
-                        mtx_data_t::ROW(row_files.at(b)),
-                        mtx_data_t::IDX(idx_files.at(b)),
-                        MAX_ROW_WORD,
-                        ROW_WORD_SEP);
+        mtx_tuple_t tup(mtx_tuple_t::MTX(mtx_files.at(b)),
+                        mtx_tuple_t::ROW(row_files.at(b)),
+                        mtx_tuple_t::COL(col_files.at(b)),
+                        mtx_tuple_t::IDX(idx_files.at(b)));
+
+        mtx_data_t data(tup, MAX_ROW_WORD, ROW_WORD_SEP);
 
         std::vector<std::string> cols_b;
         CHK_RETL_(read_line_file(col_files.at(b),
@@ -270,11 +271,12 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
 
     for (Index b = 0; b < B; ++b) {
 
-        mtx_data_t data(mtx_data_t::MTX(mtx_files.at(b)),
-                        mtx_data_t::ROW(row_files.at(b)),
-                        mtx_data_t::IDX(idx_files.at(b)),
-                        MAX_ROW_WORD,
-                        ROW_WORD_SEP);
+        mtx_tuple_t tup(mtx_tuple_t::MTX(mtx_files.at(b)),
+                        mtx_tuple_t::ROW(row_files.at(b)),
+                        mtx_tuple_t::COL(col_files.at(b)),
+                        mtx_tuple_t::IDX(idx_files.at(b)));
+
+        mtx_data_t data(tup, MAX_ROW_WORD, ROW_WORD_SEP);
 
         std::vector<std::string> row_names, col_names;
         CHK_RETL_(read_line_file(row_files.at(b),

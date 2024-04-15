@@ -14,7 +14,6 @@
 #include "mmutil_io.hh"
 #include "mmutil_stat.hh"
 #include "mmutil_match.hh"
-// #include "mmutil_matched_data.hh"
 
 using namespace mmutil::io;
 using namespace mmutil::bgzf;
