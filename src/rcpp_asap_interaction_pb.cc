@@ -7,9 +7,14 @@
 //' @param col_file column names (cell/column names)
 //' @param idx_file matrix-market colum index file
 //' @param num_factors a desired number of random factors
-//' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+//' @param W_nm_list list(src.index, tgt.index, [weights]) for columns
 //'
 //' @param A_dd_list list(src.index, tgt.index, [weights]) for features
+//' 
+//' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
+//' @param row_file_rhs right-hand-side row names (gene/feature names)
+//' @param col_file_rhs right-hand-side column names (cell/column names)
+//' @param idx_file_rhs right-hand-side matrix-market colum index file
 //'
 //' @param rseed random seed
 //' @param do_product yi * yj for interaction (default: FALSE)
@@ -20,7 +25,7 @@
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param EDGE_PER_SAMPLE down-sampling cell per sample (default: 100)
-//' @param a0 gamma(a0, b0) (default: 1e-8)
+//' @param a0 gamma(a0, b0) (default: 1)
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param MAX_ROW_WORD maximum words per line in `row_file`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -49,7 +54,11 @@ asap_interaction_random_bulk(
     const std::string col_file,
     const std::string idx_file,
     const std::size_t num_factors,
-    const Rcpp::List W_nn_list,
+    const Rcpp::List W_nm_list,
+    const Rcpp::Nullable<std::string> mtx_file_rhs = R_NilValue,
+    const Rcpp::Nullable<std::string> row_file_rhs = R_NilValue,
+    const Rcpp::Nullable<std::string> col_file_rhs = R_NilValue,
+    const Rcpp::Nullable<std::string> idx_file_rhs = R_NilValue,
     const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
     const std::size_t rseed = 42,
     const bool do_product = false,
@@ -60,7 +69,7 @@ asap_interaction_random_bulk(
     const std::size_t NUM_THREADS = 1,
     const std::size_t BLOCK_SIZE = 100,
     const std::size_t EDGE_PER_SAMPLE = 100,
-    const double a0 = 1e-8,
+    const double a0 = 1,
     const double b0 = 1,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
@@ -86,22 +95,45 @@ asap_interaction_random_bulk(
     CHK_RETL_(read_line_file(col_file, col_names, MAX_COL_WORD, COL_WORD_SEP),
               "Failed to read the col names");
 
-    const Index D = info.max_row;        // dimensionality
-    const Index Ncell = info.max_col;    // number of cells
-    const Index K = num_factors;         // tree depths in implicit bisection
-    const Index block_size = BLOCK_SIZE; //
-
-    ASSERT_RETL(D == row_names.size(),
-                "|rows| " << row_names.size() << " != " << D);
-    ASSERT_RETL(Ncell == col_names.size(),
-                "|cols| " << col_names.size() << " != " << Ncell);
-
-    mtx_data_t mtx_data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
+    mtx_data_t lhs_data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
                                     mtx_tuple_t::ROW(row_file),
                                     mtx_tuple_t::COL(col_file),
                                     mtx_tuple_t::IDX(idx_file)),
                         MAX_ROW_WORD,
-                        ROW_WORD_SEP);
+                        ROW_WORD_SEP,
+                        MAX_COL_WORD,
+                        COL_WORD_SEP);
+
+    const Index D = lhs_data.max_row();     // dimensionality
+    const Index Ncell = lhs_data.max_col(); // number of cells
+    const Index K = num_factors;            // tree depths in implicit bisection
+    const Index block_size = BLOCK_SIZE;    //
+
+    std::string _mtx_file_rhs = mtx_file, _row_file_rhs = row_file,
+                _col_file_rhs = col_file, _idx_file_rhs = idx_file;
+
+    if (mtx_file_rhs.isNotNull() && row_file_rhs.isNotNull() &&
+        col_file_rhs.isNotNull() && idx_file_rhs.isNotNull()) {
+
+        _mtx_file_rhs = Rcpp::as<std::string>(mtx_file_rhs);
+        _row_file_rhs = Rcpp::as<std::string>(row_file_rhs);
+        _col_file_rhs = Rcpp::as<std::string>(col_file_rhs);
+        _idx_file_rhs = Rcpp::as<std::string>(idx_file_rhs);
+    }
+
+    mtx_data_t rhs_data(mtx_tuple_t(mtx_tuple_t::MTX(_mtx_file_rhs),
+                                    mtx_tuple_t::ROW(_row_file_rhs),
+                                    mtx_tuple_t::COL(_col_file_rhs),
+                                    mtx_tuple_t::IDX(_idx_file_rhs)),
+                        MAX_ROW_WORD,
+                        ROW_WORD_SEP,
+                        MAX_COL_WORD,
+                        COL_WORD_SEP);
+
+    const Index Mcell = rhs_data.max_col();
+
+    ASSERT_RETL(D == rhs_data.max_row(),
+                "two data sets should have a common set of features");
 
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
@@ -110,9 +142,9 @@ asap_interaction_random_bulk(
     // Step 1. Build weighted kNN graph from the input //
     /////////////////////////////////////////////////////
 
-    SpMat W_nn;
-    rcpp::util::build_sparse_mat(W_nn_list, Ncell, Ncell, W_nn);
-    TLOG_(verbose, "kNN graph W: " << W_nn.rows() << " x " << W_nn.cols());
+    SpMat W_nm;
+    rcpp::util::build_sparse_mat(W_nm_list, Ncell, Mcell, W_nm);
+    TLOG_(verbose, "kNN graph W: " << W_nm.rows() << " x " << W_nm.cols());
 
     SpMat A_dd;
     if (A_dd_list.isNotNull()) {
@@ -151,43 +183,40 @@ asap_interaction_random_bulk(
     // Step 3. Randomly project feature incidence patterns //
     /////////////////////////////////////////////////////////
 
-    const Index M = W_nn.nonZeros();
-    Mat Q_km = Mat::Zero(K, M);
+    const Index E = W_nm.nonZeros();
+    Mat Q_ke = Mat::Zero(K, E);
     TLOG_(verbose, "Collecting random projection data");
 
     {
-        Index m = 0;
+        Index e = 0;
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index i = 0; i < W_nn.outerSize(); ++i) {
-            SpMat y_di = mtx_data.read(i, i + 1);
-            for (SpMat::InnerIterator jt(W_nn, i); jt; ++jt) {
+        for (Index i = 0; i < W_nm.outerSize(); ++i) {
+            SpMat y_di = rhs_data.read(i, i + 1);
+            for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
                 const Index j = jt.index();
-                SpMat y_dj = mtx_data.read(j, j + 1);
+                SpMat y_dj = lhs_data.read(j, j + 1);
 
                 const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
-                // yij <- (yi + yj) * wij (D x 1)
-                // Q_km <- R_kd * yij     (K x 1)
 #pragma omp critical
                 {
                     if (do_product) {
-                        Q_km.col(m) = R_kd * (y_di.cwiseProduct(y_dj)) * w_ij;
+                        Q_ke.col(e) =
+                            R_kd * PRODUCT_EDGE(A_dd, y_di, y_dj) * w_ij;
                     } else {
-                        Q_km.col(m) = w_ij * 0.5 *
-                            ((R_kd * A_dd * y_di + R_kd * y_dj) +
-                             (R_kd * y_di + R_kd * A_dd * y_dj));
+                        Q_ke.col(e) = w_ij * R_kd * SUM_EDGE(A_dd, y_di, y_dj);
                     }
-                    ++m;
+                    ++e;
 
                     if (verbose) {
-                        Rcpp::Rcerr << "\rProcessed: " << m << std::flush;
+                        Rcpp::Rcerr << "\rProcessed: " << e << std::flush;
                     } else {
                         Rcpp::Rcerr << "+ " << std::flush;
-                        if (m % 1000 == 0)
+                        if (e % 1000 == 0)
                             Rcpp::Rcerr << "\r" << std::flush;
                     }
                 }
@@ -210,14 +239,14 @@ asap_interaction_random_bulk(
     Mat vv;
     {
         const std::size_t lu_iter = 5;
-        RandomizedSVD<Mat> svd(Q_km.rows(), lu_iter);
-        svd.compute(Q_km);
+        RandomizedSVD<Mat> svd(Q_ke.rows(), lu_iter);
+        svd.compute(Q_ke);
         vv = svd.matrixV();
     }
 
-    ASSERT_RETL(vv.rows() == M, " failed SVD for Q");
+    ASSERT_RETL(vv.rows() == E, " failed SVD for Q");
 
-    Mat RD = standardize_columns(vv); // M x K
+    Mat RD = standardize_columns(vv); // E x K
     TLOG(RD.rows() << " x " << RD.cols());
     TLOG_(verbose, "SVD on the projected: " << RD.rows() << " x " << RD.cols());
 
@@ -249,44 +278,44 @@ asap_interaction_random_bulk(
     RowVec size_s = RowVec::Zero(S);
 
     {
-        Index m = 0;
+        Index e = 0;
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index i = 0; i < W_nn.outerSize(); ++i) {
-            SpMat y_di = mtx_data.read(i, i + 1);
-            for (SpMat::InnerIterator jt(W_nn, i); jt; ++jt) {
+        for (Index i = 0; i < W_nm.outerSize(); ++i) {
+            SpMat y_di = rhs_data.read(i, i + 1);
+            for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
                 const Index j = jt.index();
-                SpMat y_dj = mtx_data.read(j, j + 1);
+                SpMat y_dj = lhs_data.read(j, j + 1);
 
                 const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
-                // yij <- (yi + yj) * wij (D x 1)
-                // Q_km <- R_kd * yij     (K x 1)
 #pragma omp critical
                 {
-                    const Index s = positions.at(m);
+                    const Index s = positions.at(e);
                     if (s < NA_POS) {
+
                         if (do_product) {
-                            ysum_ds.col(s) += y_di.cwiseProduct(y_dj) * w_ij;
+                            ysum_ds.col(s) +=
+                                PRODUCT_EDGE(A_dd, y_di, y_dj) * w_ij;
                         } else {
-                            ysum_ds.col(s) += w_ij * 0.5 *
-                                (A_dd * y_di + y_dj + y_di + A_dd * y_dj);
+                            ysum_ds.col(s) += w_ij * SUM_EDGE(A_dd, y_di, y_dj);
                         }
+
                         size_s(s) += 1.;
                     }
-                    ++m;
+                    ++e;
                     if (verbose) {
-                        Rcpp::Rcerr << "\rProcessed: " << m << std::flush;
+                        Rcpp::Rcerr << "\rProcessed: " << e << std::flush;
                     } else {
                         Rcpp::Rcerr << "+ " << std::flush;
-                        if (m % 1000 == 0)
+                        if (e % 1000 == 0)
                             Rcpp::Rcerr << "\r" << std::flush;
                     }
-                }
-            }
-        }
+                } // omp critical
+            }     // for j
+        }         // for i
     }
 
     if (!verbose) {
@@ -313,17 +342,15 @@ asap_interaction_random_bulk(
     convert_r_index(positions, r_positions);
 
     if (!save_rand_proj) {
-        Q_km.resize(0, 0);
+        Q_ke.resize(0, 0);
     }
 
     TLOG_(verbose, "Done");
 
-    return List::create(_["PB"] = mu_ds,    // d_, s_),
-                        _["sum"] = ysum_ds, //d_, s_),
+    return List::create(_["PB"] = mu_ds,
+                        _["sum"] = ysum_ds,
                         _["size"] = size_s,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
-                        _["rand.proj"] = Q_km.transpose(),
-                        _["colnames"] = col_names,
-                        _["rownames"] = row_names);
+                        _["rand.proj"] = Q_ke.transpose());
 }

@@ -1,4 +1,6 @@
 #include "rcpp_asap.hh"
+#include "rcpp_asap_pb.hh"
+#include "rcpp_asap_regression.hh"
 #include "rcpp_util.hh"
 
 #ifndef RCPP_ASAP_INTERACTION_HH_
@@ -15,5 +17,10 @@ product_similarity(const Eigen::SparseMatrixBase<Derived> &y_d1,
     const Scalar denom = std::sqrt(n1) * std::sqrt(n2);
     return (n1 < 1. || n2 < 1.) ? 0. : (n12 / denom);
 }
+
+#define PRODUCT_EDGE(A_dd, Y1, Y2) \
+    (Y1.cwiseProduct(A_dd * Y2) + Y2.cwiseProduct(A_dd * Y1)) * 0.5
+
+#define SUM_EDGE(A_dd, Y1, Y2) (Y1 + A_dd * Y2 + Y2 + A_dd * Y1) * 0.5
 
 #endif

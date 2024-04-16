@@ -1,5 +1,32 @@
 #include "rcpp_mtx_data.hh"
 
+Index
+mtx_data_t::max_row() const
+{
+    return info.max_row;
+}
+Index
+mtx_data_t::max_col() const
+{
+    return info.max_col;
+}
+Index
+mtx_data_t::max_elem() const
+{
+    return info.max_elem;
+}
+
+const std::vector<std::string> &
+mtx_data_t::row_names() const
+{
+    return sub_rows;
+}
+const std::vector<std::string> &
+mtx_data_t::col_names() const
+{
+    return sub_cols;
+}
+
 SpMat
 mtx_data_t::read(const Index lb, const Index ub)
 {

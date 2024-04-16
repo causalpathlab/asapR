@@ -145,8 +145,8 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
                                  COL_WORD_SEP),
                   "Unable to read the column file: " << col_files.at(b));
 
-        const Index D = data.info.max_row;
-        const Index Nb = data.info.max_col;
+        const Index D = data.max_row();
+        const Index Nb = data.max_col();
         ASSERT_RETL(Nb == cols_b.size(),
                     "Found: " << Nb << " != " << cols_b.size());
 
@@ -290,8 +290,8 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
                                  COL_WORD_SEP),
                   "Failed to read the col names: " << col_files.at(b));
 
-        const Index D = data.info.max_row;
-        const Index Nb = data.info.max_col;
+        const Index D = data.max_row();
+        const Index Nb = data.max_col();
 
         Mat mu_ds = Mat::Zero(D, S);
         Mat ysum_ds = Mat::Zero(D, S);

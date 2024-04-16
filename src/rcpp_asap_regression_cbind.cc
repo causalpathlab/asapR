@@ -27,7 +27,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_stat_cbind(
+asap_topic_stat_cbind_mtx(
     const std::vector<std::string> mtx_files,
     const std::vector<std::string> row_files,
     const std::vector<std::string> col_files,
@@ -171,7 +171,7 @@ asap_topic_stat_cbind(
 
         Mat r_b_nk, y_b_n;
 
-        CHK_RETL_(asap::regression::run_nmf_stat_ipw(data,
+        CHK_RETL_(asap::regression::run_nmf_stat_adj(data,
                                                      logBeta_dk,
                                                      logDelta_db,
                                                      pos2row,

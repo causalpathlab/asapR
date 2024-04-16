@@ -36,7 +36,7 @@ template <typename Data,
           typename Derived1,
           typename Derived2,
           typename Derived3>
-int run_nmf_stat_ipw(Data &data,
+int run_nmf_stat_adj(Data &data,
                      const Eigen::MatrixBase<Derived0> &_log_x,
                      const Eigen::MatrixBase<Derived1> &_log_x0,
                      const std::vector<std::string> &pos2row,
@@ -131,7 +131,7 @@ run_nmf_stat(Data &data,
     ASSERT_RET(row2pos.size() == D, "Redundant row names exist");
     TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
-    const Index N = data.info.max_col;
+    const Index N = data.max_col();
     const Index K = logX_dk.cols();      // number of topics
     const Index block_size = BLOCK_SIZE; // memory block size
 
@@ -209,7 +209,7 @@ template <typename Data,
           typename Derived2,
           typename Derived3>
 int
-run_nmf_stat_ipw(Data &data,
+run_nmf_stat_adj(Data &data,
                  const Eigen::MatrixBase<Derived0> &_log_x,
                  const Eigen::MatrixBase<Derived1> &_log_x0,
                  const std::vector<std::string> &pos2row,
@@ -259,7 +259,7 @@ run_nmf_stat_ipw(Data &data,
     ASSERT_RET(row2pos.size() == D, "Redundant row names exist");
     TLOG_(verbose, "Found " << row2pos.size() << " unique row names");
 
-    const Index N = data.info.max_col;
+    const Index N = data.max_col();
     const Index K = logX_dk.cols();      // number of topics
     const Index B = logX0_db.cols();     // number of batches
     const Index block_size = BLOCK_SIZE; // memory block size

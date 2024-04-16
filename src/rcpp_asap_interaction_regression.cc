@@ -8,7 +8,7 @@
 //' @param idx_file matrix-market colum index file
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
-//' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+//' @param W_nm_list list(src.index, tgt.index, [weights]) for columns
 //'
 //' @param A_dd_list list(src.index, tgt.index, [weights]) for features
 //'
@@ -39,7 +39,11 @@ asap_interaction_topic_stat(
     const std::string idx_file,
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
-    const Rcpp::List W_nn_list,
+    const Rcpp::List W_nm_list,
+    const Rcpp::Nullable<std::string> mtx_file2 = R_NilValue,
+    const Rcpp::Nullable<std::string> row_file2 = R_NilValue,
+    const Rcpp::Nullable<std::string> col_file2 = R_NilValue,
+    const Rcpp::Nullable<std::string> idx_file2 = R_NilValue,
     const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
     const bool do_stdize_beta = true,
     const bool do_product = false,
@@ -84,35 +88,49 @@ asap_interaction_topic_stat(
     CHK_RETL_(convert_bgzip(mtx_file),
               "mtx file " << mtx_file << " was not bgzipped.");
 
-    mm_info_reader_t info;
-    CHK_RETL_(peek_bgzf_header(mtx_file, info),
-              "Failed to read the size of this mtx file:" << mtx_file);
-
-    const Index N = info.max_col;        // number of cells
     const Index K = log_beta.cols();     // number of topics
     const Index block_size = BLOCK_SIZE; // memory block size
-
-    std::vector<std::string> coln;
-
-    CHK_RETL_(read_line_file(col_file, coln, MAX_COL_WORD, COL_WORD_SEP),
-              "Failed to read the column name file: " << col_file);
-
-    ASSERT_RETL(N == coln.size(),
-                "Different #columns: " << N << " vs. " << coln.size());
 
     mtx_data_t data(mtx_tuple_t(mtx_tuple_t::MTX(mtx_file),
                                 mtx_tuple_t::ROW(row_file),
                                 mtx_tuple_t::COL(col_file),
                                 mtx_tuple_t::IDX(idx_file)),
                     MAX_ROW_WORD,
-                    ROW_WORD_SEP);
+                    ROW_WORD_SEP,
+                    MAX_COL_WORD,
+                    COL_WORD_SEP);
+
+    const Index N = data.max_col(); // number of cells
+
+    std::string _mtx_file2 = mtx_file, _row_file2 = row_file,
+                _col_file2 = col_file, _idx_file2 = idx_file;
+
+    if (mtx_file2.isNotNull() && row_file2.isNotNull() &&
+        col_file2.isNotNull() && idx_file2.isNotNull()) {
+
+        _mtx_file2 = Rcpp::as<std::string>(mtx_file2);
+        _row_file2 = Rcpp::as<std::string>(row_file2);
+        _col_file2 = Rcpp::as<std::string>(col_file2);
+        _idx_file2 = Rcpp::as<std::string>(idx_file2);
+    }
+
+    mtx_data_t data2(mtx_tuple_t(mtx_tuple_t::MTX(_mtx_file2),
+                                 mtx_tuple_t::ROW(_row_file2),
+                                 mtx_tuple_t::COL(_col_file2),
+                                 mtx_tuple_t::IDX(_idx_file2)),
+                     MAX_ROW_WORD,
+                     ROW_WORD_SEP,
+                     MAX_COL_WORD,
+                     COL_WORD_SEP);
+
+    const Index M = data2.max_col(); // number of cells
 
     /////////////////////////////////////////////
     // Build weighted kNN graph from the input //
     /////////////////////////////////////////////
 
-    SpMat W_nn;
-    rcpp::util::build_sparse_mat(W_nn_list, N, N, W_nn);
+    SpMat W_nm;
+    rcpp::util::build_sparse_mat(W_nm_list, N, M, W_nm);
 
     SpMat A_dd;
     if (A_dd_list.isNotNull()) {
@@ -132,10 +150,10 @@ asap_interaction_topic_stat(
     }
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
 
-    const Index Nedge = W_nn.nonZeros();
+    const Index Nedge = W_nm.nonZeros();
 
-    Mat Rtot_mk = Mat::Zero(Nedge, K);
-    Mat Ytot_m = Mat::Zero(Nedge, 1);
+    Mat Rtot_ek = Mat::Zero(Nedge, K);
+    Mat Ytot_e = Mat::Zero(Nedge, 1);
     std::vector<Index> src_out(Nedge);
     std::vector<Index> tgt_out(Nedge);
     std::vector<Scalar> weight_out(Nedge);
@@ -152,9 +170,9 @@ asap_interaction_topic_stat(
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-    for (Index i = 0; i < W_nn.outerSize(); ++i) {
-        SpMat y_di = data.read_reloc(i, i + 1);
-        for (SpMat::InnerIterator jt(W_nn, i); jt; ++jt) {
+    for (Index i = 0; i < W_nm.outerSize(); ++i) {
+        SpMat y_di = data2.read_reloc(i, i + 1);
+        for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
             const Index j = jt.index();
             SpMat y_dj = data.read_reloc(j, j + 1);
 
@@ -163,16 +181,16 @@ asap_interaction_topic_stat(
             // yij <- (yi + yj) * wij (D x 1)
             Mat wy_dij(D, 1);
             if (do_product) {
-                wy_dij = w_ij * y_di.cwiseProduct(y_dj);
+                wy_dij = PRODUCT_EDGE(A_dd, y_di, y_dj) * w_ij;
             } else {
-                wy_dij = w_ij * 0.5 * (A_dd * y_di + y_dj + y_di + A_dd * y_dj);
+                wy_dij = w_ij * SUM_EDGE(A_dd, y_di, y_dj);
             }
 #pragma omp critical
             {
                 const Scalar denom = std::max(wy_dij.sum(), one);
-                Rtot_mk.row(Nprocessed) =
+                Rtot_ek.row(Nprocessed) =
                     (wy_dij.transpose() * logX_dk) / denom;
-                Ytot_m(Nprocessed, 0) = denom;
+                Ytot_e(Nprocessed, 0) = denom;
                 src_out[Nprocessed] = i + 1;   // 1-based
                 tgt_out[Nprocessed] = j + 1;   // 1-based
                 weight_out[Nprocessed] = w_ij; // readjusted weight
@@ -207,11 +225,10 @@ asap_interaction_topic_stat(
     exp_op<Mat> exp;
 
     return List::create(_["beta"] = named(logX_dk.unaryExpr(exp), d_, k_),
-                        _["corr"] = Rtot_mk,
-                        _["colsum"] = Ytot_m,
+                        _["corr"] = Rtot_ek,
+                        _["colsum"] = Ytot_e,
                         _["src.index"] = src_out,
                         _["tgt.index"] = tgt_out,
                         _["weight"] = weight_out,
-                        _["rownames"] = pos2row,
-                        _["colnames"] = coln);
+                        _["rownames"] = pos2row);
 }

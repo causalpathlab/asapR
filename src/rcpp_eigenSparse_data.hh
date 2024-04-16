@@ -81,14 +81,18 @@ struct eigenSparse_data_t {
                     std::vector<Index> &neigh_index,
                     std::vector<Scalar> &neigh_dist);
 
+    Index max_row() const;
+    Index max_col() const;
+    Index max_elem() const;
+
 public:
     const SpMat &data;
     const std::vector<std::string> &sub_rows;
 
-    mm_info_reader_t info;
-
 private:
     SpMat A;
+
+    mm_info_reader_t info;
 
     std::shared_ptr<annoy_index_t> index_ptr;
     Mat Q_kn;

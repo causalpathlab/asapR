@@ -88,12 +88,10 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 
 //' Topic statistics to estimate factor loading
 //'
-//' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
-//' @param row_file row names file (D x 1)
-//' @param col_file column names file (N x 1)
-//' @param idx_file matrix-market colum index file
+//' @param y_dn sparse data matrix (D x N)
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
+//' @param r_log_delta D x B log batch effect matrix
 //' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
@@ -113,7 +111,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_nmf_stat(const Eigen::SparseMatrix<float> y_dn,
+asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const Eigen::MatrixXf log_beta,
               const Rcpp::StringVector beta_row_names,
               const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
@@ -155,7 +153,7 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> y_dn,
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(run_nmf_stat_ipw(data,
+        CHK_RETL_(run_nmf_stat_adj(data,
                                    log_beta,
                                    log_delta,
                                    pos2row,
@@ -202,6 +200,7 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> y_dn,
 //' @param idx_file matrix-market colum index file
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
+//' @param r_log_delta D x B log batch effect matrix
 //' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
@@ -274,7 +273,7 @@ asap_topic_stat_mtx(
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(asap::regression::run_nmf_stat_ipw(data,
+        CHK_RETL_(asap::regression::run_nmf_stat_adj(data,
                                                      log_beta,
                                                      log_delta,
                                                      pos2row,

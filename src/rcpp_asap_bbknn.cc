@@ -105,10 +105,11 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
     std::vector<index_ptr> idx_ptr_vec;
     idx_ptr_vec.reserve(B);
     {
-        using namespace asap::bbknn;
+        using namespace mmutil::match;
         for (std::size_t b = 0; b < data_nk_vec.size(); ++b) {
+            const Mat data_kn = data_nk_vec.at(b).transpose();
             idx_ptr_vec.emplace_back(
-                build_euclidean_annoy(data_nk_vec.at(b), NUM_THREADS));
+                build_euclidean_annoy(data_kn, NUM_THREADS));
         }
     }
 
@@ -118,7 +119,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
     // step 2. build mutual kNN graph across batches //
     ///////////////////////////////////////////////////
 
-    asap::bbknn::options_t options;
+    mmutil::match::options_t options;
     options.block_size = BLOCK_SIZE;
     options.num_threads = NUM_THREADS;
     options.knn_per_batch = KNN_PER_BATCH;
@@ -144,7 +145,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
     // step 3. Batch effect adjustment //
     /////////////////////////////////////
 
-    Mat Vadj = V_kn;
+    Mat Vadj_kn = V_kn;
 
     for (Index b = 1; b < B; ++b) {
         std::vector<Index> &globs = global_index_batches[b];
@@ -198,7 +199,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
                     const Index a = batches.at(i);     // batch membership
                     if (a < b) {                       // mingle toward
                         const Scalar wji = it.value(); // the previous
-                        delta += (V_kn.col(j) - Vadj.col(i)) * wji;
+                        delta += (V_kn.col(j) - Vadj_kn.col(i)) * wji;
                         denom += wji;
                     }
                 }
@@ -212,7 +213,7 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
                 const Index j = globs.at(l); // this index
                 for (SpMat::InnerIterator it(Wsym, j); it; ++it) {
                     const Index i = it.index(); // other index
-                    Vadj.col(j) = V_kn.col(j) - delta;
+                    Vadj_kn.col(j) = V_kn.col(j) - delta;
                 }
             }
         }
@@ -221,17 +222,15 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
 
     } // for each batch
 
-    Vadj.transposeInPlace();
-
     SpMat Wout;
     {
         TLOG_(verbose, "Recalibrate kNN graph");
-        Mat data_nk = Vadj;
-        auto idx_ptr = asap::bbknn::build_euclidean_annoy(data_nk, NUM_THREADS);
+
+        auto idx_ptr =
+            mmutil::match::build_euclidean_annoy(Vadj_kn, NUM_THREADS);
 
         std::vector<std::tuple<Index, Index, Scalar>> knn_raw;
-        Mat data_kn = data_nk.transpose();
-        build_knn(data_kn, idx_ptr, options, knn_raw);
+        asap::bbknn::build_knn(Vadj_kn, idx_ptr, options, knn_raw);
 
         SpMat W = build_eigen_sparse(knn_raw, Ntot, Ntot);
         SpMat Wt = W.transpose();
@@ -246,7 +245,9 @@ asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
         r_glob_idx.emplace_back(convert_r_index(global_index_batches.at(j)));
     }
 
-    return List::create(_["adjusted"] = named_rows(Vadj, global_names),
+    Vadj_kn.transposeInPlace(); // transpose
+
+    return List::create(_["adjusted"] = named_rows(Vadj_kn, global_names),
                         _["names"] = global_names,
                         _["indexes"] = r_glob_idx,
                         _["batches"] = convert_r_index(batches),

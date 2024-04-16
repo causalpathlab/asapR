@@ -10,10 +10,7 @@ Rcpp::List run_asap_pb_cbind(std::vector<T> &data_loaders,
 //' while sharing rows/features across multiple data sets.
 //' Horizontal concatenation.
 //'
-//' @param mtx_files matrix-market-formatted data files (bgzip)
-//' @param row_files row names (gene/feature names)
-//' @param col_files column names (cell/column names)
-//' @param idx_files matrix-market colum index files
+//' @param y_dn_vec a list of sparse matrices
 //' @param num_factors a desired number of random factors
 //' @param take_union_rows take union of rows (default: FALSE)
 //' @param rseed random seed
@@ -56,7 +53,7 @@ Rcpp::List run_asap_pb_cbind(std::vector<T> &data_loaders,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_cbind_(
+asap_random_bulk_cbind(
     const std::vector<Eigen::SparseMatrix<float>> y_dn_vec,
     const std::size_t num_factors,
     const Rcpp::Nullable<Rcpp::StringVector> r_row_names = R_NilValue,
@@ -147,7 +144,7 @@ asap_random_bulk_cbind_(
     {
         for (Index b = 0; b < B; ++b) {
             const std::string bname = batch_names.at(b);
-            for (Index j = 0; j < data_loaders.at(b).info.max_col; ++j) {
+            for (Index j = 0; j < data_loaders.at(b).max_col(); ++j) {
                 columns.emplace_back(std::to_string(j + 1) + "_" + bname);
             }
         }
@@ -227,7 +224,7 @@ asap_random_bulk_cbind_(
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_cbind(
+asap_random_bulk_cbind_mtx(
     const std::vector<std::string> mtx_files,
     const std::vector<std::string> row_files,
     const std::vector<std::string> col_files,
@@ -430,7 +427,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     {
         Index ntot = 0;
         for (Index b = 0; b < B; ++b) { // each batch
-            ntot += data_loaders.at(b).info.max_col;
+            ntot += data_loaders.at(b).max_col();
         }
         ASSERT_RETL(Ntot == ntot, "|column names| != columns(data)");
     }
@@ -456,7 +453,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     for (Index b = 0; b < B; ++b) {
 
-        const Index Nb = data_loaders.at(b).info.max_col;
+        const Index Nb = data_loaders.at(b).max_col();
         batch_glob_map.emplace_back(std::vector<Index> {});
 
 #if defined(_OPENMP)
@@ -633,7 +630,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
         for (Index b = 0; b < B; ++b) { // each batch
 
-            const Index Nb = data_loaders.at(b).info.max_col;
+            const Index Nb = data_loaders.at(b).max_col();
 
             TLOG_(verbose, Nb << " samples");
 

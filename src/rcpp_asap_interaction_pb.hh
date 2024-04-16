@@ -6,4 +6,3 @@
 #define RCPP_ASAP_PB_INTERACTION_HH_
 
 #endif
-

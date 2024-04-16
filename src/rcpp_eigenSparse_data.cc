@@ -1,5 +1,21 @@
 #include "rcpp_eigenSparse_data.hh"
 
+Index
+eigenSparse_data_t::max_row() const
+{
+    return info.max_row;
+}
+Index
+eigenSparse_data_t::max_col() const
+{
+    return info.max_col;
+}
+Index
+eigenSparse_data_t::max_elem() const
+{
+    return info.max_elem;
+}
+
 SpMat
 eigenSparse_data_t::read(const Index lb, const Index ub)
 {

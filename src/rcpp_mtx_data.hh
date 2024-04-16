@@ -2,11 +2,6 @@
 #include "mmutil_bgzf_util.hh"
 #include "mmutil_io.hh"
 
-// #include "mmutil_index.hh"
-// #include "mmutil_util.hh"
-// #include "mmutil_stat.hh"
-// #include "mmutil_match.hh"
-
 #include "RcppAnnoy.h"
 #define ANNOYLIB_MULTITHREADED_BUILD 1
 
@@ -78,15 +73,19 @@ struct mtx_data_t {
 
     explicit mtx_data_t(const mtx_tuple_t &mtx_tup,
                         const std::size_t MAX_ROW_WORD = 2,
-                        const char ROW_WORD_SEP = '_')
+                        const char ROW_WORD_SEP = '_',
+                        const std::size_t MAX_COL_WORD = 100,
+                        const char COL_WORD_SEP = '@')
         : mtx_file(mtx_tup.mtx.val)
         , row_file(mtx_tup.row.val)
+        , col_file(mtx_tup.col.val)
         , idx_file(mtx_tup.idx.val)
     {
         CHECK(peek_bgzf_header(mtx_file, info));
         CHECK(read_mmutil_index(idx_file, mtx_idx));
         sub_rows.reserve(info.max_row);
         CHECK(read_line_file(row_file, sub_rows, MAX_ROW_WORD, ROW_WORD_SEP));
+        CHECK(read_line_file(col_file, sub_cols, MAX_COL_WORD, COL_WORD_SEP));
 
         has_index = false;
         has_reloc = false;
@@ -142,14 +141,24 @@ struct mtx_data_t {
                     std::vector<Index> &neigh_index,
                     std::vector<Scalar> &neigh_dist);
 
+    Index max_row() const;
+    Index max_col() const;
+    Index max_elem() const;
+
+    const std::vector<std::string> &row_names() const;
+    const std::vector<std::string> &col_names() const;
+
 public:
     const std::string mtx_file;
     const std::string row_file;
+    const std::string col_file;
     const std::string idx_file;
+
+private:
+    mm_info_reader_t info;
     std::vector<Index> mtx_idx;
     std::vector<std::string> sub_rows;
-
-    mm_info_reader_t info;
+    std::vector<std::string> sub_cols;
 
 private:
     SpMat A;

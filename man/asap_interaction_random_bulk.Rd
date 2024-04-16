@@ -10,7 +10,11 @@ asap_interaction_random_bulk(
   col_file,
   idx_file,
   num_factors,
-  W_nn_list,
+  W_nm_list,
+  mtx_file_rhs = NULL,
+  row_file_rhs = NULL,
+  col_file_rhs = NULL,
+  idx_file_rhs = NULL,
   A_dd_list = NULL,
   rseed = 42L,
   do_product = FALSE,
@@ -21,7 +25,7 @@ asap_interaction_random_bulk(
   NUM_THREADS = 1L,
   BLOCK_SIZE = 100L,
   EDGE_PER_SAMPLE = 100L,
-  a0 = 1e-08,
+  a0 = 1,
   b0 = 1,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
@@ -41,7 +45,15 @@ asap_interaction_random_bulk(
 
 \item{num_factors}{a desired number of random factors}
 
-\item{W_nn_list}{list(src.index, tgt.index, \link{weights}) for columns}
+\item{W_nm_list}{list(src.index, tgt.index, \link{weights}) for columns}
+
+\item{mtx_file_rhs}{right-hand-side matrix-market-formatted data file (bgzip)}
+
+\item{row_file_rhs}{right-hand-side row names (gene/feature names)}
+
+\item{col_file_rhs}{right-hand-side column names (cell/column names)}
+
+\item{idx_file_rhs}{right-hand-side matrix-market colum index file}
 
 \item{A_dd_list}{list(src.index, tgt.index, \link{weights}) for features}
 
@@ -63,7 +75,7 @@ asap_interaction_random_bulk(
 
 \item{EDGE_PER_SAMPLE}{down-sampling cell per sample (default: 100)}
 
-\item{a0}{gamma(a0, b0) (default: 1e-8)}
+\item{a0}{gamma(a0, b0) (default: 1)}
 
 \item{b0}{gamma(a0, b0) (default: 1)}
 

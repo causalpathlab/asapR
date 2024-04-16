@@ -36,6 +36,60 @@ asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, 
     .Call('_asapR_asap_deconv_stat', PACKAGE = 'asapR', bulk_dm, bulk_row_names, log_beta, beta_row_names, Ref_nk, rseed, verbose, NUM_THREADS, KNN_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
 }
 
+#' Identify pairs of columns interacting with one another
+#'
+#' @param y_dn sparse data matrix (D x N)
+#' @param z_dm sparse data matrix (D x M)
+#'
+#' @param log_beta D x K log dictionary/design matrix
+#' @param beta_row_names row names log_beta (D vector)
+#'
+#' @param knn How many nearest neighbours we want (default: 10)
+#'
+#' @param r_log_delta D x B log batch effect matrix
+#'
+#' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#'
+asap_build_interaction <- function(y_dn, z_dm, log_beta, beta_row_names, knn = 10L, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_build_interaction', PACKAGE = 'asapR', y_dn, z_dm, log_beta, beta_row_names, knn, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE)
+}
+
+#' Identify pairs of columns interacting with one another
+#'
+#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
+#' @param row_file row names file (D x 1)
+#' @param col_file column names file (N x 1)
+#' @param idx_file matrix-market colum index file
+#'
+#' @param log_beta D x K log dictionary/design matrix
+#' @param beta_row_names row names log_beta (D vector)
+#' @param knn How many nearest neighbours we want (default: 10)
+#'
+#' @param r_log_delta D x B log batch effect matrix
+#'
+#' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
+#' @param row_file_rhs right-hand-side row names (gene/feature names)
+#' @param col_file_rhs right-hand-side column names (cell/column names)
+#' @param idx_file_rhs right-hand-side matrix-market colum index file
+#'
+#' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param BLOCK_SIZE disk I/O block size (number of columns)
+#' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
+#' @param ROW_WORD_SEP word separation character to replace white space
+#' @param MAX_COL_WORD maximum words per line in `col_files[i]`
+#' @param COL_WORD_SEP word separation character to replace white space
+#'
+asap_build_interaction_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn = 10L, r_log_delta = NULL, mtx_file_rhs = NULL, row_file_rhs = NULL, col_file_rhs = NULL, idx_file_rhs = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_build_interaction_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn, r_log_delta, mtx_file_rhs, row_file_rhs, col_file_rhs, idx_file_rhs, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+}
+
 #' Generate approximate pseudo-bulk interaction data by random projections
 #'
 #' @param mtx_file matrix-market-formatted data file (bgzip)
@@ -43,9 +97,14 @@ asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, 
 #' @param col_file column names (cell/column names)
 #' @param idx_file matrix-market colum index file
 #' @param num_factors a desired number of random factors
-#' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+#' @param W_nm_list list(src.index, tgt.index, [weights]) for columns
 #'
 #' @param A_dd_list list(src.index, tgt.index, [weights]) for features
+#' 
+#' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
+#' @param row_file_rhs right-hand-side row names (gene/feature names)
+#' @param col_file_rhs right-hand-side column names (cell/column names)
+#' @param idx_file_rhs right-hand-side matrix-market colum index file
 #'
 #' @param rseed random seed
 #' @param do_product yi * yj for interaction (default: FALSE)
@@ -56,7 +115,7 @@ asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, 
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param EDGE_PER_SAMPLE down-sampling cell per sample (default: 100)
-#' @param a0 gamma(a0, b0) (default: 1e-8)
+#' @param a0 gamma(a0, b0) (default: 1)
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param MAX_ROW_WORD maximum words per line in `row_file`
 #' @param ROW_WORD_SEP word separation character to replace white space
@@ -77,8 +136,8 @@ asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, 
 #' }
 #'
 #'
-asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, W_nn_list, A_dd_list = NULL, rseed = 42L, do_product = FALSE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
-    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, W_nn_list, A_dd_list, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
+asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, W_nm_list, mtx_file_rhs = NULL, row_file_rhs = NULL, col_file_rhs = NULL, idx_file_rhs = NULL, A_dd_list = NULL, rseed = 42L, do_product = FALSE, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, EDGE_PER_SAMPLE = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, W_nm_list, mtx_file_rhs, row_file_rhs, col_file_rhs, idx_file_rhs, A_dd_list, rseed, do_product, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, NUM_THREADS, BLOCK_SIZE, EDGE_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' Topic statistics to estimate factor loading
@@ -89,7 +148,7 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #' @param idx_file matrix-market colum index file
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
-#' @param W_nn_list list(src.index, tgt.index, [weights]) for columns
+#' @param W_nm_list list(src.index, tgt.index, [weights]) for columns
 #'
 #' @param A_dd_list list(src.index, tgt.index, [weights]) for features
 #'
@@ -111,8 +170,8 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nn_list, A_dd_list = NULL, do_stdize_beta = TRUE, do_product = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
-    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nn_list, A_dd_list, do_stdize_beta, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
+asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2 = NULL, row_file2 = NULL, col_file2 = NULL, idx_file2 = NULL, A_dd_list = NULL, do_stdize_beta = TRUE, do_product = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2, row_file2, col_file2, idx_file2, A_dd_list, do_stdize_beta, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' A quick NMF estimation based on alternating Poisson regressions
@@ -258,10 +317,7 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' while sharing rows/features across multiple data sets.
 #' Horizontal concatenation.
 #'
-#' @param mtx_files matrix-market-formatted data files (bgzip)
-#' @param row_files row names (gene/feature names)
-#' @param col_files column names (cell/column names)
-#' @param idx_files matrix-market colum index files
+#' @param y_dn_vec a list of sparse matrices
 #' @param num_factors a desired number of random factors
 #' @param take_union_rows take union of rows (default: FALSE)
 #' @param rseed random seed
@@ -302,8 +358,8 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_cbind_ <- function(y_dn_vec, num_factors, r_row_names = NULL, r_batch_names = NULL, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_random_bulk_cbind_', PACKAGE = 'asapR', y_dn_vec, num_factors, r_row_names, r_batch_names, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+asap_random_bulk_cbind <- function(y_dn_vec, num_factors, r_row_names = NULL, r_batch_names = NULL, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', y_dn_vec, num_factors, r_row_names, r_batch_names, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -353,8 +409,8 @@ asap_random_bulk_cbind_ <- function(y_dn_vec, num_factors, r_row_names = NULL, r
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_cbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -425,12 +481,10 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 
 #' Topic statistics to estimate factor loading
 #'
-#' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
-#' @param row_file row names file (D x 1)
-#' @param col_file column names file (N x 1)
-#' @param idx_file matrix-market colum index file
+#' @param y_dn sparse data matrix (D x N)
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
+#' @param r_log_delta D x B log batch effect matrix
 #' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
@@ -460,6 +514,7 @@ asap_nmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do
 #' @param idx_file matrix-market colum index file
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
+#' @param r_log_delta D x B log batch effect matrix
 #' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
@@ -506,8 +561,8 @@ asap_topic_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta
 #'  \item colsum.list a list of column sum vectors (column x 1)
 #' }
 #'
-asap_topic_stat_cbind <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = TRUE, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_cbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_topic_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = TRUE, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_topic_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
