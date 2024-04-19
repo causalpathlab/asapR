@@ -14,7 +14,7 @@ $(PKG)_$(VER).tar.gz: $(SRC) $(HDR) .Rbuildignore
 	rm -f src/*.so $@
 	R -e "Rcpp::compileAttributes(verbose=TRUE)"
 	R -e "usethis::use_roxygen_md(); roxygen2md::roxygen2md(); devtools::document()"
-	R CMD build .
+	R CMD build . --no-build-vignettes
 
 check: $(PKG)_$(VER).tar.gz
 	R CMD check $<

@@ -8,3 +8,5 @@
 ^.RDS$
 ^.rdata$
 ^.Rdata$
+^vignettes*
+^data*
