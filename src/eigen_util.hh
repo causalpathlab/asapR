@@ -739,6 +739,9 @@ residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
 
+    using Mat =
+        Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
+
     const Derived Yraw = _yy.derived(); // copy to avoid aliasing issues
     Derived &Yout = _yy.derived();
     const Derived2 &X = _xx.derived();
@@ -758,10 +761,11 @@ residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
         }
 
     } else {
-        const std::size_t r = std::min(X.cols(), Yraw.cols());
+        const std::size_t r =
+            std::min(X.rows(), std::min(X.cols(), Yraw.cols()));
 
         ColVec d;
-        Derived u;
+        Mat u;
 
         if (X.rows() < 1000) {
             Eigen::BDCSVD<Derived> svd_x;

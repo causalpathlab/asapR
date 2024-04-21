@@ -100,10 +100,9 @@ run_pmf_stat(Data &data,
     const std::size_t NUM_THREADS = options.NUM_THREADS;
     const std::size_t BLOCK_SIZE = options.BLOCK_SIZE;
 
-    // using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    Derived1 logX_dk = _log_x.derived();
+    Mat logX_dk = _log_x.derived();
     if (options.do_stdize_x) {
         standardize_columns_inplace(logX_dk);
     }
@@ -226,12 +225,12 @@ run_pmf_stat_adj(Data &data,
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
-    Derived0 logX_dk = _log_x.derived();
+    Mat logX_dk = _log_x.derived();
     if (options.do_stdize_x) {
         standardize_columns_inplace(logX_dk);
     }
 
-    Derived1 logX0_db = _log_x0.derived();
+    Mat logX0_db = _log_x0.derived();
     if (options.do_stdize_x) {
         standardize_columns_inplace(logX0_db);
     }
@@ -265,6 +264,7 @@ run_pmf_stat_adj(Data &data,
     const Index block_size = BLOCK_SIZE; // memory block size
 
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
+    TLOG_(verbose, "lnX0: " << logX0_db.rows() << " x " << logX0_db.cols());
     Rtot_nk.resize(N, K);
     Ytot_n.resize(N, 1);
     Index Nprocessed = 0;
@@ -331,8 +331,16 @@ run_pmf_stat_adj(Data &data,
         Mat R0_nk =
             (y0_dn.transpose() * logX_dk).array().colwise() / Y0_n1.array();
 
-        residual_columns_inplace(R_nk, R0_nk);
-
+        {
+            // rank by rank adjustment
+            Mat r1(n, 1), r0(n, 1);
+            for (Index k = 0; k < R_nk.cols(); ++k) {
+                r1 = R_nk.col(k);
+                r0 = R0_nk.col(k);
+                residual_columns_inplace(r1, r0);
+                R_nk.col(k) = r1.col(0);
+            }
+        }
 #pragma omp critical
         {
             for (Index i = 0; i < (ub - lb); ++i) {
