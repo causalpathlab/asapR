@@ -107,8 +107,8 @@ run_pmf_stat(Data &data,
         standardize_columns_inplace(logX_dk);
     }
 
-    Derived2 &Rtot_nk = _r_nk.derived();
-    Derived3 &Ytot_n = _y_n.derived();
+    Mat &Rtot_nk = _r_nk.derived();
+    Mat &Ytot_n = _y_n.derived();
 
     //////////////////////////////////////
     // take care of different row names //
@@ -136,14 +136,16 @@ run_pmf_stat(Data &data,
 
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
     Rtot_nk.resize(N, K);
+    Rtot_nk.setZero();
     Ytot_n.resize(N, 1);
+    Ytot_n.setZero();
     Index Nprocessed = 0;
+
+    data.relocate_rows(row2pos);
 
     if (verbose) {
         Rcpp::Rcerr << "Calibrating " << N << " samples..." << std::endl;
     }
-
-    data.relocate_rows(row2pos);
 
     at_least_one_op<Mat> at_least_one;
     at_least_zero_op<Mat> at_least_zero;
@@ -155,14 +157,14 @@ run_pmf_stat(Data &data,
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
-        Index ub = std::min(N, block_size + lb);
-        const SpMat y = data.read_reloc(lb, ub);
+        const Index ub = std::min(N, block_size + lb);
+        const Mat y = data.read_reloc(lb, ub);
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
 
-        Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
+        const Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
 
         const Index n = y_dn.cols();
 
@@ -289,13 +291,13 @@ run_pmf_stat_adj(Data &data,
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
         Index ub = std::min(N, block_size + lb);
-        const SpMat y = data.read_reloc(lb, ub);
+        const Mat y = data.read_reloc(lb, ub);
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
 
-        Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
+        const Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
 
         const Index n = y_dn.cols();
 
@@ -314,7 +316,7 @@ run_pmf_stat_adj(Data &data,
             log_r0_nb.row(j) = softmax.log_row(tempB);
         }
 
-        Mat y0_dn =
+        const Mat y0_dn =
             logX0_db.unaryExpr(exp) * (log_r0_nb.unaryExpr(exp)).transpose();
 
         ColVec Y0_n = y0_dn.colwise().sum().transpose(); // n x 1

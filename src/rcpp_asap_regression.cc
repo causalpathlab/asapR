@@ -121,7 +121,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const bool do_log1p = false,
               const bool verbose = false,
               const std::size_t NUM_THREADS = 1,
-              const std::size_t BLOCK_SIZE = 100)
+              const std::size_t BLOCK_SIZE = 1000)
 {
 
     using namespace asap::regression;
@@ -230,7 +230,7 @@ asap_topic_stat_mtx(
     const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
-    const std::size_t BLOCK_SIZE = 100,
+    const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
     const std::size_t MAX_COL_WORD = 100,

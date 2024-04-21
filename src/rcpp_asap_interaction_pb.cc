@@ -67,7 +67,7 @@ asap_interaction_random_bulk(
     const bool save_rand_proj = false,
     const bool weighted_rand_proj = false,
     const std::size_t NUM_THREADS = 1,
-    const std::size_t BLOCK_SIZE = 100,
+    const std::size_t BLOCK_SIZE = 1000,
     const std::size_t EDGE_PER_SAMPLE = 100,
     const double a0 = 1,
     const double b0 = 1,

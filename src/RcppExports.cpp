@@ -27,28 +27,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// asap_deconv_pmf_stat
-Rcpp::List asap_deconv_pmf_stat(const Eigen::SparseMatrix<float>& bulk_dm, const Rcpp::StringVector& bulk_row_names, const Eigen::MatrixXf& Ref_nk, const Eigen::MatrixXf& log_beta, const Rcpp::StringVector& beta_row_names, const bool do_stdize_beta, const bool do_log1p, const bool verbose, const double a0, const double b0, const std::size_t NUM_THREADS, const std::size_t KNN_PER_SAMPLE);
-RcppExport SEXP _asapR_asap_deconv_pmf_stat(SEXP bulk_dmSEXP, SEXP bulk_row_namesSEXP, SEXP Ref_nkSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP do_stdize_betaSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP NUM_THREADSSEXP, SEXP KNN_PER_SAMPLESEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::SparseMatrix<float>& >::type bulk_dm(bulk_dmSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type bulk_row_names(bulk_row_namesSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type Ref_nk(Ref_nkSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf& >::type log_beta(log_betaSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::StringVector& >::type beta_row_names(beta_row_namesSEXP);
-    Rcpp::traits::input_parameter< const bool >::type do_stdize_beta(do_stdize_betaSEXP);
-    Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type KNN_PER_SAMPLE(KNN_PER_SAMPLESEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_deconv_pmf_stat(bulk_dm, bulk_row_names, Ref_nk, log_beta, beta_row_names, do_stdize_beta, do_log1p, verbose, a0, b0, NUM_THREADS, KNN_PER_SAMPLE));
-    return rcpp_result_gen;
-END_RCPP
-}
 // asap_build_interaction
 Rcpp::List asap_build_interaction(const Eigen::SparseMatrix<float>& y_dn, const Eigen::SparseMatrix<float>& z_dm, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const std::size_t knn, const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta, const bool do_stdize_beta, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE);
 RcppExport SEXP _asapR_asap_build_interaction(SEXP y_dnSEXP, SEXP z_dmSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP knnSEXP, SEXP r_log_deltaSEXP, SEXP do_stdize_betaSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP) {
@@ -763,7 +741,6 @@ END_RCPP
 
 static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_bbknn", (DL_FUNC) &_asapR_asap_bbknn, 6},
-    {"_asapR_asap_deconv_pmf_stat", (DL_FUNC) &_asapR_asap_deconv_pmf_stat, 12},
     {"_asapR_asap_build_interaction", (DL_FUNC) &_asapR_asap_build_interaction, 11},
     {"_asapR_asap_build_interaction_mtx", (DL_FUNC) &_asapR_asap_build_interaction_mtx, 21},
     {"_asapR_asap_interaction_random_bulk", (DL_FUNC) &_asapR_asap_interaction_random_bulk, 27},

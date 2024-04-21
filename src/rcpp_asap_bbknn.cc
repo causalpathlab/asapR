@@ -22,7 +22,7 @@ Rcpp::List
 asap_bbknn(const std::vector<Eigen::MatrixXf> data_nk_vec,
            const std::vector<std::vector<std::string>> row_names_vec,
            const std::size_t KNN_PER_BATCH = 3,
-           const std::size_t BLOCK_SIZE = 100,
+           const std::size_t BLOCK_SIZE = 1000,
            const std::size_t NUM_THREADS = 1,
            const bool verbose = true)
 {

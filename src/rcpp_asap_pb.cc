@@ -50,7 +50,7 @@ asap_random_bulk(
     const std::size_t rseed = 42,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 1,
-    const std::size_t BLOCK_SIZE = 100,
+    const std::size_t BLOCK_SIZE = 1000,
     const bool do_log1p = false,
     const bool do_down_sample = false,
     const bool save_aux_data = false,
