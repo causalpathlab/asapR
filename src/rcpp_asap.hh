@@ -45,6 +45,6 @@ using namespace mmutil::bgzf;
 #include "clustering.hh"
 #include "dirichlet_prior.hh"
 #include "poisson_cluster_model.hh"
-#include "rcpp_asap_nmf_model.hh"
+#include "rcpp_asap_pmf_model.hh"
 
 #endif

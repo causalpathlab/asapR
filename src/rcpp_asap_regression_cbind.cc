@@ -1,6 +1,6 @@
 #include "rcpp_asap_regression_cbind.hh"
 
-//' Topic statistics to estimate factor loading
+//' PMF statistics to estimate factor loading
 //'
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 //' @param row_file row names file (D x 1)
@@ -20,14 +20,16 @@
 //'
 //' @return a list that contains:
 //' \itemize{
-//'  \item beta.list a list of dictionary matrices (row x factor)
-//'  \item corr.list a list of empirical correlation matrices (column x factor)
-//'  \item colsum.list a list of column sum vectors (column x 1)
+//'  \item beta the dictionary matrix (row x factor)
+//'  \item corr empirical correlation matrices (column x factor)
+//'  \item colsum column sum (column x 1)
+//'  \item rownames row names
+//'  \item rownames column names
 //' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_stat_cbind_mtx(
+asap_pmf_stat_cbind_mtx(
     const std::vector<std::string> mtx_files,
     const std::vector<std::string> row_files,
     const std::vector<std::string> col_files,
@@ -171,7 +173,7 @@ asap_topic_stat_cbind_mtx(
 
         Mat r_b_nk, y_b_n;
 
-        CHK_RETL_(asap::regression::run_nmf_stat_adj(data,
+        CHK_RETL_(asap::regression::run_pmf_stat_adj(data,
                                                      logBeta_dk,
                                                      logDelta_db,
                                                      pos2row,

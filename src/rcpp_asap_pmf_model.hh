@@ -1,11 +1,11 @@
-#ifndef ASAP_NMF_MODEL_HH_
-#define ASAP_NMF_MODEL_HH_
+#ifndef ASAP_PMF_MODEL_HH_
+#define ASAP_PMF_MODEL_HH_
 
 #include "mmutil.hh"
 #include "gamma_parameter.hh"
 
 template <typename RNG>
-struct asap_nmf_model_t {
+struct asap_pmf_model_t {
 
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -72,7 +72,7 @@ struct asap_nmf_model_t {
     struct NULL_DATA {
     };
 
-    explicit asap_nmf_model_t(const ROW &row,
+    explicit asap_pmf_model_t(const ROW &row,
                               const COL &col,
                               const FACT &fact,
                               const RSEED &rseed,
@@ -605,7 +605,7 @@ private: // functors
 
 template <typename RNG>
 Rcpp::List
-rcpp_list_out(const asap_nmf_model_t<RNG> &model)
+rcpp_list_out(const asap_pmf_model_t<RNG> &model)
 {
     return Rcpp::List::create(Rcpp::_["beta"] = model.beta_dk.mean(),
                               Rcpp::_["log.beta"] = model.beta_dk.log_mean(),

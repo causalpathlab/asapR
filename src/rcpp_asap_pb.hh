@@ -17,7 +17,7 @@ struct options_t {
     bool do_batch_adj;
     bool do_log1p;
     bool do_down_sample;
-    bool save_rand_proj;
+    bool save_aux_data;
     std::size_t KNN_CELL;
     std::size_t CELL_PER_SAMPLE;
     std::size_t BATCH_ADJ_ITER;

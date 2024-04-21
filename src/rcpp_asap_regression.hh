@@ -24,7 +24,7 @@ template <typename Data,
           typename Derived1,
           typename Derived2,
           typename Derived3>
-int run_nmf_stat(Data &data,
+int run_pmf_stat(Data &data,
                  const Eigen::MatrixBase<Derived1> &_log_x,
                  const std::vector<std::string> &pos2row,
                  const stat_options_t &options,
@@ -36,7 +36,7 @@ template <typename Data,
           typename Derived1,
           typename Derived2,
           typename Derived3>
-int run_nmf_stat_adj(Data &data,
+int run_pmf_stat_adj(Data &data,
                      const Eigen::MatrixBase<Derived0> &_log_x,
                      const Eigen::MatrixBase<Derived1> &_log_x0,
                      const std::vector<std::string> &pos2row,
@@ -46,7 +46,7 @@ int run_nmf_stat_adj(Data &data,
 
 template <typename Derived1, typename Derived2, typename Derived3>
 int
-nmf_stat_mtx(const std::string mtx_file,
+pmf_stat_mtx(const std::string mtx_file,
              const std::string row_file,
              const std::string col_file,
              const std::string idx_file,
@@ -62,12 +62,12 @@ nmf_stat_mtx(const std::string mtx_file,
                                 mtx_tuple_t::IDX(idx_file)),
                     options.MAX_ROW_WORD,
                     options.ROW_WORD_SEP);
-    return run_nmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
+    return run_pmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
 }
 
 template <typename Derived1, typename Derived2, typename Derived3>
 int
-nmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
+pmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
           const Eigen::MatrixBase<Derived1> &_log_x,
           const std::vector<std::string> &pos2row,
           const stat_options_t &options,
@@ -75,7 +75,7 @@ nmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
           Eigen::MatrixBase<Derived3> &_y_n)
 {
     eigenSparse_data_t data(y_dn, pos2row);
-    return run_nmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
+    return run_pmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
 }
 
 ////////////////////////////
@@ -87,7 +87,7 @@ template <typename Data,
           typename Derived2,
           typename Derived3>
 int
-run_nmf_stat(Data &data,
+run_pmf_stat(Data &data,
              const Eigen::MatrixBase<Derived1> &_log_x,
              const std::vector<std::string> &pos2row,
              const stat_options_t &options,
@@ -209,7 +209,7 @@ template <typename Data,
           typename Derived2,
           typename Derived3>
 int
-run_nmf_stat_adj(Data &data,
+run_pmf_stat_adj(Data &data,
                  const Eigen::MatrixBase<Derived0> &_log_x,
                  const Eigen::MatrixBase<Derived1> &_log_x0,
                  const std::vector<std::string> &pos2row,

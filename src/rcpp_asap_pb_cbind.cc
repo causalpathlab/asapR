@@ -14,7 +14,7 @@
 //' @param do_batch_adj (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: TRUE)
-//' @param save_rand_proj save random projection (default: FALSE)
+//' @param save_aux_data save auxiliary data (default: FALSE)
 //' @param weighted_rand_proj save random projection (default: FALSE)
 //' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
@@ -59,7 +59,7 @@ asap_random_bulk_cbind(
     const bool do_batch_adj = true,
     const bool do_log1p = false,
     const bool do_down_sample = true,
-    const bool save_rand_proj = false,
+    const bool save_aux_data = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
@@ -155,7 +155,7 @@ asap_random_bulk_cbind(
     options.do_batch_adj = do_batch_adj;
     options.do_log1p = do_log1p;
     options.do_down_sample = do_down_sample;
-    options.save_rand_proj = save_rand_proj;
+    options.save_aux_data = save_aux_data;
     options.KNN_CELL = KNN_CELL;
     options.CELL_PER_SAMPLE = CELL_PER_SAMPLE;
     options.BATCH_ADJ_ITER = BATCH_ADJ_ITER;
@@ -186,7 +186,7 @@ asap_random_bulk_cbind(
 //' @param do_batch_adj (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: TRUE)
-//' @param save_rand_proj save random projection (default: FALSE)
+//' @param save_aux_data save random projection (default: FALSE)
 //' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -234,7 +234,7 @@ asap_random_bulk_cbind_mtx(
     const bool do_batch_adj = true,
     const bool do_log1p = false,
     const bool do_down_sample = true,
-    const bool save_rand_proj = false,
+    const bool save_aux_data = false,
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
@@ -255,7 +255,7 @@ asap_random_bulk_cbind_mtx(
     options.do_batch_adj = do_batch_adj;
     options.do_log1p = do_log1p;
     options.do_down_sample = do_down_sample;
-    options.save_rand_proj = save_rand_proj;
+    options.save_aux_data = save_aux_data;
     options.KNN_CELL = KNN_CELL;
     options.CELL_PER_SAMPLE = CELL_PER_SAMPLE;
     options.BATCH_ADJ_ITER = BATCH_ADJ_ITER;

@@ -1,9 +1,9 @@
 #include "mmutil.hh"
 
-#ifndef ASAP_NMF_TRAIN_HH_
-#define ASAP_NMF_TRAIN_HH_
+#ifndef ASAP_PMF_TRAIN_HH_
+#define ASAP_PMF_TRAIN_HH_
 
-struct train_nmf_options_t {
+struct train_pmf_options_t {
     std::size_t max_iter;
     std::size_t burnin;
     double eps;
@@ -13,12 +13,12 @@ struct train_nmf_options_t {
 
 template <typename MODEL, typename YDATA, typename ROWNET, typename COLNET>
 void
-train_nmf(MODEL &model,
+train_pmf(MODEL &model,
           const YDATA &y,
           const ROWNET &rownet,
           const COLNET &colnet,
           std::vector<Scalar> &llik_trace,
-          const train_nmf_options_t &options)
+          const train_pmf_options_t &options)
 {
     const std::size_t max_iter = options.max_iter;
     const std::size_t burnin = options.burnin;
@@ -66,7 +66,7 @@ train_nmf(MODEL &model,
             llik_trace.emplace_back(llik);
         }
 
-        TLOG_(verbose, "NMF [ " << tt << " ] " << llik << ", " << diff);
+        TLOG_(verbose, "PMF [ " << tt << " ] " << llik << ", " << diff);
 
         if (tt > burnin && diff < EPS) {
             TLOG("Converged at " << tt << ", " << diff);
@@ -80,7 +80,7 @@ train_nmf(MODEL &model,
             break;
         }
     }
-    TLOG("NMF --> done");
+    TLOG("PMF --> done");
 }
 
 #endif

@@ -28,7 +28,7 @@ run_asap_regression_both(Data &lhs_data,
         ASSERT_RET(log_delta.rows() == log_beta.rows(),
                    "rows(delta) != rows(beta)");
 
-        CHK_RET_(asap::regression::run_nmf_stat_adj(lhs_data,
+        CHK_RET_(asap::regression::run_pmf_stat_adj(lhs_data,
                                                     log_beta,
                                                     log_delta,
                                                     pos2row,
@@ -43,7 +43,7 @@ run_asap_regression_both(Data &lhs_data,
             Q_rhs_km = Q_lhs_kn;
         } else {
             CHK_RET_(
-                asap::regression::run_nmf_stat_adj(rhs_data,
+                asap::regression::run_pmf_stat_adj(rhs_data,
                                                    log_beta,
                                                    log_delta,
                                                    pos2row,
@@ -58,7 +58,7 @@ run_asap_regression_both(Data &lhs_data,
 
         Mat lhs_nk, rhs_mk, Y_n, Y_m;
 
-        CHK_RET_(asap::regression::run_nmf_stat(lhs_data,
+        CHK_RET_(asap::regression::run_pmf_stat(lhs_data,
                                                 log_beta,
                                                 pos2row,
                                                 regOpt,
@@ -72,7 +72,7 @@ run_asap_regression_both(Data &lhs_data,
             Q_rhs_km = Q_lhs_kn;
         } else {
             CHK_RET_(
-                asap::regression::run_nmf_stat(rhs_data,
+                asap::regression::run_pmf_stat(rhs_data,
                                                log_beta,
                                                pos2row,
                                                regOpt,

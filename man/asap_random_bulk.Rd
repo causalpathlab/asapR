@@ -18,7 +18,7 @@ asap_random_bulk(
   BLOCK_SIZE = 100L,
   do_log1p = FALSE,
   do_down_sample = FALSE,
-  save_rand_proj = FALSE,
+  save_aux_data = FALSE,
   weighted_rand_proj = FALSE,
   CELL_PER_SAMPLE = 100L,
   a0 = 1e-08,
@@ -56,7 +56,7 @@ asap_random_bulk(
 
 \item{do_down_sample}{down-sampling (default: FALSE)}
 
-\item{save_rand_proj}{save random projection (default: FALSE)}
+\item{save_aux_data}{save auxiliary data (default: FALSE)}
 
 \item{weighted_rand_proj}{save random projection (default: FALSE)}
 

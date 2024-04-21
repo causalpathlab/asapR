@@ -86,7 +86,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
                               Rcpp::_["log.theta.sd"] = theta_nk.log_sd());
 }
 
-//' Topic statistics to estimate factor loading
+//' PMF statistics to estimate factor loading
 //'
 //' @param y_dn sparse data matrix (D x N)
 //' @param log_beta D x K log dictionary/design matrix
@@ -105,13 +105,15 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //' @return a list that contains:
 //' \itemize{
 //'  \item beta dictionary matrix (row x factor)
+//'  \item delta the dictionary matrix of batch effects (row x batch)
 //'  \item corr empirical correlation (column x factor)
 //'  \item colsum the sum of each column (column x 1)
+//'  \item rownames row names
 //' }
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
+asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const Eigen::MatrixXf log_beta,
               const Rcpp::StringVector beta_row_names,
               const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
@@ -119,12 +121,9 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const bool do_log1p = false,
               const bool verbose = false,
               const std::size_t NUM_THREADS = 1,
-              const std::size_t BLOCK_SIZE = 100,
-              const std::size_t MAX_ROW_WORD = 2,
-              const char ROW_WORD_SEP = '_',
-              const std::size_t MAX_COL_WORD = 100,
-              const char COL_WORD_SEP = '@')
+              const std::size_t BLOCK_SIZE = 100)
 {
+
     using namespace asap::regression;
 
     std::vector<std::string> pos2row;
@@ -137,10 +136,6 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;
     options.BLOCK_SIZE = BLOCK_SIZE;
-    options.MAX_ROW_WORD = MAX_ROW_WORD;
-    options.ROW_WORD_SEP = ROW_WORD_SEP;
-    options.MAX_COL_WORD = MAX_COL_WORD;
-    options.COL_WORD_SEP = COL_WORD_SEP;
 
     eigenSparse_data_t data(y_dn, pos2row);
 
@@ -153,25 +148,25 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(run_nmf_stat_adj(data,
+        CHK_RETL_(run_pmf_stat_adj(data,
                                    log_beta,
                                    log_delta,
                                    pos2row,
                                    options,
                                    Rtot_nk,
                                    Ytot_n),
-                  "failed to compute topic nmf ipw stat");
+                  "failed to compute topic pmf ipw stat");
 
         delta_db = log_delta.unaryExpr(exp);
     } else {
 
-        CHK_RETL_(run_nmf_stat(data,
+        CHK_RETL_(run_pmf_stat(data,
                                log_beta,
                                pos2row,
                                options,
                                Rtot_nk,
                                Ytot_n),
-                  "failed to compute topic nmf stat");
+                  "failed to compute topic pmf stat");
     }
 
     const Index N = Rtot_nk.rows(), K = Rtot_nk.cols();
@@ -192,7 +187,7 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
                         _["rownames"] = pos2row);
 }
 
-//' Topic statistics to estimate factor loading
+//' PMF statistics to estimate factor loading
 //'
 //' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 //' @param row_file row names file (D x 1)
@@ -213,9 +208,12 @@ asap_nmf_stat(const Eigen::SparseMatrix<float> &y_dn,
 //'
 //' @return a list that contains:
 //' \itemize{
-//'  \item beta dictionary matrix (row x factor)
+//'  \item beta the dictionary matrix of topics (row x factor)
+//'  \item delta the dictionary matrix of batch effects (row x batch)
 //'  \item corr empirical correlation (column x factor)
 //'  \item colsum the sum of each column (column x 1)
+//'  \item rownames row names
+//'  \item rownames column names
 //' }
 //'
 // [[Rcpp::export]]
@@ -273,7 +271,7 @@ asap_topic_stat_mtx(
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(asap::regression::run_nmf_stat_adj(data,
+        CHK_RETL_(asap::regression::run_pmf_stat_adj(data,
                                                      log_beta,
                                                      log_delta,
                                                      pos2row,
@@ -285,7 +283,7 @@ asap_topic_stat_mtx(
         delta_db = log_delta.unaryExpr(exp);
     } else {
 
-        CHK_RETL_(asap::regression::run_nmf_stat(data,
+        CHK_RETL_(asap::regression::run_pmf_stat(data,
                                                  log_beta,
                                                  pos2row,
                                                  options,

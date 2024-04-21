@@ -15,7 +15,7 @@
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
-//' @param save_rand_proj save random projection (default: FALSE)
+//' @param save_aux_data save auxiliary data (default: FALSE)
 //' @param weighted_rand_proj save random projection (default: FALSE)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1e-8)
@@ -53,7 +53,7 @@ asap_random_bulk(
     const std::size_t BLOCK_SIZE = 100,
     const bool do_log1p = false,
     const bool do_down_sample = false,
-    const bool save_rand_proj = false,
+    const bool save_aux_data = false,
     const bool weighted_rand_proj = false,
     const std::size_t CELL_PER_SAMPLE = 100,
     const double a0 = 1e-8,
@@ -323,8 +323,9 @@ asap_random_bulk(
 
     std::vector<std::string> d_ = row_names;
 
-    if (!save_rand_proj) {
+    if (!save_aux_data) {
         Q_kn.resize(0, 0);
+        ysum_ds.resize(0, 0);
     }
 
     TLOG_(verbose, "Done");

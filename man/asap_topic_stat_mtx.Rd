@@ -2,7 +2,7 @@
 % Please edit documentation in R/RcppExports.R
 \name{asap_topic_stat_mtx}
 \alias{asap_topic_stat_mtx}
-\title{Topic statistics to estimate factor loading}
+\title{PMF statistics to estimate factor loading}
 \usage{
 asap_topic_stat_mtx(
   mtx_file,
@@ -59,11 +59,14 @@ asap_topic_stat_mtx(
 \value{
 a list that contains:
 \itemize{
-\item beta dictionary matrix (row x factor)
+\item beta the dictionary matrix of topics (row x factor)
+\item delta the dictionary matrix of batch effects (row x batch)
 \item corr empirical correlation (column x factor)
 \item colsum the sum of each column (column x 1)
+\item rownames row names
+\item rownames column names
 }
 }
 \description{
-Topic statistics to estimate factor loading
+PMF statistics to estimate factor loading
 }

@@ -137,21 +137,21 @@ asap_topic_pmf_rbind(const std::vector<Eigen::MatrixXf> beta_dk_list,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
-                      const std::vector<std::string> row_files,
-                      const std::vector<std::string> col_files,
-                      const std::vector<std::string> idx_files,
-                      const std::vector<Eigen::MatrixXf> log_beta_vec,
-                      const std::vector<Rcpp::StringVector> beta_row_names_vec,
-                      const bool do_stdize_beta = false,
-                      const bool do_log1p = false,
-                      const bool verbose = false,
-                      const std::size_t NUM_THREADS = 1,
-                      const std::size_t BLOCK_SIZE = 100,
-                      const std::size_t MAX_ROW_WORD = 2,
-                      const char ROW_WORD_SEP = '_',
-                      const std::size_t MAX_COL_WORD = 100,
-                      const char COL_WORD_SEP = '@')
+asap_pmf_stat_rbind(const std::vector<std::string> mtx_files,
+                    const std::vector<std::string> row_files,
+                    const std::vector<std::string> col_files,
+                    const std::vector<std::string> idx_files,
+                    const std::vector<Eigen::MatrixXf> log_beta_vec,
+                    const std::vector<Rcpp::StringVector> beta_row_names_vec,
+                    const bool do_stdize_beta = false,
+                    const bool do_log1p = false,
+                    const bool verbose = false,
+                    const std::size_t NUM_THREADS = 1,
+                    const std::size_t BLOCK_SIZE = 100,
+                    const std::size_t MAX_ROW_WORD = 2,
+                    const char ROW_WORD_SEP = '_',
+                    const std::size_t MAX_COL_WORD = 100,
+                    const char COL_WORD_SEP = '@')
 {
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
@@ -212,7 +212,7 @@ asap_topic_stat_rbind(const std::vector<std::string> mtx_files,
             Rcpp::as<std::vector<std::string>>(beta_row_names_vec.at(b));
 
         Mat Rtot_nk, Ytot_n;
-        CHK_RETL_(asap::regression::nmf_stat_mtx(mtx_files.at(b),
+        CHK_RETL_(asap::regression::pmf_stat_mtx(mtx_files.at(b),
                                                  row_files.at(b),
                                                  col_files.at(b),
                                                  idx_files.at(b),

@@ -1,11 +1,11 @@
 #include "rcpp_asap.hh"
 #include "rcpp_util.hh"
-#include "rcpp_asap_nmf_train.hh"
+#include "rcpp_asap_pmf_train.hh"
 
 using RNG = dqrng::xoshiro256plus;
-using model_t = asap_nmf_model_t<RNG>;
+using model_t = asap_pmf_model_t<RNG>;
 
-//' A quick NMF estimation based on alternating Poisson regressions
+//' A quick PMF estimation based on alternating Poisson regressions
 //'
 //' @param Y_ non-negative data matrix (gene x sample)
 //' @param maxK maximum number of factors
@@ -35,7 +35,7 @@ using model_t = asap_nmf_model_t<RNG>;
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_nmf(const Eigen::MatrixXf Y_,
+asap_fit_pmf(const Eigen::MatrixXf Y_,
              const std::size_t maxK,
              const std::size_t max_iter = 100,
              const Rcpp::Nullable<Rcpp::List> r_A_dd_list = R_NilValue,
@@ -68,7 +68,7 @@ asap_fit_nmf(const Eigen::MatrixXf Y_,
     std::vector<Scalar> llik_trace;
     model_t::NULL_DATA null_data;
 
-    train_nmf_options_t options;
+    train_pmf_options_t options;
     options.max_iter = max_iter;
     options.burnin = burnin;
     options.eps = EPS;
@@ -94,13 +94,13 @@ asap_fit_nmf(const Eigen::MatrixXf Y_,
     }
 
     if (A_dd.nonZeros() > 0 && A_nn.nonZeros() > 0) {
-        train_nmf(model, Y_dn, A_dd, A_nn, llik_trace, options);
+        train_pmf(model, Y_dn, A_dd, A_nn, llik_trace, options);
     } else if (A_dd.nonZeros() > 0 && A_nn.nonZeros() == 0) {
-        train_nmf(model, Y_dn, A_dd, null_data, llik_trace, options);
+        train_pmf(model, Y_dn, A_dd, null_data, llik_trace, options);
     } else if (A_dd.nonZeros() == 0 && A_nn.nonZeros() > 0) {
-        train_nmf(model, Y_dn, null_data, A_nn, llik_trace, options);
+        train_pmf(model, Y_dn, null_data, A_nn, llik_trace, options);
     } else {
-        train_nmf(model, Y_dn, null_data, null_data, llik_trace, options);
+        train_pmf(model, Y_dn, null_data, null_data, llik_trace, options);
     }
 
     // Mat std_log_x, R_nk;

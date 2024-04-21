@@ -22,18 +22,22 @@ asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZ
     .Call('_asapR_asap_bbknn', PACKAGE = 'asapR', data_nk_vec, row_names_vec, KNN_PER_BATCH, BLOCK_SIZE, NUM_THREADS, verbose)
 }
 
-#' Topic deconvolution
+#' Estimated deconvolved topic statistics
 #'
 #' @param bulk_dm Convoluted bulk data
 #' @param bulk_row_names row names of bulk_data (D vector)
+#' @param Ref_nk reference correlation data (N x K)
 #' @param log_beta log dictionary matrix (D x K)
 #' @param beta_row_names row names log_beta (D vector)
-#' @param Ref_nk reference correlation data (N x K)
 #' @param do_stdize_beta use standardized log_beta (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param verbose verbosity
+#' @param NUM_THREADS number of threads in data reading
+#' @param KNN_PER_SAMPLE k Nearest Neighbours per bulk sample
 #'
 #'
-asap_deconv_stat <- function(bulk_dm, bulk_row_names, log_beta, beta_row_names, Ref_nk, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, KNN_PER_SAMPLE = 15L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_deconv_stat', PACKAGE = 'asapR', bulk_dm, bulk_row_names, log_beta, beta_row_names, Ref_nk, rseed, verbose, NUM_THREADS, KNN_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+asap_deconv_pmf_stat <- function(bulk_dm, bulk_row_names, Ref_nk, log_beta, beta_row_names, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, a0 = 1, b0 = 1, NUM_THREADS = 1L, KNN_PER_SAMPLE = 15L) {
+    .Call('_asapR_asap_deconv_pmf_stat', PACKAGE = 'asapR', bulk_dm, bulk_row_names, Ref_nk, log_beta, beta_row_names, do_stdize_beta, do_log1p, verbose, a0, b0, NUM_THREADS, KNN_PER_SAMPLE)
 }
 
 #' Identify pairs of columns interacting with one another
@@ -174,104 +178,6 @@ asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, 
     .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2, row_file2, col_file2, idx_file2, A_dd_list, do_stdize_beta, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
-#' A quick NMF estimation based on alternating Poisson regressions
-#'
-#' @param Y_ non-negative data matrix (gene x sample)
-#' @param maxK maximum number of factors
-#' @param max_iter max number of optimization steps
-#' @param min_iter min number of optimization steps
-#' @param burnin number of initiation steps (default: 50)
-#' @param verbose verbosity
-#' @param a0 gamma(a0, b0) default: a0 = 1
-#' @param b0 gamma(a0, b0) default: b0 = 1
-#' @param do_scale scale each column by standard deviation (default: TRUE)
-#' @param do_log1p do log(1+y) transformation
-#' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: FALSE)
-#' @param EPS (default: 1e-8)
-#'
-#' @return a list that contains:
-#'  \itemize{
-#'   \item log.likelihood log-likelihood trace
-#'   \item theta loading (sample x factor)
-#'   \item log.theta log-loading (sample x factor)
-#'   \item log.theta.sd sd(log-loading) (sample x factor)
-#'   \item beta dictionary (gene x factor)
-#'   \item log.beta log dictionary (gene x factor)
-#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
-#' }
-#'
-#'
-asap_fit_nmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_list = NULL, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf', PACKAGE = 'asapR', Y_, maxK, max_iter, r_A_dd_list, r_A_nn_list, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
-}
-
-#' A quick NMF estimation based on alternating Poisson regressions
-#' while sharing a dictionary/factors matrix
-#'
-#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
-#' @param maxK maximum number of factors
-#' @param max_iter max number of optimization steps
-#' @param min_iter min number of optimization steps
-#' @param burnin number of initiation steps (default: 50)
-#' @param verbose verbosity
-#' @param a0 gamma(a0, b0) default: a0 = 1
-#' @param b0 gamma(a0, b0) default: b0 = 1
-#' @param do_scale scale each column by standard deviation (default: TRUE)
-#' @param do_log1p do log(1+y) transformation
-#' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: FALSE)
-#' @param EPS (default: 1e-8)
-#'
-#' @return a list that contains:
-#'  \itemize{
-#'   \item log.likelihood log-likelihood trace
-#'   \item beta dictionary (gene x factor)
-#'   \item log.beta log-dictionary (gene x factor)
-#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
-#'   \item theta a list of loading matrices (sample x factor)
-#'   \item log.theta a list of log loadings (sample x factor)
-#'   \item log.theta.sd a list of standard deviations (sample x factor)
-#' }
-#'
-#'
-asap_fit_nmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
-}
-
-#' A quick NMF estimation based on alternating Poisson regressions
-#' while sharing a factor loading/topic proportion matrix
-#'
-#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
-#' @param maxK maximum number of factors
-#' @param max_iter max number of optimization steps
-#' @param min_iter min number of optimization steps
-#' @param burnin number of initiation steps (default: 50)
-#' @param verbose verbosity
-#' @param a0 gamma(a0, b0) default: a0 = 1
-#' @param b0 gamma(a0, b0) default: b0 = 1
-#' @param do_scale scale each column by standard deviation (default: TRUE)
-#' @param do_log1p do log(1+y) transformation
-#' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: FALSE)
-#' @param EPS (default: 1e-8)
-#'
-#' @return a list that contains:
-#'  \itemize{
-#'   \item log.likelihood log-likelihood trace
-#'   \item theta loading (sample x factor)
-#'   \item log.theta log-loading (sample x factor)
-#'   \item log.theta.sd sd(log-loading) (sample x factor)
-#'   \item beta a list of dictionary matrices (gene x factor)
-#'   \item log.beta a list of log dictionary (gene x factor)
-#'   \item log.beta.sd a list of standard deviations (gene x factor)
-#' }
-#'
-#'
-asap_fit_nmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
-    .Call('_asapR_asap_fit_nmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
-}
-
 #' Generate approximate pseudo-bulk data by random projections
 #'
 #' @param mtx_file matrix-market-formatted data file (bgzip)
@@ -287,7 +193,7 @@ asap_fit_nmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: FALSE)
-#' @param save_rand_proj save random projection (default: FALSE)
+#' @param save_aux_data save auxiliary data (default: FALSE)
 #' @param weighted_rand_proj save random projection (default: FALSE)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param a0 gamma(a0, b0) (default: 1e-8)
@@ -309,8 +215,8 @@ asap_fit_nmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n = NULL, r_covar_d = NULL, rseed = 42L, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_log1p = FALSE, do_down_sample = FALSE, save_aux_data = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_aux_data, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -327,7 +233,7 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' @param do_batch_adj (default: FALSE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: TRUE)
-#' @param save_rand_proj save random projection (default: FALSE)
+#' @param save_aux_data save auxiliary data (default: FALSE)
 #' @param weighted_rand_proj save random projection (default: FALSE)
 #' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
@@ -358,8 +264,8 @@ asap_random_bulk <- function(mtx_file, row_file, col_file, idx_file, num_factors
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_cbind <- function(y_dn_vec, num_factors, r_row_names = NULL, r_batch_names = NULL, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
-    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', y_dn_vec, num_factors, r_row_names, r_batch_names, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
+asap_random_bulk_cbind <- function(y_dn_vec, num_factors, r_row_names = NULL, r_batch_names = NULL, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_aux_data = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1) {
+    .Call('_asapR_asap_random_bulk_cbind', PACKAGE = 'asapR', y_dn_vec, num_factors, r_row_names, r_batch_names, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_aux_data, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -379,7 +285,7 @@ asap_random_bulk_cbind <- function(y_dn_vec, num_factors, r_row_names = NULL, r_
 #' @param do_batch_adj (default: FALSE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: TRUE)
-#' @param save_rand_proj save random projection (default: FALSE)
+#' @param save_aux_data save random projection (default: FALSE)
 #' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -409,8 +315,8 @@ asap_random_bulk_cbind <- function(y_dn_vec, num_factors, r_row_names = NULL, r_
 #' \item `rownames` feature (gene) names
 #' }
 #'
-asap_random_bulk_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_rand_proj = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_rand_proj, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names = NULL, rename_columns = TRUE, take_union_rows = FALSE, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, do_batch_adj = TRUE, do_log1p = FALSE, do_down_sample = TRUE, save_aux_data = FALSE, KNN_CELL = 10L, CELL_PER_SAMPLE = 100L, BATCH_ADJ_ITER = 100L, a0 = 1, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, r_batch_names, rename_columns, take_union_rows, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_batch_adj, do_log1p, do_down_sample, save_aux_data, KNN_CELL, CELL_PER_SAMPLE, BATCH_ADJ_ITER, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -455,6 +361,104 @@ asap_random_bulk_rbind <- function(mtx_files, row_files, col_files, idx_files, n
     .Call('_asapR_asap_random_bulk_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
+#' A quick PMF estimation based on alternating Poisson regressions
+#'
+#' @param Y_ non-negative data matrix (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log dictionary (gene x factor)
+#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
+#' }
+#'
+#'
+asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_list = NULL, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_pmf', PACKAGE = 'asapR', Y_, maxK, max_iter, r_A_dd_list, r_A_nn_list, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+}
+
+#' A quick PMF estimation based on alternating Poisson regressions
+#' while sharing a dictionary/factors matrix
+#'
+#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log-dictionary (gene x factor)
+#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
+#'   \item theta a list of loading matrices (sample x factor)
+#'   \item log.theta a list of log loadings (sample x factor)
+#'   \item log.theta.sd a list of standard deviations (sample x factor)
+#' }
+#'
+#'
+asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+}
+
+#' A quick PMF estimation based on alternating Poisson regressions
+#' while sharing a factor loading/topic proportion matrix
+#'
+#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta a list of dictionary matrices (gene x factor)
+#'   \item log.beta a list of log dictionary (gene x factor)
+#'   \item log.beta.sd a list of standard deviations (gene x factor)
+#' }
+#'
+#'
+asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 1L) {
+    .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+}
+
 #' Calibrate topic proportions based on sufficient statistics
 #'
 #' @param beta_dk dictionary matrix (feature D  x factor K)
@@ -479,7 +483,7 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
     .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', beta_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
 }
 
-#' Topic statistics to estimate factor loading
+#' PMF statistics to estimate factor loading
 #'
 #' @param y_dn sparse data matrix (D x N)
 #' @param log_beta D x K log dictionary/design matrix
@@ -498,15 +502,17 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #' @return a list that contains:
 #' \itemize{
 #'  \item beta dictionary matrix (row x factor)
+#'  \item delta the dictionary matrix of batch effects (row x batch)
 #'  \item corr empirical correlation (column x factor)
 #'  \item colsum the sum of each column (column x 1)
+#'  \item rownames row names
 #' }
 #'
-asap_nmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_nmf_stat', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L) {
+    .Call('_asapR_asap_pmf_stat', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE)
 }
 
-#' Topic statistics to estimate factor loading
+#' PMF statistics to estimate factor loading
 #'
 #' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 #' @param row_file row names file (D x 1)
@@ -527,16 +533,19 @@ asap_nmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do
 #'
 #' @return a list that contains:
 #' \itemize{
-#'  \item beta dictionary matrix (row x factor)
+#'  \item beta the dictionary matrix of topics (row x factor)
+#'  \item delta the dictionary matrix of batch effects (row x batch)
 #'  \item corr empirical correlation (column x factor)
 #'  \item colsum the sum of each column (column x 1)
+#'  \item rownames row names
+#'  \item rownames column names
 #' }
 #'
 asap_topic_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
     .Call('_asapR_asap_topic_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
-#' Topic statistics to estimate factor loading
+#' PMF statistics to estimate factor loading
 #'
 #' @param mtx_file matrix-market-formatted data file (D x N, bgzip)
 #' @param row_file row names file (D x 1)
@@ -556,13 +565,15 @@ asap_topic_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta
 #'
 #' @return a list that contains:
 #' \itemize{
-#'  \item beta.list a list of dictionary matrices (row x factor)
-#'  \item corr.list a list of empirical correlation matrices (column x factor)
-#'  \item colsum.list a list of column sum vectors (column x 1)
+#'  \item beta the dictionary matrix (row x factor)
+#'  \item corr empirical correlation matrices (column x factor)
+#'  \item colsum column sum (column x 1)
+#'  \item rownames row names
+#'  \item rownames column names
 #' }
 #'
-asap_topic_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = TRUE, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = TRUE, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
@@ -613,8 +624,8 @@ asap_topic_pmf_rbind <- function(beta_dk_list, R_nk_list, Y_n_list, a0 = 1.0, b0
 #'  \item colsum.list a list of column sum vectors (column x 1)
 #' }
 #'
-asap_topic_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, log_beta_vec, beta_row_names_vec, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta_vec, beta_row_names_vec, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat_rbind <- function(mtx_files, row_files, col_files, idx_files, log_beta_vec, beta_row_names_vec, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 1L, BLOCK_SIZE = 100L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_stat_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta_vec, beta_row_names_vec, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Stretch non-negative matrix
