@@ -764,21 +764,18 @@ residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
         const std::size_t r =
             std::min(X.rows(), std::min(X.cols(), Yraw.cols()));
 
-        ColVec d;
-        Mat u;
-
-        if (X.rows() < 1000) {
-            Eigen::BDCSVD<Derived> svd_x;
-            svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
-            d = svd_x.singularValues();
-            u = svd_x.matrixU();
-        } else {
-            const std::size_t lu_iter = 5;
-            RandomizedSVD<Derived> svd_x(r, lu_iter);
-            svd_x.compute(X);
-            d = svd_x.singularValues();
-            u = svd_x.matrixU();
-        }
+        // if (X.rows() < 1000) {
+        //     Eigen::BDCSVD<Derived> svd_x;
+        //     svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        //     d = svd_x.singularValues();
+        //     u = svd_x.matrixU();
+        // } else {
+        // }
+        const std::size_t lu_iter = 5;
+        RandomizedSVD<Derived> svd_x(r, lu_iter);
+        svd_x.compute(X);
+        ColVec d = svd_x.singularValues();
+        Mat u = svd_x.matrixU();
 
         for (Index k = 0; k < r; ++k) {
             if (d(k) < eps)

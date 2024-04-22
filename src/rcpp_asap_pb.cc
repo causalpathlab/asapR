@@ -49,7 +49,7 @@ asap_random_bulk(
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_d = R_NilValue,
     const std::size_t rseed = 42,
     const bool verbose = false,
-    const std::size_t NUM_THREADS = 1,
+    const std::size_t NUM_THREADS = 0,
     const std::size_t BLOCK_SIZE = 1000,
     const bool do_log1p = false,
     const bool do_down_sample = false,
@@ -63,6 +63,9 @@ asap_random_bulk(
     const std::size_t MAX_COL_WORD = 100,
     const char COL_WORD_SEP = '@')
 {
+
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
 
     using namespace asap::pb;
 
@@ -127,7 +130,7 @@ asap_random_bulk(
                          idx_file,
                          R_kd,
                          verbose,
-                         NUM_THREADS,
+                         nthreads,
                          BLOCK_SIZE,
                          do_log1p);
         if (verbose) {
@@ -163,7 +166,7 @@ asap_random_bulk(
     }
 
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
@@ -277,7 +280,7 @@ asap_random_bulk(
     RowVec size_s = RowVec::Zero(S);
 
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {

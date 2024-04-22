@@ -8,6 +8,9 @@
 //' @param idx_file matrix-market colum index file
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
+//' @param log_delta D x B log batch effects
+//' @param r_batch_names batch names (optional)
+//' @param rename_columns append batch name at the end of each column name (default: FALSE)
 //' @param do_stdize_beta use standardized log_beta (default: TRUE)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity
@@ -24,7 +27,9 @@
 //'  \item corr empirical correlation matrices (column x factor)
 //'  \item colsum column sum (column x 1)
 //'  \item rownames row names
-//'  \item rownames column names
+//'  \item batch.names batch names (based on
+//'  \item batch.index
+//'  \item colnames column names
 //' }
 //'
 // [[Rcpp::export]]
@@ -38,12 +43,12 @@ asap_pmf_stat_cbind_mtx(
     const Rcpp::StringVector beta_row_names,
     const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
     const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names = R_NilValue,
-    const bool rename_columns = true,
+    const bool rename_columns = false,
     const bool do_stdize_beta = false,
     const bool do_log1p = false,
     const bool verbose = false,
-    const std::size_t NUM_THREADS = 1,
-    const std::size_t BLOCK_SIZE = 100,
+    const std::size_t NUM_THREADS = 0,
+    const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
     const std::size_t MAX_COL_WORD = 100,
@@ -55,12 +60,12 @@ asap_pmf_stat_cbind_mtx(
     options.do_stdize_x = do_stdize_beta;
     options.do_log1p = do_log1p;
     options.verbose = verbose;
-    options.NUM_THREADS = NUM_THREADS;
     options.BLOCK_SIZE = BLOCK_SIZE;
     options.MAX_ROW_WORD = MAX_ROW_WORD;
     options.ROW_WORD_SEP = ROW_WORD_SEP;
     options.MAX_COL_WORD = MAX_COL_WORD;
     options.COL_WORD_SEP = COL_WORD_SEP;
+    options.NUM_THREADS = NUM_THREADS;
 
     /////////////////
     // check input //
@@ -139,7 +144,9 @@ asap_pmf_stat_cbind_mtx(
     Mat R_nk = Mat::Zero(Ntot, K), Y_n = Mat::Zero(Ntot, 1);
 
     std::vector<std::string> columns;
+    std::vector<Index> batch_indexes;
     columns.reserve(Ntot);
+    batch_indexes.reserve(Ntot);
 
     TLOG_(verbose, "Accumulating statistics...");
 
@@ -160,9 +167,20 @@ asap_pmf_stat_cbind_mtx(
             std::for_each(col_b.begin(), col_b.end(), app_b);
         }
 
+        // batch index
+        std::vector<Index> bidx_b(col_b.size());
+        std::fill(bidx_b.begin(), bidx_b.end(), b + 1);
+
         std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
+        std::copy(bidx_b.begin(),
+                  bidx_b.end(),
+                  std::back_inserter(batch_indexes));
 
         const Index ub = columns.size();
+
+        /////////////////////////////
+        // compute regression stat //
+        /////////////////////////////
 
         mtx_data_t data(mtx_tuple_t(mtx_tuple_t::MTX { mtx_files.at(b) },
                                     mtx_tuple_t::ROW { row_files.at(b) },
@@ -206,6 +224,8 @@ asap_pmf_stat_cbind_mtx(
     return List::create(_["beta"] = named(logBeta_dk.unaryExpr(exp), d_, k_),
                         _["corr"] = named(R_nk, columns, k_),
                         _["colsum"] = named_rows(Y_n, columns),
+                        _["batch.names"] = batch_names,
+                        _["batch.index"] = batch_indexes,
                         _["rownames"] = pos2row,
                         _["colnames"] = columns);
 }

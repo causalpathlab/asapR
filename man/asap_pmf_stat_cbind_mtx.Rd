@@ -13,12 +13,12 @@ asap_pmf_stat_cbind_mtx(
   beta_row_names,
   log_delta = NULL,
   r_batch_names = NULL,
-  rename_columns = TRUE,
+  rename_columns = FALSE,
   do_stdize_beta = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,
-  NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L,
+  NUM_THREADS = 0L,
+  BLOCK_SIZE = 1000L,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
   MAX_COL_WORD = 100L,
@@ -29,6 +29,12 @@ asap_pmf_stat_cbind_mtx(
 \item{log_beta}{D x K log dictionary/design matrix}
 
 \item{beta_row_names}{row names log_beta (D vector)}
+
+\item{log_delta}{D x B log batch effects}
+
+\item{r_batch_names}{batch names (optional)}
+
+\item{rename_columns}{append batch name at the end of each column name (default: FALSE)}
 
 \item{do_stdize_beta}{use standardized log_beta (default: TRUE)}
 
@@ -63,7 +69,9 @@ a list that contains:
 \item corr empirical correlation matrices (column x factor)
 \item colsum column sum (column x 1)
 \item rownames row names
-\item rownames column names
+\item batch.names batch names (based on
+\item batch.index
+\item colnames column names
 }
 }
 \description{

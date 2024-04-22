@@ -62,6 +62,9 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
                        const char COL_WORD_SEP = '@')
 {
 
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
+
     using namespace asap::pb;
 
     log1p_op<Mat> log1p;
@@ -158,7 +161,7 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
                              idx_files.at(b),
                              Rb_kd,
                              verbose,
-                             NUM_THREADS,
+                             nthreads,
                              BLOCK_SIZE,
                              do_log1p);
             if (verbose) {
@@ -175,7 +178,7 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
         Index Nprocessed = 0;
 
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
         for (Index lb = 0; lb < Nb; lb += block_size) {
@@ -304,7 +307,7 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
         Index Nprocessed = 0;
 
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
         for (Index lb = 0; lb < Nb; lb += block_size) {

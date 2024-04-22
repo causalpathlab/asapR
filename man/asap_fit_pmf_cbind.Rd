@@ -17,7 +17,7 @@ asap_fit_pmf_cbind(
   rseed = 1337L,
   svd_init = FALSE,
   EPS = 1e-08,
-  NUM_THREADS = 1L
+  NUM_THREADS = 0L
 )
 }
 \arguments{

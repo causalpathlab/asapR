@@ -10,7 +10,7 @@
 //' @param W_nm_list list(src.index, tgt.index, [weights]) for columns
 //'
 //' @param A_dd_list list(src.index, tgt.index, [weights]) for features
-//' 
+//'
 //' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
 //' @param row_file_rhs right-hand-side row names (gene/feature names)
 //' @param col_file_rhs right-hand-side column names (cell/column names)
@@ -66,7 +66,7 @@ asap_interaction_random_bulk(
     const bool do_down_sample = false,
     const bool save_rand_proj = false,
     const bool weighted_rand_proj = false,
-    const std::size_t NUM_THREADS = 1,
+    const std::size_t NUM_THREADS = 0,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t EDGE_PER_SAMPLE = 100,
     const double a0 = 1,
@@ -77,6 +77,9 @@ asap_interaction_random_bulk(
     const char COL_WORD_SEP = '@',
     const bool verbose = false)
 {
+
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
 
     using namespace asap::pb;
 
@@ -166,7 +169,7 @@ asap_interaction_random_bulk(
                          idx_file,
                          R_kd,
                          verbose,
-                         NUM_THREADS,
+                         nthreads,
                          BLOCK_SIZE,
                          do_log1p);
         if (verbose) {
@@ -191,7 +194,7 @@ asap_interaction_random_bulk(
         Index e = 0;
 
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
         for (Index i = 0; i < W_nm.outerSize(); ++i) {
@@ -280,7 +283,7 @@ asap_interaction_random_bulk(
     {
         Index e = 0;
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
         for (Index i = 0; i < W_nm.outerSize(); ++i) {

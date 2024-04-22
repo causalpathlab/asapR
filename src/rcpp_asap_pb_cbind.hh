@@ -34,7 +34,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     const double b0 = options.b0;
     const std::size_t rseed = options.rseed;
     const bool verbose = options.verbose;
-    const std::size_t NUM_THREADS = options.NUM_THREADS;
+    const std::size_t NUM_THREADS =
+        (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
     const Index block_size = options.BLOCK_SIZE;
 
     log1p_op<Mat> log1p;

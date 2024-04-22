@@ -12,8 +12,8 @@ asap_pmf_stat(
   do_stdize_beta = TRUE,
   do_log1p = FALSE,
   verbose = FALSE,
-  NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  NUM_THREADS = 0L,
+  BLOCK_SIZE = 1000L
 )
 }
 \arguments{

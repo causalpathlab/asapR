@@ -15,7 +15,7 @@ asap_build_interaction(
   do_log1p = FALSE,
   verbose = TRUE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L
+  BLOCK_SIZE = 1000L
 )
 }
 \arguments{

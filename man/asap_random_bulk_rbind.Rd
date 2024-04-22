@@ -15,7 +15,7 @@ asap_random_bulk_rbind(
   rseed = 42L,
   verbose = TRUE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L,
+  BLOCK_SIZE = 1000L,
   do_log1p = FALSE,
   do_down_sample = FALSE,
   save_rand_proj = FALSE,

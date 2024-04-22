@@ -21,7 +21,7 @@ asap_build_interaction_mtx(
   do_log1p = FALSE,
   verbose = TRUE,
   NUM_THREADS = 1L,
-  BLOCK_SIZE = 100L,
+  BLOCK_SIZE = 1000L,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
   MAX_COL_WORD = 100L,

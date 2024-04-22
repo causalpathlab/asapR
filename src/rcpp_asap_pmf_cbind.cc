@@ -46,9 +46,12 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const std::size_t rseed = 1337,
                    const bool svd_init = false,
                    const double EPS = 1e-8,
-                   const std::size_t NUM_THREADS = 1)
+                   const std::size_t NUM_THREADS = 0)
 {
-    Eigen::setNbThreads(NUM_THREADS);
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
+
+    Eigen::setNbThreads(nthreads);
     TLOG_(verbose, Eigen::nbThreads() << " threads");
 
     using RNG = dqrng::xoshiro256plus;

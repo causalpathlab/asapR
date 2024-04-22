@@ -47,7 +47,7 @@ asap_interaction_topic_stat(
     const Rcpp::Nullable<Rcpp::List> A_dd_list = R_NilValue,
     const bool do_stdize_beta = true,
     const bool do_product = false,
-    const std::size_t NUM_THREADS = 1,
+    const std::size_t NUM_THREADS = 0,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
@@ -55,6 +55,9 @@ asap_interaction_topic_stat(
     const char COL_WORD_SEP = '@',
     const bool verbose = false)
 {
+
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
 
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
@@ -167,7 +170,7 @@ asap_interaction_topic_stat(
     Index Nprocessed = 0;
     const Scalar one = 1.;
 #if defined(_OPENMP)
-#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp parallel num_threads(nthreads)
 #pragma omp for
 #endif
     for (Index i = 0; i < W_nm.outerSize(); ++i) {

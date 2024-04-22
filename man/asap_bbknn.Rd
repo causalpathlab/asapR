@@ -8,7 +8,7 @@ asap_bbknn(
   data_nk_vec,
   row_names_vec,
   KNN_PER_BATCH = 3L,
-  BLOCK_SIZE = 100L,
+  BLOCK_SIZE = 1000L,
   NUM_THREADS = 1L,
   verbose = TRUE
 )

@@ -11,7 +11,7 @@ asap_topic_pmf(
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
-  NUM_THREADS = 1L,
+  NUM_THREADS = 0L,
   stdize_r = TRUE,
   verbose = TRUE
 )

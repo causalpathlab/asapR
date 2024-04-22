@@ -28,7 +28,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
                const double a0 = 1.0,
                const double b0 = 1.0,
                const std::size_t max_iter = 10,
-               const std::size_t NUM_THREADS = 1,
+               const std::size_t NUM_THREADS = 0,
                const bool stdize_r = true,
                const bool verbose = true)
 {
@@ -43,7 +43,10 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
     using gamma_t = gamma_param_t<Mat, RNG>;
     RNG rng;
 
-    Eigen::setNbThreads(NUM_THREADS);
+    const std::size_t nthreads =
+        (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
+
+    Eigen::setNbThreads(nthreads);
 
     const Index D = beta_dk.rows();
     const Index K = beta_dk.cols();
@@ -120,7 +123,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const bool do_stdize_beta = true,
               const bool do_log1p = false,
               const bool verbose = false,
-              const std::size_t NUM_THREADS = 1,
+              const std::size_t NUM_THREADS = 0,
               const std::size_t BLOCK_SIZE = 1000)
 {
 
@@ -229,7 +232,7 @@ asap_topic_stat_mtx(
     const bool do_stdize_beta = true,
     const bool do_log1p = false,
     const bool verbose = false,
-    const std::size_t NUM_THREADS = 1,
+    const std::size_t NUM_THREADS = 0,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',

@@ -1,8 +1,7 @@
 #ifndef RCPP_MODEL_FACTORIZATION_HH_
 #define RCPP_MODEL_FACTORIZATION_HH_
 
-struct factorization_tag {
-};
+struct factorization_tag { };
 
 template <typename ROW, typename COL, typename RNG>
 struct factorization_t {
@@ -224,8 +223,11 @@ _initialize_stat_svd(const factorization_tag,
     T yy = standardize_columns(Y_dn.unaryExpr(at_least_zero).unaryExpr(log1p))
                .unaryExpr(clamp_);
 
-    Eigen::BDCSVD<T> svd;
-    svd.compute(yy, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    const std::size_t lu_iter = 5;
+    RandomizedSVD<Derived> svd(yy, lu_iter);
+
+    // Eigen::BDCSVD<T> svd;
+    // svd.compute(yy, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
     {
         T a = svd.matrixU().unaryExpr(at_least_zero);

@@ -97,8 +97,11 @@ run_pmf_stat(Data &data,
 
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
-    const std::size_t NUM_THREADS = options.NUM_THREADS;
+    const std::size_t NUM_THREADS =
+        (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
     const std::size_t BLOCK_SIZE = options.BLOCK_SIZE;
+
+    TLOG_(verbose, NUM_THREADS << " threads");
 
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
