@@ -32,7 +32,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_interaction_topic_stat(
+asap_interaction_pmf_stat_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,

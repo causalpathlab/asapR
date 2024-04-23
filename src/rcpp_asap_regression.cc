@@ -221,7 +221,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_topic_stat_mtx(
+asap_pmf_stat_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,

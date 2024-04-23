@@ -156,8 +156,8 @@ asap_interaction_random_bulk <- function(mtx_file, row_file, col_file, idx_file,
 #'  \item colsum the sum of each column (column x 1)
 #' }
 #'
-asap_interaction_topic_stat <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2 = NULL, row_file2 = NULL, col_file2 = NULL, idx_file2 = NULL, A_dd_list = NULL, do_stdize_beta = TRUE, do_product = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
-    .Call('_asapR_asap_interaction_topic_stat', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2, row_file2, col_file2, idx_file2, A_dd_list, do_stdize_beta, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
+asap_interaction_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2 = NULL, row_file2 = NULL, col_file2 = NULL, idx_file2 = NULL, A_dd_list = NULL, do_stdize_beta = TRUE, do_product = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@', verbose = FALSE) {
+    .Call('_asapR_asap_interaction_pmf_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, W_nm_list, mtx_file2, row_file2, col_file2, idx_file2, A_dd_list, do_stdize_beta, do_product, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP, verbose)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -523,8 +523,8 @@ asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do
 #'  \item rownames column names
 #' }
 #'
-asap_topic_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_topic_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' PMF statistics to estimate factor loading
