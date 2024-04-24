@@ -18,6 +18,7 @@ asap_random_bulk_cbind_mtx(
   rseed = 42L,
   verbose = TRUE,
   NUM_THREADS = 0L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L,
   do_batch_adj = TRUE,
   do_log1p = FALSE,
@@ -52,6 +53,8 @@ asap_random_bulk_cbind_mtx(
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{normalization constant per each data point}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

@@ -9,6 +9,7 @@
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of parallel threads (default: 1)
+//'
 //' @param stdize_r standardize correlation matrix R (default: TRUE)
 //' @param verbose (default: TRUE)
 //'
@@ -99,6 +100,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM sample normalization constant (default: 1e4)
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -124,6 +126,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const bool do_log1p = false,
               const bool verbose = false,
               const std::size_t NUM_THREADS = 0,
+              const double CELL_NORM = 1e4,
               const std::size_t BLOCK_SIZE = 1000)
 {
 
@@ -139,6 +142,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;
     options.BLOCK_SIZE = BLOCK_SIZE;
+    options.CELL_NORM = CELL_NORM;
 
     eigenSparse_data_t data(y_dn, pos2row);
 
@@ -203,6 +207,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM sample normalization constant (default: 1e4)
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -233,6 +238,7 @@ asap_pmf_stat_mtx(
     const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
@@ -257,6 +263,7 @@ asap_pmf_stat_mtx(
     options.ROW_WORD_SEP = ROW_WORD_SEP;
     options.MAX_COL_WORD = MAX_COL_WORD;
     options.COL_WORD_SEP = COL_WORD_SEP;
+    options.CELL_NORM = CELL_NORM;
 
     Mat Rtot_nk, Ytot_n, delta_db;
     exp_op<Mat> exp;

@@ -12,6 +12,7 @@
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM sample normalization constant (default: 1e4)
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
@@ -50,6 +51,7 @@ asap_random_bulk(
     const std::size_t rseed = 42,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const bool do_log1p = false,
     const bool do_down_sample = false,
@@ -165,6 +167,8 @@ asap_random_bulk(
         YtX_nr.setZero();
     }
 
+    const Scalar cell_norm = CELL_NORM;
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(nthreads)
 #pragma omp for
@@ -177,12 +181,15 @@ asap_random_bulk(
         // random aggregate //
         //////////////////////
 
-        Mat _y_dn = do_log1p ? mtx_data.read(lb, ub).unaryExpr(log1p) :
-                               mtx_data.read(lb, ub);
+        SpMat _y_dn = do_log1p ? mtx_data.read(lb, ub).unaryExpr(log1p) :
+                                 mtx_data.read(lb, ub);
+        normalize_columns_inplace(_y_dn);
+        const Mat y_dn = _y_dn * cell_norm;
+
+        Mat temp_kn = R_kd * y_dn;
 
 #pragma omp critical
         {
-            Mat temp_kn = R_kd * _y_dn;
             for (Index i = 0; i < temp_kn.cols(); ++i) {
                 const Index j = i + lb;
                 Q_kn.col(j) = temp_kn.col(i);
@@ -194,7 +201,7 @@ asap_random_bulk(
         ///////////////////////////////
 
         if (X_dr.rows() == D && X_dr.cols() > 0) {
-            Mat temp_rn = X_dr.transpose() * _y_dn;
+            Mat temp_rn = X_dr.transpose() * y_dn;
             for (Index i = 0; i < temp_rn.cols(); ++i) {
                 const Index j = i + lb;
                 YtX_nr.row(j) = temp_rn.col(i).transpose();

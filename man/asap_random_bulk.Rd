@@ -15,6 +15,7 @@ asap_random_bulk(
   rseed = 42L,
   verbose = FALSE,
   NUM_THREADS = 0L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L,
   do_log1p = FALSE,
   do_down_sample = FALSE,
@@ -49,6 +50,8 @@ asap_random_bulk(
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{sample normalization constant (default: 1e4)}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

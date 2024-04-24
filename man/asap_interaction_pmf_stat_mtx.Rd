@@ -20,6 +20,7 @@ asap_interaction_pmf_stat_mtx(
   do_stdize_beta = TRUE,
   do_product = FALSE,
   NUM_THREADS = 0L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
@@ -50,6 +51,8 @@ asap_interaction_pmf_stat_mtx(
 \item{do_product}{yi * yj for interaction (default: FALSE)}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{normalization constant per each data point}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

@@ -9,6 +9,20 @@
 namespace asap { namespace regression {
 
 struct stat_options_t {
+    stat_options_t()
+        : do_log1p(false)
+        , verbose(true)
+        , NUM_THREADS(0)
+        , BLOCK_SIZE(1000)
+        , MAX_ROW_WORD(2)
+        , ROW_WORD_SEP('_')
+        , MAX_COL_WORD(100)
+        , COL_WORD_SEP('@')
+        , do_stdize_x(true)
+        , CELL_NORM(1e4)
+    {
+    }
+
     bool do_log1p;
     bool verbose;
     std::size_t NUM_THREADS;
@@ -18,6 +32,7 @@ struct stat_options_t {
     std::size_t MAX_COL_WORD;
     char COL_WORD_SEP;
     bool do_stdize_x;
+    double CELL_NORM;
 };
 
 template <typename Data,
@@ -95,6 +110,7 @@ run_pmf_stat(Data &data,
              Eigen::MatrixBase<Derived3> &_y_n)
 {
 
+    const Scalar cell_norm = options.CELL_NORM;
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS =
@@ -103,6 +119,7 @@ run_pmf_stat(Data &data,
 
     TLOG_(verbose, NUM_THREADS << " threads");
 
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     Mat logX_dk = _log_x.derived();
@@ -154,6 +171,7 @@ run_pmf_stat(Data &data,
     at_least_zero_op<Mat> at_least_zero;
     exp_op<Mat> exp;
     log1p_op<Mat> log1p;
+    softmax_op_t<Mat> softmax;
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
@@ -161,7 +179,9 @@ run_pmf_stat(Data &data,
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
         const Index ub = std::min(N, block_size + lb);
-        const Mat y = data.read_reloc(lb, ub);
+        SpMat _y = data.read_reloc(lb, ub);
+        normalize_columns_inplace(_y);
+        const Mat y = _y * cell_norm;
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
@@ -200,6 +220,14 @@ run_pmf_stat(Data &data,
         } // end of omp critical
     }
 
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+    for (Index j = 0; j < N; ++j) {
+        Rtot_nk.row(j) = softmax.log_row(Rtot_nk.row(j));
+    }
+
     if (!verbose)
         Rcpp::Rcerr << std::endl;
     TLOG_(verbose, "done -> topic stat");
@@ -222,6 +250,7 @@ run_pmf_stat_adj(Data &data,
                  Eigen::MatrixBase<Derived3> &_y_n)
 {
 
+    const Scalar cell_norm = options.CELL_NORM;
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS = options.NUM_THREADS;
@@ -268,6 +297,8 @@ run_pmf_stat_adj(Data &data,
     const Index B = logX0_db.cols();     // number of batches
     const Index block_size = BLOCK_SIZE; // memory block size
 
+    Mat R0tot_nk = Mat::Zero(N, K);
+
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
     TLOG_(verbose, "lnX0: " << logX0_db.rows() << " x " << logX0_db.cols());
     Rtot_nk.resize(N, K);
@@ -286,15 +317,16 @@ run_pmf_stat_adj(Data &data,
     softmax_op_t<Mat> softmax;
     log1p_op<Mat> log1p;
 
-    RowVec tempB(B);
-
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
-        Index ub = std::min(N, block_size + lb);
-        const Mat y = data.read_reloc(lb, ub);
+
+        const Index ub = std::min(N, block_size + lb);
+        SpMat _y = data.read_reloc(lb, ub);
+        normalize_columns_inplace(_y);
+        const Mat y = _y * cell_norm;
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
@@ -313,6 +345,8 @@ run_pmf_stat_adj(Data &data,
 
         Mat log_r0_nb =
             (y_dn.transpose() * logX0_db).array().colwise() / Y_n1.array();
+
+        RowVec tempB(B);
 
         for (Index j = 0; j < n; ++j) {
             tempB = log_r0_nb.row(j);
@@ -336,21 +370,12 @@ run_pmf_stat_adj(Data &data,
         Mat R0_nk =
             (y0_dn.transpose() * logX_dk).array().colwise() / Y0_n1.array();
 
-        {
-            // rank by rank adjustment
-            Mat r1(n, 1), r0(n, 1);
-            for (Index k = 0; k < R_nk.cols(); ++k) {
-                r1 = R_nk.col(k);
-                r0 = R0_nk.col(k);
-                residual_columns_inplace(r1, r0);
-                R_nk.col(k) = r1.col(0);
-            }
-        }
 #pragma omp critical
         {
             for (Index i = 0; i < (ub - lb); ++i) {
                 const Index j = i + lb;
                 Rtot_nk.row(j) = R_nk.row(i);
+                R0tot_nk.row(j) = R0_nk.row(i);
                 Ytot_n(j, 0) = Y_n(i);
             }
 
@@ -363,6 +388,16 @@ run_pmf_stat_adj(Data &data,
                     Rcpp::Rcerr << "\r" << std::flush;
             }
         } // end of omp critical
+    }
+
+    residual_columns_inplace(Rtot_nk, R0tot_nk);
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(NUM_THREADS)
+#pragma omp for
+#endif
+    for (Index j = 0; j < N; ++j) {
+        Rtot_nk.row(j) = softmax.log_row(Rtot_nk.row(j));
     }
 
     if (!verbose)

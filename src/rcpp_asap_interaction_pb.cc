@@ -23,6 +23,7 @@
 //' @param save_rand_proj save random projection (default: FALSE)
 //' @param weighted_rand_proj save random projection (default: FALSE)
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param EDGE_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param a0 gamma(a0, b0) (default: 1)
@@ -67,6 +68,7 @@ asap_interaction_random_bulk(
     const bool save_rand_proj = false,
     const bool weighted_rand_proj = false,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t EDGE_PER_SAMPLE = 100,
     const double a0 = 1,
@@ -77,6 +79,8 @@ asap_interaction_random_bulk(
     const char COL_WORD_SEP = '@',
     const bool verbose = false)
 {
+
+    const Scalar cell_norm = CELL_NORM;
 
     const std::size_t nthreads =
         (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
@@ -135,8 +139,24 @@ asap_interaction_random_bulk(
 
     const Index Mcell = rhs_data.max_col();
 
-    ASSERT_RETL(D == rhs_data.max_row(),
-                "two data sets should have a common set of features");
+    std::vector<std::string> pos2row;
+    std::unordered_map<std::string, Index> row2pos;
+
+    const bool take_union_rows = false;
+
+    const std::vector<std::string> row_files { { row_file, _row_file_rhs } };
+    rcpp::util::take_common_names(row_files,
+                                  pos2row,
+                                  row2pos,
+                                  take_union_rows,
+                                  MAX_ROW_WORD,
+                                  ROW_WORD_SEP);
+
+    TLOG_(verbose, "Found " << row2pos.size() << " row names");
+    ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
+
+    lhs_data.relocate_rows(row2pos);
+    rhs_data.relocate_rows(row2pos);
 
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);
@@ -198,10 +218,15 @@ asap_interaction_random_bulk(
 #pragma omp for
 #endif
         for (Index i = 0; i < W_nm.outerSize(); ++i) {
-            SpMat y_di = rhs_data.read(i, i + 1);
+            SpMat y_di = rhs_data.read_reloc(i, i + 1);
+            normalize_columns_inplace(y_di);
+            y_di *= cell_norm;
+
             for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
                 const Index j = jt.index();
-                SpMat y_dj = lhs_data.read(j, j + 1);
+                SpMat y_dj = lhs_data.read_reloc(j, j + 1);
+                normalize_columns_inplace(y_dj);
+                y_dj *= cell_norm;
 
                 const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
@@ -287,10 +312,10 @@ asap_interaction_random_bulk(
 #pragma omp for
 #endif
         for (Index i = 0; i < W_nm.outerSize(); ++i) {
-            SpMat y_di = rhs_data.read(i, i + 1);
+            SpMat y_di = rhs_data.read_reloc(i, i + 1);
             for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
                 const Index j = jt.index();
-                SpMat y_dj = lhs_data.read(j, j + 1);
+                SpMat y_dj = lhs_data.read_reloc(j, j + 1);
 
                 const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 

@@ -16,6 +16,7 @@
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM sample normalization constant (default: 1e4)
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //'
 // [[Rcpp::export]]
@@ -31,6 +32,7 @@ asap_build_interaction(
     const bool do_log1p = false,
     const bool verbose = true,
     const std::size_t NUM_THREADS = 1,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000)
 {
 
@@ -41,6 +43,7 @@ asap_build_interaction(
     regOpt.verbose = verbose;
     regOpt.NUM_THREADS = NUM_THREADS;
     regOpt.BLOCK_SIZE = BLOCK_SIZE;
+    regOpt.CELL_NORM = CELL_NORM;
 
     std::vector<std::string> pos2row;
     rcpp::util::copy(beta_row_names, pos2row);
@@ -114,6 +117,7 @@ asap_build_interaction(
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM sample normalization constant (default: 1e4)
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -139,6 +143,7 @@ asap_build_interaction_mtx(
     const bool do_log1p = false,
     const bool verbose = true,
     const std::size_t NUM_THREADS = 1,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
@@ -157,6 +162,7 @@ asap_build_interaction_mtx(
     regOpt.verbose = verbose;
     regOpt.NUM_THREADS = NUM_THREADS;
     regOpt.BLOCK_SIZE = BLOCK_SIZE;
+    regOpt.CELL_NORM = CELL_NORM;
 
     std::string _mtx_file_rhs = mtx_file, _row_file_rhs = row_file,
                 _col_file_rhs = col_file, _idx_file_rhs = idx_file;

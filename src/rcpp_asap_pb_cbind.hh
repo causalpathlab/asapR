@@ -23,6 +23,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     const Index K = options.K;
 
+    const Scalar cell_norm = options.CELL_NORM;
     const bool do_batch_adj = options.do_batch_adj;
     const bool do_log1p = options.do_log1p;
     const bool do_down_sample = options.do_down_sample;
@@ -87,9 +88,12 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         for (Index lb = 0; lb < Nb; lb += block_size) {
 
             const Index ub = std::min(Nb, block_size + lb);
-            Mat y_dn = do_log1p ?
+
+            SpMat _y_dn = do_log1p ?
                 data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p) :
                 data_loaders.at(b).read_reloc(lb, ub);
+            normalize_columns_inplace(_y_dn);
+            const Mat y_dn = _y_dn * cell_norm;
 
             Mat temp_kn = R_kd * y_dn;
 

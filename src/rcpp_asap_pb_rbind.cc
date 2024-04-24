@@ -13,6 +13,7 @@
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: FALSE)
@@ -48,6 +49,7 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
                        const std::size_t rseed = 42,
                        const bool verbose = true,
                        const std::size_t NUM_THREADS = 1,
+                       const double CELL_NORM = 1e4,
                        const std::size_t BLOCK_SIZE = 1000,
                        const bool do_log1p = false,
                        const bool do_down_sample = false,
@@ -64,6 +66,8 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
 
     const std::size_t nthreads =
         (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
+
+    const Scalar cell_norm = CELL_NORM;
 
     using namespace asap::pb;
 
@@ -184,8 +188,12 @@ asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
         for (Index lb = 0; lb < Nb; lb += block_size) {
 
             const Index ub = std::min(Nb, block_size + lb);
-            Mat y_dn = do_log1p ? data.read(lb, ub).unaryExpr(log1p) :
-                                  data.read(lb, ub);
+
+            SpMat _y_dn = do_log1p ? data.read(lb, ub).unaryExpr(log1p) :
+                                     data.read(lb, ub);
+            normalize_columns_inplace(_y_dn);
+            const Mat y_dn = _y_dn * cell_norm;
+
             Mat temp_kn = Rb_kd * y_dn;
 
 #pragma omp critical

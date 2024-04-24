@@ -23,6 +23,7 @@ asap_interaction_random_bulk(
   save_rand_proj = FALSE,
   weighted_rand_proj = FALSE,
   NUM_THREADS = 0L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L,
   EDGE_PER_SAMPLE = 100L,
   a0 = 1,
@@ -70,6 +71,8 @@ asap_interaction_random_bulk(
 \item{weighted_rand_proj}{save random projection (default: FALSE)}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{normalization constant per each data point}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

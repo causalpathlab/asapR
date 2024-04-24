@@ -21,6 +21,7 @@ asap_build_interaction_mtx(
   do_log1p = FALSE,
   verbose = TRUE,
   NUM_THREADS = 1L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L,
   MAX_ROW_WORD = 2L,
   ROW_WORD_SEP = "_",
@@ -60,6 +61,8 @@ asap_build_interaction_mtx(
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{sample normalization constant (default: 1e4)}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

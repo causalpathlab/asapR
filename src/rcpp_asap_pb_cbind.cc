@@ -10,6 +10,7 @@
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_batch_adj (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
@@ -55,6 +56,7 @@ asap_random_bulk_cbind(
     const std::size_t rseed = 42,
     const bool verbose = true,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const bool do_batch_adj = true,
     const bool do_log1p = false,
@@ -164,6 +166,7 @@ asap_random_bulk_cbind(
     options.rseed = rseed;
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;
+    options.CELL_NORM = CELL_NORM;
     options.BLOCK_SIZE = BLOCK_SIZE;
 
     return run_asap_pb_cbind(data_loaders, pos2row, columns, options);
@@ -182,6 +185,7 @@ asap_random_bulk_cbind(
 //' @param rseed random seed
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param do_batch_adj (default: FALSE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
@@ -230,6 +234,7 @@ asap_random_bulk_cbind_mtx(
     const std::size_t rseed = 42,
     const bool verbose = true,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const bool do_batch_adj = true,
     const bool do_log1p = false,
@@ -264,6 +269,7 @@ asap_random_bulk_cbind_mtx(
     options.rseed = rseed;
     options.verbose = verbose;
     options.NUM_THREADS = NUM_THREADS;
+    options.CELL_NORM = CELL_NORM;
     options.BLOCK_SIZE = BLOCK_SIZE;
 
     const Index B = mtx_files.size();

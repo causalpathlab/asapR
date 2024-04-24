@@ -13,6 +13,7 @@ asap_pmf_stat(
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 0L,
+  CELL_NORM = 10000,
   BLOCK_SIZE = 1000L
 )
 }
@@ -32,6 +33,8 @@ asap_pmf_stat(
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}
+
+\item{CELL_NORM}{sample normalization constant (default: 1e4)}
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 

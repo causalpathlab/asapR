@@ -9,6 +9,25 @@ namespace asap { namespace pb {
 
 struct options_t {
 
+    options_t()
+        : K(10)
+        , rseed(42)
+        , verbose(true)
+        , NUM_THREADS(0)
+        , BLOCK_SIZE(1000)
+        , do_batch_adj(true)
+        , do_log1p(false)
+        , do_down_sample(true)
+        , save_aux_data(false)
+        , KNN_CELL(3)
+        , CELL_PER_SAMPLE(100)
+        , BATCH_ADJ_ITER(100)
+        , a0(1)
+        , b0(1)
+        , CELL_NORM(10000)
+    {
+    }
+
     Index K;
     std::size_t rseed;
     bool verbose;
@@ -23,6 +42,7 @@ struct options_t {
     std::size_t BATCH_ADJ_ITER;
     double a0;
     double b0;
+    double CELL_NORM;
 };
 
 template <typename Derived>

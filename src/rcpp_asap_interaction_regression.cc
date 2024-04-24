@@ -16,6 +16,7 @@
 //' @param do_product yi * yj for interaction (default: FALSE)
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
+//' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -48,6 +49,7 @@ asap_interaction_pmf_stat_mtx(
     const bool do_stdize_beta = true,
     const bool do_product = false,
     const std::size_t NUM_THREADS = 0,
+    const double CELL_NORM = 1e4,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
     const char ROW_WORD_SEP = '_',
@@ -166,6 +168,9 @@ asap_interaction_pmf_stat_mtx(
     }
 
     data.relocate_rows(row2pos);
+    data2.relocate_rows(row2pos);
+
+    const Scalar cell_norm = CELL_NORM;
 
     Index Nprocessed = 0;
     const Scalar one = 1.;
@@ -175,9 +180,14 @@ asap_interaction_pmf_stat_mtx(
 #endif
     for (Index i = 0; i < W_nm.outerSize(); ++i) {
         SpMat y_di = data2.read_reloc(i, i + 1);
+        normalize_columns_inplace(y_di);
+        y_di *= cell_norm;
+
         for (SpMat::InnerIterator jt(W_nm, i); jt; ++jt) {
             const Index j = jt.index();
             SpMat y_dj = data.read_reloc(j, j + 1);
+            normalize_columns_inplace(y_dj);
+            y_dj *= cell_norm;
 
             const Scalar w_ij = jt.value() * product_similarity(y_di, y_dj);
 
