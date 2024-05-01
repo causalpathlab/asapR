@@ -371,6 +371,7 @@ asap_interaction_random_bulk(
 
     if (!save_rand_proj) {
         Q_ke.resize(0, 0);
+        R_kd.resize(0, 0);
     }
 
     TLOG_(verbose, "Done");
@@ -380,5 +381,6 @@ asap_interaction_random_bulk(
                         _["size"] = size_s,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
-                        _["rand.proj"] = Q_ke.transpose());
+                        _["rand.proj"] = Q_ke.transpose(),
+                        _["rownames"] = row_names);
 }
