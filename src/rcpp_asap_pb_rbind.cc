@@ -41,27 +41,27 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk_rbind(const std::vector<std::string> mtx_files,
-                       const std::vector<std::string> row_files,
-                       const std::vector<std::string> col_files,
-                       const std::vector<std::string> idx_files,
-                       const std::size_t num_factors,
-                       const std::size_t rseed = 42,
-                       const bool verbose = true,
-                       const std::size_t NUM_THREADS = 1,
-                       const double CELL_NORM = 1e4,
-                       const std::size_t BLOCK_SIZE = 1000,
-                       const bool do_log1p = false,
-                       const bool do_down_sample = false,
-                       const bool save_rand_proj = false,
-                       const bool weighted_rand_proj = false,
-                       const std::size_t CELL_PER_SAMPLE = 100,
-                       const double a0 = 1e-8,
-                       const double b0 = 1,
-                       const std::size_t MAX_ROW_WORD = 2,
-                       const char ROW_WORD_SEP = '_',
-                       const std::size_t MAX_COL_WORD = 100,
-                       const char COL_WORD_SEP = '@')
+asap_random_bulk_rbind_mtx(const std::vector<std::string> mtx_files,
+                           const std::vector<std::string> row_files,
+                           const std::vector<std::string> col_files,
+                           const std::vector<std::string> idx_files,
+                           const std::size_t num_factors,
+                           const std::size_t rseed = 42,
+                           const bool verbose = true,
+                           const std::size_t NUM_THREADS = 1,
+                           const double CELL_NORM = 1e4,
+                           const std::size_t BLOCK_SIZE = 1000,
+                           const bool do_log1p = false,
+                           const bool do_down_sample = false,
+                           const bool save_rand_proj = false,
+                           const bool weighted_rand_proj = false,
+                           const std::size_t CELL_PER_SAMPLE = 100,
+                           const double a0 = 1e-8,
+                           const double b0 = 1,
+                           const std::size_t MAX_ROW_WORD = 2,
+                           const char ROW_WORD_SEP = '_',
+                           const std::size_t MAX_COL_WORD = 100,
+                           const char COL_WORD_SEP = '@')
 {
 
     const std::size_t nthreads =

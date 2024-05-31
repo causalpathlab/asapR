@@ -1,3 +1,5 @@
+#include "svd.hh"
+
 #ifndef RCPP_MODEL_FACTORIZATION_HH_
 #define RCPP_MODEL_FACTORIZATION_HH_
 
@@ -11,6 +13,7 @@ struct factorization_t {
     using Scalar = typename Type::Scalar;
     using RowVec = typename Eigen::internal::plain_row_type<Type>::type;
 
+    using RNG_TYPE = RNG;
     using tag = factorization_tag;
 
     explicit factorization_t(ROW &_row_dk, COL &_col_nk, const RSEED &rseed)
@@ -162,18 +165,10 @@ log_likelihood(const factorization_tag,
 }
 
 template <typename MODEL, typename Derived>
-void
-initialize_stat(const factorization_tag,
-                MODEL &fact,
-                const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_SVD &do_svd)
-{
-    if (do_svd.val) {
-        _initialize_stat_svd(factorization_tag(), fact, Y_dn);
-    } else {
-        _initialize_stat_random(factorization_tag(), fact, Y_dn);
-    }
-}
+void initialize_stat(const factorization_tag,
+                     MODEL &fact,
+                     const Eigen::MatrixBase<Derived> &Y_dn,
+                     const DO_SVD &do_svd);
 
 template <typename MODEL, typename Derived>
 void
@@ -189,16 +184,13 @@ _initialize_stat_random(const factorization_tag,
     const Index N = fact.N;
     const Index K = fact.K;
 
-    {
-        Mat a = fact.beta_dk.sample();
-        Mat b = Mat::Ones(D, K);
-        fact.beta_dk.update(a, b);
-    }
-    {
-        Mat a = fact.theta_nk.sample();
-        Mat b = Mat::Ones(N, K);
-        fact.theta_nk.update(a, b);
-    }
+    Mat temp_dk = fact.beta_dk.sample();
+    fact.beta_dk.update(temp_dk, Mat::Ones(D, K));
+    Mat temp_nk = fact.theta_nk.sample();
+    fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
+
+    fact.beta_dk.calibrate();
+    fact.theta_nk.calibrate();
 }
 
 template <typename MODEL, typename Derived>
@@ -224,10 +216,8 @@ _initialize_stat_svd(const factorization_tag,
                .unaryExpr(clamp_);
 
     const std::size_t lu_iter = 5;
-    RandomizedSVD<Derived> svd(yy, lu_iter);
-
-    // Eigen::BDCSVD<T> svd;
-    // svd.compute(yy, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    RandomizedSVD<Derived> svd(K, lu_iter);
+    svd.compute(yy);
 
     {
         T a = svd.matrixU().unaryExpr(at_least_zero);
@@ -238,6 +228,23 @@ _initialize_stat_svd(const factorization_tag,
         T a = svd.matrixV().unaryExpr(at_least_zero);
         T b = T::Ones(N, K) / static_cast<Scalar>(N);
         fact.theta_nk.update(a, b);
+    }
+
+    fact.beta_dk.calibrate();
+    fact.theta_nk.calibrate();
+}
+
+template <typename MODEL, typename Derived>
+void
+initialize_stat(const factorization_tag,
+                MODEL &fact,
+                const Eigen::MatrixBase<Derived> &Y_dn,
+                const DO_SVD &do_svd)
+{
+    if (do_svd.val) {
+        _initialize_stat_svd(factorization_tag(), fact, Y_dn);
+    } else {
+        _initialize_stat_random(factorization_tag(), fact, Y_dn);
     }
 }
 
@@ -310,12 +317,6 @@ add_stat_by_row(const factorization_tag,
     ///////////////////////////
     // Accumulate statistics //
     ///////////////////////////
-
-    // Update column topic factors, theta(j, k)
-    fact.theta_nk.add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
-                                                   fact.row_aux_dk),
-                      ColVec::Ones(fact.N) *
-                          fact.beta_dk.mean().colwise().sum());
 
     fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
                       Y_dn.rowwise().sum().array())

@@ -15,7 +15,6 @@ asap_fit_pmf_cbind(
   b0 = 1,
   do_log1p = FALSE,
   rseed = 1337L,
-  svd_init = FALSE,
   EPS = 1e-08,
   NUM_THREADS = 0L
 )
@@ -38,8 +37,6 @@ asap_fit_pmf_cbind(
 \item{do_log1p}{do log(1+y) transformation}
 
 \item{rseed}{random seed (default: 1337)}
-
-\item{svd_init}{initialize by SVD (default: FALSE)}
 
 \item{EPS}{(default: 1e-8)}
 

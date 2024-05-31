@@ -18,7 +18,6 @@
 //' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
-//' @param svd_init initialize by SVD (default: FALSE)
 //' @param EPS (default: 1e-8)
 //'
 //' @return a list that contains:
@@ -44,7 +43,6 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const double b0 = 1,
                    const bool do_log1p = false,
                    const std::size_t rseed = 1337,
-                   const bool svd_init = false,
                    const double EPS = 1e-8,
                    const std::size_t NUM_THREADS = 0)
 {
@@ -98,6 +96,12 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     ////////////////////////////////////////
 
     gamma_t beta_dk(D, K, a0, b0, rng);
+
+    {
+        Mat temp_dk = beta_dk.sample();
+        beta_dk.update(temp_dk, Mat::Ones(D, K));
+        beta_dk.calibrate();
+    }
 
     std::vector<std::shared_ptr<gamma_t>> theta_nk_ptr_vec;
     for (const Eigen::MatrixXf &y : y_dn_vec) {
@@ -159,10 +163,9 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
             theta_nk.reset_stat_only();
             add_stat_by_col(model_dn, y_dn, STOCH(tt < burnin), STD(true));
             theta_nk.calibrate();
+
             // b. Update beta factors based on the new theta
-            theta_nk.reset_stat_only();
             add_stat_by_row(model_dn, y_dn, STOCH(tt < burnin), STD(false));
-            theta_nk.calibrate();
         }
 
         beta_dk.calibrate();

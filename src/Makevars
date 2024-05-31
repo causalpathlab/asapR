@@ -5,7 +5,7 @@
 ## With R 3.1.0 or later, you can uncomment the following line to tell R to 
 ## enable compilation with C++11 (or even C++14) where available
 
-CXX_STD = CXX14
+CXX_STD = CXX17
 WARN = -Wno-ignored-attributes -Wno-unused-function -Wno-unused-const-variable -Wno-pointer-arith -Wno-unused-result -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-variable
 
 ## DEBUG = -DDEBUG -DEIGEN_DEBUG

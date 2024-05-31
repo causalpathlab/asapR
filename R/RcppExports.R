@@ -347,8 +347,8 @@ asap_random_bulk_cbind_mtx <- function(mtx_files, row_files, col_files, idx_file
 #' \item `colnames` column (cell) names
 #' }
 #'
-asap_random_bulk_rbind <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_random_bulk_rbind', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_random_bulk_rbind_mtx <- function(mtx_files, row_files, col_files, idx_files, num_factors, rseed = 42L, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, do_log1p = FALSE, do_down_sample = FALSE, save_rand_proj = FALSE, weighted_rand_proj = FALSE, CELL_PER_SAMPLE = 100L, a0 = 1e-8, b0 = 1, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_random_bulk_rbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, num_factors, rseed, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, do_log1p, do_down_sample, save_rand_proj, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
@@ -397,7 +397,6 @@ asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: FALSE)
 #' @param EPS (default: 1e-8)
 #'
 #' @return a list that contains:
@@ -412,8 +411,8 @@ asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_l
 #' }
 #'
 #'
-asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
@@ -430,7 +429,6 @@ asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' @param do_scale scale each column by standard deviation (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param rseed random seed (default: 1337)
-#' @param svd_init initialize by SVD (default: FALSE)
 #' @param EPS (default: 1e-8)
 #'
 #' @return a list that contains:
@@ -445,8 +443,12 @@ asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' }
 #'
 #'
-asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
+}
+
+asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_seq_shared', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

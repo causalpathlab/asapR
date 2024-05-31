@@ -1,9 +1,4 @@
 #include "rcpp_asap.hh"
-#include "rcpp_util.hh"
-#include "rcpp_asap_pmf_train.hh"
-
-using RNG = dqrng::xoshiro256plus;
-using model_t = asap_pmf_model_t<RNG>;
 
 //' A quick PMF estimation based on alternating Poisson regressions
 //'
@@ -56,64 +51,77 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     Eigen::setNbThreads(nthreads);
     TLOG_(verbose, Eigen::nbThreads() << " threads");
 
+    using RNG = dqrng::xoshiro256plus;
+    using gamma_t = gamma_param_t<Eigen::MatrixXf, RNG>;
+    using model_t = factorization_t<gamma_t, gamma_t, RNG>;
+
+    exp_op<Mat> exp;
     log1p_op<Mat> log1p;
     Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
     TLOG_(verbose, "Data: " << Y_dn.rows() << " x " << Y_dn.cols());
 
-    model_t model(model_t::ROW(Y_dn.rows()),
-                  model_t::COL(Y_dn.cols()),
-                  model_t::FACT(maxK),
-                  model_t::RSEED(rseed),
-                  model_t::A0(a0),
-                  model_t::B0(b0));
+    ///////////////////////
+    // Create parameters //
+    ///////////////////////
+
+    const std::size_t D = Y_dn.rows(), N = Y_dn.cols();
+    const std::size_t K = std::min(std::min(maxK, N), D);
+    RNG rng(rseed);
+
+    gamma_t beta_dk(D, K, a0, b0, rng);
+    gamma_t theta_nk(N, K, a0, b0, rng);
+
+    model_t model_dn(beta_dk, theta_nk, RSEED(rseed));
+
+    Scalar llik = 0;
+    initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
+    log_likelihood(model_dn, Y_dn);
+    TLOG_(verbose, "Finished initialization: " << llik);
 
     std::vector<Scalar> llik_trace;
-    model_t::NULL_DATA null_data;
+    llik_trace.reserve(max_iter + burnin + 1);
+    llik_trace.emplace_back(llik);
 
-    train_pmf_options_t options;
-    options.max_iter = max_iter;
-    options.burnin = burnin;
-    options.eps = EPS;
-    options.verbose = verbose;
-    options.svd_init = svd_init;
+    for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
+        theta_nk.reset_stat_only();
+        add_stat_by_col(model_dn, Y_dn, STOCH(tt < burnin), STD(true));
+        theta_nk.calibrate();
 
-    SpMat A_dd, A_nn;
+        beta_dk.reset_stat_only();
+        add_stat_by_row(model_dn, Y_dn, STOCH(tt < burnin), STD(false));
+        beta_dk.calibrate();
 
-    if (r_A_dd_list.isNotNull()) {
-        rcpp::util::build_sparse_mat(Rcpp::List(r_A_dd_list),
-                                     Y_dn.rows(),
-                                     Y_dn.rows(),
-                                     A_dd);
-        TLOG_(verbose, "Row Network: " << A_dd.rows() << " x " << A_dd.cols());
+        llik = log_likelihood(model_dn, Y_dn);
+
+        const Scalar diff =
+            (llik_trace.size() > 0 ?
+                 (std::abs(llik - llik_trace.at(llik_trace.size() - 1)) /
+                  std::abs(llik + EPS)) :
+                 llik);
+
+        TLOG_(verbose, "PMF [ " << tt << " ] " << llik << ", " << diff);
+
+        llik_trace.emplace_back(llik);
+
+        if (tt > burnin && diff < EPS) {
+            TLOG("Converged at " << tt << ", " << diff);
+            break;
+        }
+
+        try {
+            Rcpp::checkUserInterrupt();
+        } catch (Rcpp::internal::InterruptedException e) {
+            WLOG("Interruption by the user at t=" << tt);
+            break;
+        }
     }
-
-    if (r_A_nn_list.isNotNull()) {
-        rcpp::util::build_sparse_mat<SpMat>(Rcpp::List(r_A_nn_list),
-                                            Y_dn.cols(),
-                                            Y_dn.cols(),
-                                            A_nn);
-        TLOG_(verbose, "Col Network: " << A_nn.rows() << " x " << A_nn.cols());
-    }
-
-    if (A_dd.nonZeros() > 0 && A_nn.nonZeros() > 0) {
-        train_pmf(model, Y_dn, A_dd, A_nn, llik_trace, options);
-    } else if (A_dd.nonZeros() > 0 && A_nn.nonZeros() == 0) {
-        train_pmf(model, Y_dn, A_dd, null_data, llik_trace, options);
-    } else if (A_dd.nonZeros() == 0 && A_nn.nonZeros() > 0) {
-        train_pmf(model, Y_dn, null_data, A_nn, llik_trace, options);
-    } else {
-        train_pmf(model, Y_dn, null_data, null_data, llik_trace, options);
-    }
-
-    // Mat std_log_x, R_nk;
-    // std::tie(std_log_x, R_nk) = model.log_topic_correlation(Y_dn);
 
     return Rcpp::List::create(Rcpp::_["log.likelihood"] = llik_trace,
-                              Rcpp::_["beta"] = model.beta_dk.mean(),
-                              Rcpp::_["log.beta"] = model.beta_dk.log_mean(),
-                              Rcpp::_["log.beta.sd"] = model.beta_dk.log_sd(),
-                              Rcpp::_["theta"] = model.theta_nk.mean(),
-                              Rcpp::_["log.theta.sd"] = model.theta_nk.log_sd(),
-                              Rcpp::_["log.theta"] = model.theta_nk.log_mean());
+                              Rcpp::_["beta"] = beta_dk.mean(),
+                              Rcpp::_["log.beta"] = beta_dk.log_mean(),
+                              Rcpp::_["log.beta.sd"] = beta_dk.log_sd(),
+                              Rcpp::_["theta"] = theta_nk.mean(),
+                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
+                              Rcpp::_["log.theta"] = theta_nk.log_mean());
 }

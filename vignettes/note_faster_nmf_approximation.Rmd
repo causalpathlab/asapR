@@ -80,6 +80,8 @@ $$L
 library(asapR)
 library(pheatmap)
 
+devtools::load_all("~/work/asapR/")
+
 set.seed(1331)
 d <- 1000
 n <- 500
@@ -91,7 +93,7 @@ Y <- apply(uu %*% t(vv), 2, scale) + .rnorm(d, n)
 Y[Y < 0] <- 0
 
 Y <- stretch_matrix_columns(Y)
-out <- asap_fit_nmf(Y, 5)
+out <- asap_fit_pmf(Y, 5)
 ```
 
 ```{r fig.width=5, fig.height=5}

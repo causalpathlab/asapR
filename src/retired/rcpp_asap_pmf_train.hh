@@ -1,5 +1,3 @@
-#include "mmutil.hh"
-
 #ifndef ASAP_PMF_TRAIN_HH_
 #define ASAP_PMF_TRAIN_HH_
 

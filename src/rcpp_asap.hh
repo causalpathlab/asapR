@@ -42,9 +42,11 @@ using namespace mmutil::bgzf;
 #include "rcpp_util.hh"
 
 #include "gamma_parameter.hh"
+#include "rcpp_model_common.hh"
+#include "rcpp_model_factorization.hh"
+
 #include "clustering.hh"
 #include "dirichlet_prior.hh"
 #include "poisson_cluster_model.hh"
-#include "rcpp_asap_pmf_model.hh"
 
 #endif
