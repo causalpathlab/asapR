@@ -447,8 +447,23 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
     .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
 }
 
-asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_seq_shared', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+#' 
+#'
+#' @param y_dn_vec a list of non-negative data matrices (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param EPS (default: 1e-8)
+#' 
+asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_seq_shared', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
