@@ -280,16 +280,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_fit_pmf
-Rcpp::List asap_fit_pmf(const Eigen::MatrixXf Y_, const std::size_t maxK, const std::size_t max_iter, const Rcpp::Nullable<Rcpp::List> r_A_dd_list, const Rcpp::Nullable<Rcpp::List> r_A_nn_list, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
-RcppExport SEXP _asapR_asap_fit_pmf(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP r_A_dd_listSEXP, SEXP r_A_nn_listSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
+Rcpp::List asap_fit_pmf(const Eigen::MatrixXf Y_, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_pmf(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_(Y_SEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::List> >::type r_A_dd_list(r_A_dd_listSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::List> >::type r_A_nn_list(r_A_nn_listSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
@@ -299,7 +297,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type svd_init(svd_initSEXP);
     Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_pmf(Y_, maxK, max_iter, r_A_dd_list, r_A_nn_list, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
+    rcpp_result_gen = Rcpp::wrap(asap_fit_pmf(Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -363,6 +361,28 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     rcpp_result_gen = Rcpp::wrap(asap_fit_pmf_seq_shared(y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS));
+    return rcpp_result_gen;
+END_RCPP
+}
+// asap_fit_pmf_btree
+Rcpp::List asap_fit_pmf_btree(const Eigen::MatrixXf Y_, const std::size_t maxK, const std::size_t max_iter, const std::size_t burnin, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const double EPS, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_pmf_btree(SEXP Y_SEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP burninSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP EPSSEXP, SEXP NUM_THREADSSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_(Y_SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type maxK(maxKSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type burnin(burninSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
+    Rcpp::traits::input_parameter< const bool >::type svd_init(svd_initSEXP);
+    Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_fit_pmf_btree(Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -767,6 +787,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pbt_dependency_matrix
+Eigen::MatrixXf pbt_dependency_matrix(const std::size_t depth);
+RcppExport SEXP _asapR_pbt_dependency_matrix(SEXP depthSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const std::size_t >::type depth(depthSEXP);
+    rcpp_result_gen = Rcpp::wrap(pbt_dependency_matrix(depth));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_bbknn", (DL_FUNC) &_asapR_asap_bbknn, 6},
@@ -778,10 +809,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_random_bulk_cbind", (DL_FUNC) &_asapR_asap_random_bulk_cbind, 18},
     {"_asapR_asap_random_bulk_cbind_mtx", (DL_FUNC) &_asapR_asap_random_bulk_cbind_mtx, 26},
     {"_asapR_asap_random_bulk_rbind_mtx", (DL_FUNC) &_asapR_asap_random_bulk_rbind_mtx, 21},
-    {"_asapR_asap_fit_pmf", (DL_FUNC) &_asapR_asap_fit_pmf, 14},
+    {"_asapR_asap_fit_pmf", (DL_FUNC) &_asapR_asap_fit_pmf, 12},
     {"_asapR_asap_fit_pmf_cbind", (DL_FUNC) &_asapR_asap_fit_pmf_cbind, 11},
     {"_asapR_asap_fit_pmf_rbind", (DL_FUNC) &_asapR_asap_fit_pmf_rbind, 11},
     {"_asapR_asap_fit_pmf_seq_shared", (DL_FUNC) &_asapR_asap_fit_pmf_seq_shared, 11},
+    {"_asapR_asap_fit_pmf_btree", (DL_FUNC) &_asapR_asap_fit_pmf_btree, 12},
     {"_asapR_asap_topic_pmf", (DL_FUNC) &_asapR_asap_topic_pmf, 9},
     {"_asapR_asap_pmf_stat", (DL_FUNC) &_asapR_asap_pmf_stat, 10},
     {"_asapR_asap_pmf_stat_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_mtx, 17},
@@ -806,6 +838,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_mmutil_read_rows_columns", (DL_FUNC) &_asapR_mmutil_read_rows_columns, 5},
     {"_asapR_mmutil_simulate_poisson_mixture", (DL_FUNC) &_asapR_mmutil_simulate_poisson_mixture, 9},
     {"_asapR_mmutil_simulate_poisson", (DL_FUNC) &_asapR_mmutil_simulate_poisson, 7},
+    {"_asapR_pbt_dependency_matrix", (DL_FUNC) &_asapR_pbt_dependency_matrix, 1},
     {NULL, NULL, 0}
 };
 

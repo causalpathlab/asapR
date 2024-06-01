@@ -379,8 +379,8 @@ asap_random_bulk_rbind_mtx <- function(mtx_files, row_files, col_files, idx_file
 #' }
 #'
 #'
-asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, r_A_dd_list = NULL, r_A_nn_list = NULL, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf', PACKAGE = 'asapR', Y_, maxK, max_iter, r_A_dd_list, r_A_nn_list, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
@@ -464,6 +464,39 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, ver
 #' 
 asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, NUM_THREADS = 0L) {
     .Call('_asapR_asap_fit_pmf_seq_shared', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
+}
+
+#' A quick PMF estimation based on alternating Poisson regressions
+#' with tree-structured priors
+#'
+#' @param Y_ non-negative data matrix (gene x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param burnin number of initiation steps (default: 50)
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param do_scale scale each column by standard deviation (default: TRUE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log dictionary (gene x factor)
+#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
+#' }
+#'
+#'
+asap_fit_pmf_btree <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_btree', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
@@ -916,5 +949,9 @@ mmutil_simulate_poisson_mixture <- function(r_mu_list, Ncell, output, dir_alpha 
 #'
 mmutil_simulate_poisson <- function(mu, rho, output, r_indv = NULL, rseed = 42L, MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
     .Call('_asapR_mmutil_simulate_poisson', PACKAGE = 'asapR', mu, rho, output, r_indv, rseed, MAX_COL_WORD, COL_WORD_SEP)
+}
+
+pbt_dependency_matrix <- function(depth) {
+    .Call('_asapR_pbt_dependency_matrix', PACKAGE = 'asapR', depth)
 }
 

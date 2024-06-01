@@ -33,8 +33,6 @@ Rcpp::List
 asap_fit_pmf(const Eigen::MatrixXf Y_,
              const std::size_t maxK,
              const std::size_t max_iter = 100,
-             const Rcpp::Nullable<Rcpp::List> r_A_dd_list = R_NilValue,
-             const Rcpp::Nullable<Rcpp::List> r_A_nn_list = R_NilValue,
              const std::size_t burnin = 0,
              const bool verbose = true,
              const double a0 = 1,
