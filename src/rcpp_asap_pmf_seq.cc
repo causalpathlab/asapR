@@ -1,6 +1,4 @@
-#include "mmutil.hh"
-#include "rcpp_asap.hh"
-#include "gamma_parameter.hh"
+#include "rcpp_asap_pmf_seq.hh"
 
 // [[Rcpp::export]]
 Rcpp::List
