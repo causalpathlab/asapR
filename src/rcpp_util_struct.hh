@@ -11,6 +11,8 @@ std::size_t pbt_num_depth_to_nodes(const std::size_t depth);
 
 std::size_t pbt_num_depth_to_leaves(const std::size_t depth);
 
+SpMat pbt_dep_adj(const std::size_t depth);
+
 }} // end of namespace
 
 #endif

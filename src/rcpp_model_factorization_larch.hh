@@ -1,10 +1,10 @@
-#ifndef RCPP_MODEL_FACTORIZATION_HH_
-#define RCPP_MODEL_FACTORIZATION_HH_
+#ifndef RCPP_MODEL_FACTORIZATION_LARCH_HH_
+#define RCPP_MODEL_FACTORIZATION_LARCH_HH_
 
-struct factorization_tag { };
+struct factorization_larch_tag { };
 
 template <typename ROW, typename COL, typename RNG>
-struct factorization_t {
+struct factorization_larch_t {
 
     using Type = typename ROW::Type;
     using Index = typename Type::Index;
@@ -12,42 +12,54 @@ struct factorization_t {
     using RowVec = typename Eigen::internal::plain_row_type<Type>::type;
 
     using RNG_TYPE = RNG;
-    using tag = factorization_tag;
+    using tag = factorization_larch_tag;
 
-    explicit factorization_t(ROW &_row_dk, COL &_col_nk, const RSEED &rseed)
-        : beta_dk(_row_dk)
+    template <typename Derived>
+    explicit factorization_larch_t(ROW &_row_dl,
+                                   COL &_col_nk,
+                                   Eigen::MatrixBase<Derived> &_A_lk,
+                                   const RSEED &rseed)
+        : beta_dl(_row_dl)
         , theta_nk(_col_nk)
-        , D(beta_dk.rows())
+        , A_lk(_A_lk)
+        , D(beta_dl.rows())
         , N(theta_nk.rows())
-        , K(beta_dk.cols())
-        , logRow_aux_dk(D, K)
-        , row_aux_dk(D, K)
+        , L(beta_dl.cols())
+        , K(theta_nk.cols())
+        , logRow_aux_dl(D, L)
+        , row_aux_dl(D, L)
         , logCol_aux_nk(N, K)
         , col_aux_nk(N, K)
-        , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
+        , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , tempK(K)
         , rng(rseed.val)
         , sampler(rng, K)
     {
-        ASSERT(theta_nk.cols() == beta_dk.cols(),
-               "row and col factors must have the same # columns");
+        ASSERT(theta_nk.cols() == A_lk.cols(),
+               "col factors and A_lk must have the same number of columns");
+        ASSERT(beta_dl.cols() == A_lk.rows(),
+               "row factors and A_lk must be compatible");
+
         randomize_auxiliaries();
     }
 
-    ROW &beta_dk;
+    ROW &beta_dl;
     COL &theta_nk;
+
+    Mat A_lk;
 
     const Index D;
     const Index N;
+    const Index L;
     const Index K;
 
-    Type logRow_aux_dk;
-    Type row_aux_dk;
+    Type logRow_aux_dl;
+    Type row_aux_dl;
     Type logCol_aux_nk;
     Type col_aux_nk;
 
-    stdizer_t<Type> std_log_row_aux_dk;
+    stdizer_t<Type> std_log_row_aux_dl;
     stdizer_t<Type> std_log_col_aux_nk;
 
 private:
@@ -94,9 +106,9 @@ private:
 public:
     void _row_factor_aux(const bool stoch, const bool do_stdize)
     {
-        _normalize_aux_cols(std_log_row_aux_dk,
-                            logRow_aux_dk,
-                            row_aux_dk,
+        _normalize_aux_cols(std_log_row_aux_dl,
+                            logRow_aux_dl,
+                            row_aux_dl,
                             stoch,
                             do_stdize);
     }
@@ -113,9 +125,9 @@ public:
 private:
     void randomize_auxiliaries()
     {
-        logRow_aux_dk = Type::Random(D, K);
+        logRow_aux_dl = Type::Random(D, L);
         for (Index ii = 0; ii < D; ++ii) {
-            row_aux_dk.row(ii) = softmax.apply_row(logRow_aux_dk.row(ii));
+            row_aux_dl.row(ii) = softmax.apply_row(logRow_aux_dl.row(ii));
         }
 
         logCol_aux_nk = Type::Random(N, K);
@@ -131,7 +143,7 @@ private:
 
 template <typename MODEL, typename Derived>
 typename MODEL::Scalar
-log_likelihood(const factorization_tag,
+log_likelihood(const factorization_larch_tag,
                MODEL &fact,
                const Eigen::MatrixBase<Derived> &Y_dn)
 
@@ -142,19 +154,19 @@ log_likelihood(const factorization_tag,
     typename Mat::Scalar llik = 0;
     typename Mat::Scalar denom = N * D;
 
-    const auto &row_aux_dk = fact.row_aux_dk;
+    const auto &row_aux_dl = fact.row_aux_dl;
     const auto &col_aux_nk = fact.col_aux_nk;
-    const auto &beta_dk = fact.beta_dk;
+    const auto &beta_dl = fact.beta_dl;
     const auto &theta_nk = fact.theta_nk;
 
     llik +=
-        (row_aux_dk.cwiseProduct(beta_dk.log_mean()).transpose() * Y_dn).sum() /
+        (row_aux_dl.cwiseProduct(beta_dl.log_mean()).transpose() * Y_dn).sum() /
         denom;
 
     llik += (Y_dn * col_aux_nk.cwiseProduct(theta_nk.log_mean())).sum() / denom;
 
     llik -=
-        ((row_aux_dk.cwiseProduct(beta_dk.mean()).colwise().sum()) *
+        ((row_aux_dl.cwiseProduct(beta_dl.mean()).colwise().sum()) *
          (col_aux_nk.cwiseProduct(theta_nk.mean()).transpose().rowwise().sum()))
             .sum() /
         denom;
@@ -163,14 +175,14 @@ log_likelihood(const factorization_tag,
 }
 
 template <typename MODEL, typename Derived>
-void initialize_stat(const factorization_tag,
+void initialize_stat(const factorization_larch_tag,
                      MODEL &fact,
                      const Eigen::MatrixBase<Derived> &Y_dn,
                      const DO_SVD &do_svd);
 
 template <typename MODEL, typename Derived>
 void
-_initialize_stat_random(const factorization_tag,
+_initialize_stat_random(const factorization_larch_tag,
                         MODEL &fact,
                         const Eigen::MatrixBase<Derived> &Y_dn)
 {
@@ -182,18 +194,18 @@ _initialize_stat_random(const factorization_tag,
     const Index N = fact.N;
     const Index K = fact.K;
 
-    Mat temp_dk = fact.beta_dk.sample();
-    fact.beta_dk.update(temp_dk, Mat::Ones(D, K));
+    Mat temp_dl = fact.beta_dl.sample();
+    fact.beta_dl.update(temp_dl, Mat::Ones(D, L));
     Mat temp_nk = fact.theta_nk.sample();
     fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
 
-    fact.beta_dk.calibrate();
+    fact.beta_dl.calibrate();
     fact.theta_nk.calibrate();
 }
 
 template <typename MODEL, typename Derived>
 void
-_initialize_stat_svd(const factorization_tag,
+_initialize_stat_svd(const factorization_larch_tag,
                      MODEL &fact,
                      const Eigen::MatrixBase<Derived> &Y_dn)
 {
@@ -219,8 +231,8 @@ _initialize_stat_svd(const factorization_tag,
 
     {
         T a = svd.matrixU().unaryExpr(at_least_zero);
-        T b = T::Ones(D, K) / static_cast<Scalar>(D);
-        fact.beta_dk.update(a, b);
+        T b = T::Ones(D, L) / static_cast<Scalar>(D);
+        fact.beta_dl.update(a, b);
     }
     {
         T a = svd.matrixV().unaryExpr(at_least_zero);
@@ -228,27 +240,27 @@ _initialize_stat_svd(const factorization_tag,
         fact.theta_nk.update(a, b);
     }
 
-    fact.beta_dk.calibrate();
+    fact.beta_dl.calibrate();
     fact.theta_nk.calibrate();
 }
 
 template <typename MODEL, typename Derived>
 void
-initialize_stat(const factorization_tag,
+initialize_stat(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_SVD &do_svd)
 {
     if (do_svd.val) {
-        _initialize_stat_svd(factorization_tag(), fact, Y_dn);
+        _initialize_stat_svd(factorization_larch_tag(), fact, Y_dn);
     } else {
-        _initialize_stat_random(factorization_tag(), fact, Y_dn);
+        _initialize_stat_random(factorization_larch_tag(), fact, Y_dn);
     }
 }
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_col(const factorization_tag,
+add_stat_by_col(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STOCH &stoch_,
@@ -266,7 +278,7 @@ add_stat_by_col(const factorization_tag,
     // Estimation of auxiliary variables (j,k)  //
     //////////////////////////////////////////////
 
-    fact.logCol_aux_nk = Y_dn.transpose() * fact.beta_dk.log_mean();
+    fact.logCol_aux_nk = Y_dn.transpose() * fact.beta_dl.log_mean();
     fact.logCol_aux_nk.array().colwise() /=
         Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
     fact.logCol_aux_nk += fact.theta_nk.log_mean();
@@ -281,12 +293,12 @@ add_stat_by_col(const factorization_tag,
                        Y_dn.colwise().sum().transpose().array())
                           .matrix(),
                       ColVec::Ones(fact.N) *
-                          fact.beta_dk.mean().colwise().sum());
+                          fact.beta_dl.mean().colwise().sum());
 }
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_row(const factorization_tag,
+add_stat_by_row(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STOCH &stoch_,
@@ -305,10 +317,10 @@ add_stat_by_row(const factorization_tag,
     // Estimation of auxiliary variables (i,k)  //
     //////////////////////////////////////////////
 
-    fact.logRow_aux_dk = Y_dn * fact.theta_nk.log_mean();
-    fact.logRow_aux_dk.array().colwise() /=
+    fact.logRow_aux_dl = Y_dn * fact.theta_nk.log_mean();
+    fact.logRow_aux_dl.array().colwise() /=
         Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
-    fact.logRow_aux_dk += fact.beta_dk.log_mean();
+    fact.logRow_aux_dl += fact.beta_dl.log_mean();
 
     fact._row_factor_aux(stoch, do_stdize);
 
@@ -316,7 +328,7 @@ add_stat_by_row(const factorization_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
+    fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
                       Y_dn.rowwise().sum().array())
                          .matrix(),
                      ColVec::Ones(fact.D) *

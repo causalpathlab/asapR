@@ -5,13 +5,19 @@
 Eigen::MatrixXf
 pbt_dependency_matrix(const std::size_t depth)
 {
-    using namespace rcpp::util;
-    ASSERT(depth > 0, "need depth >= 1");
 
     if (depth < 2) {
         return Eigen::MatrixXf::Ones(1, 1);
     }
 
+    return rcpp::util::pbt_dep_adj(depth);
+}
+
+namespace rcpp { namespace util {
+
+SpMat
+pbt_dep_adj(const std::size_t depth)
+{
     const std::size_t K = pbt_num_depth_to_leaves(depth);
     const std::size_t N = pbt_num_depth_to_nodes(depth);
 
@@ -41,8 +47,6 @@ pbt_dependency_matrix(const std::size_t depth)
 
     return build_eigen_sparse(triplets, N, K);
 }
-
-namespace rcpp { namespace util {
 
 std::size_t
 pbt_num_depth_to_leaves(const std::size_t depth)

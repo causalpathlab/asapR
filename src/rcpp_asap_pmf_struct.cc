@@ -31,7 +31,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_fit_pmf_btree(const Eigen::MatrixXf Y_,
+asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                    const std::size_t maxK,
                    const std::size_t max_iter = 100,
                    const std::size_t burnin = 0,
