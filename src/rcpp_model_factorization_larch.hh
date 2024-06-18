@@ -329,7 +329,7 @@ add_stat_by_col(const factorization_larch_tag,
 
     fact.logRow_aux_dl += fact.beta_dl.log_mean();
 
-    fact._row_factor_aux(false, false);
+    fact._row_factor_aux(stoch, do_stdize);
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (j,k)  //
