@@ -43,7 +43,7 @@ struct NumFact : check_positive_t<std::size_t> {
 
 template <typename MODEL, typename Derived>
 typename MODEL::Scalar
-log_likelihood(MODEL &model, const Eigen::MatrixBase<Derived> &Y_dn)
+log_likelihood(const MODEL &model, const Eigen::MatrixBase<Derived> &Y_dn)
 {
     return log_likelihood(typename MODEL::tag(), model, Y_dn);
 }

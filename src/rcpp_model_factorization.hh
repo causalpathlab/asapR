@@ -26,7 +26,6 @@ struct factorization_t {
         , col_aux_nk(N, K)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
-        , tempK(K)
         , rng(rseed.val)
         , sampler(rng, K)
     {
@@ -51,7 +50,6 @@ struct factorization_t {
     stdizer_t<Type> std_log_col_aux_nk;
 
 private:
-    RowVec tempK;
     RNG rng;
     rowvec_sampler_t<Type, RNG> sampler;
     softmax_op_t<Type> softmax;
@@ -72,8 +70,7 @@ private:
         }
 
         for (Index ii = 0; ii < aux.rows(); ++ii) {
-            tempK = log_aux.row(ii);
-            log_aux.row(ii) = softmax.log_row(tempK);
+            log_aux.row(ii) = softmax.log_row(log_aux.row(ii));
         }
 
         //////////////////////////////////////
@@ -132,7 +129,7 @@ private:
 template <typename MODEL, typename Derived>
 typename MODEL::Scalar
 log_likelihood(const factorization_tag,
-               MODEL &fact,
+               const MODEL &fact,
                const Eigen::MatrixBase<Derived> &Y_dn)
 
 {

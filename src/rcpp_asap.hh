@@ -1,7 +1,7 @@
 #ifndef _RCPP_ASAP_HH
 #define _RCPP_ASAP_HH
 
-// [[Rcpp::plugins(cpp14)]]
+// [[Rcpp::plugins(cpp17)]]
 #include <Rcpp.h>
 
 // [[Rcpp::depends(RcppEigen)]]

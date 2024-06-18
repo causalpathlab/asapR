@@ -470,7 +470,7 @@ asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L
 #' with tree-structured priors
 #'
 #' @param Y_ non-negative data matrix (gene x sample)
-#' @param maxK maximum number of factors
+#' @param max_depth maximum depth of a perfect binary tree
 #' @param max_iter max number of optimization steps
 #' @param min_iter min number of optimization steps
 #' @param burnin number of initiation steps (default: 50)
@@ -495,8 +495,8 @@ asap_fit_pmf_seq_shared <- function(y_dn_vec, maxK, max_iter = 100L, burnin = 0L
 #' }
 #'
 #'
-asap_fit_pmf_btree <- function(Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_btree', PACKAGE = 'asapR', Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_larch', PACKAGE = 'asapR', Y_, max_depth, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics
