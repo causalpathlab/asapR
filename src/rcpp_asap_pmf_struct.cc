@@ -7,7 +7,6 @@
 //' @param Y_ non-negative data matrix (gene x sample)
 //' @param max_depth maximum depth of a perfect binary tree
 //' @param max_iter max number of optimization steps
-//' @param min_iter min number of optimization steps
 //' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
@@ -35,7 +34,6 @@ Rcpp::List
 asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                    const std::size_t max_depth,
                    const std::size_t max_iter = 100,
-                   const std::size_t burnin = 0,
                    const bool verbose = true,
                    const double a0 = 1,
                    const double b0 = 1,
@@ -67,8 +65,8 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
 
     const std::size_t D = Y_dn.rows(), N = Y_dn.cols();
 
-    ASSERT_RETL(rcpp::util::pbt_num_depth_to_leaves(max_depth) <= N,
-                "The number of leaf nodes exceed the number of columns");
+    ASSERT_RETL(rcpp::util::pbt_num_depth_to_nodes(max_depth) <= N,
+                "The number of nodes exceed the number of columns");
 
     ASSERT_RETL(rcpp::util::pbt_num_depth_to_leaves(max_depth) <= D,
                 "The number of leaf nodes exceed the number of rows");
@@ -81,7 +79,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     gamma_t beta_dl(D, L, a0, b0, rng);
     gamma_t theta_nk(N, K, a0, b0, rng);
 
-    model_t model_dn(beta_dl, theta_nk, A_lk, RSEED(rseed));
+    model_t model_dn(beta_dl, theta_nk, A_lk, RSEED(rseed), NThreads(nthreads));
 
     Scalar llik = 0;
     initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
@@ -89,17 +87,17 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     TLOG_(verbose, "Finished initialization: " << llik);
 
     std::vector<Scalar> llik_trace;
-    llik_trace.reserve(max_iter + burnin + 1);
+    llik_trace.reserve(max_iter + 1);
     llik_trace.emplace_back(llik);
 
-    for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
+    for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 
         beta_dl.reset_stat_only();
-        add_stat_by_row(model_dn, Y_dn, STOCH(tt < burnin), STD(false));
+        add_stat_by_row(model_dn, Y_dn, STD(false));
         beta_dl.calibrate();
 
         theta_nk.reset_stat_only();
-        add_stat_by_col(model_dn, Y_dn, STOCH(tt < burnin), STD(true));
+        add_stat_by_col(model_dn, Y_dn, STD(true));
         theta_nk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);
@@ -114,7 +112,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
 
         llik_trace.emplace_back(llik);
 
-        if (tt > burnin && diff < EPS) {
+        if (tt > 1 && diff < EPS) {
             TLOG("Converged at " << tt << ", " << diff);
             break;
         }
@@ -135,6 +133,4 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                               Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
                               Rcpp::_["log.theta"] = theta_nk.log_mean(),
                               Rcpp::_["A"] = A_lk);
-
-    return Rcpp::List::create();
 }

@@ -80,11 +80,9 @@ $$L
 library(asapR)
 library(pheatmap)
 
-## devtools::load_all("~/work/asapR/")
-
 set.seed(1331)
-d <- 1500
-n <- 1000
+d <- 500
+n <- 5000
 .rnorm <- function(d1,d2) matrix(rnorm(d1 * d2), d1, d2)
 
 uu <- pmax(.rnorm(d, 5), 0)
@@ -93,11 +91,12 @@ Y <- uu %*% t(vv) + pmax(.rnorm(d, n), 0)
 ```
 
 ```{r}
-out <- asap_fit_pmf(Y, maxK=7)
+system.time(out <- asap_fit_pmf(Y, maxK=7))
 ```
 
 ```{r fig.width=5, fig.height=5}
-pheatmap(out$beta)
+u.order <- order(apply(uu, 1, which.max))
+pheatmap(out$beta[u.order, ], Rowv=NA, Colv=NA, scale="column", cluster_rows = F)
 ```
 
 ```{r fig.width=5, fig.height=5}

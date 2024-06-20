@@ -27,7 +27,30 @@ struct factorization_t {
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , rng(rseed.val)
-        , sampler(rng, K)
+        , num_threads(1)
+    {
+        ASSERT(theta_nk.cols() == beta_dk.cols(),
+               "row and col factors must have the same # columns");
+        randomize_auxiliaries();
+    }
+
+    explicit factorization_t(ROW &_row_dk,
+                             COL &_col_nk,
+                             const RSEED &rseed,
+                             const NThreads &nthr)
+        : beta_dk(_row_dk)
+        , theta_nk(_col_nk)
+        , D(beta_dk.rows())
+        , N(theta_nk.rows())
+        , K(beta_dk.cols())
+        , logRow_aux_dk(D, K)
+        , row_aux_dk(D, K)
+        , logCol_aux_nk(N, K)
+        , col_aux_nk(N, K)
+        , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
+        , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
+        , rng(rseed.val)
+        , num_threads(nthr.val)
     {
         ASSERT(theta_nk.cols() == beta_dk.cols(),
                "row and col factors must have the same # columns");
@@ -51,14 +74,17 @@ struct factorization_t {
 
 private:
     RNG rng;
-    rowvec_sampler_t<Type, RNG> sampler;
+
+public:
+    const std::size_t num_threads;
+
+private:
     softmax_op_t<Type> softmax;
 
     template <typename Derived>
     void _normalize_aux_cols(stdizer_t<Derived> &std_log_aux,
                              Eigen::MatrixBase<Derived> &log_aux,
                              Eigen::MatrixBase<Derived> &aux,
-                             const bool stoch,
                              const bool do_stdize)
     {
         ///////////////////////////////////
@@ -69,41 +95,30 @@ private:
             std_log_aux.colwise();
         }
 
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(num_threads)
+#pragma omp for
+#endif
         for (Index ii = 0; ii < aux.rows(); ++ii) {
             log_aux.row(ii) = softmax.log_row(log_aux.row(ii));
         }
-
-        //////////////////////////////////////
-        // stochastic sampling or normalize //
-        //////////////////////////////////////
-
-        if (stoch) {
-            aux.setZero();
-            for (Index ii = 0; ii < aux.rows(); ++ii) {
-                auto kk = sampler(log_aux.unaryExpr(exp));
-                aux(ii, kk) = 1;
-            }
-        } else {
-            aux = log_aux.unaryExpr(exp);
-        }
+        aux = log_aux.unaryExpr(exp);
     }
 
 public:
-    void _row_factor_aux(const bool stoch, const bool do_stdize)
+    void _row_factor_aux(const bool do_stdize)
     {
         _normalize_aux_cols(std_log_row_aux_dk,
                             logRow_aux_dk,
                             row_aux_dk,
-                            stoch,
                             do_stdize);
     }
 
-    void _col_factor_aux(const bool stoch, const bool do_stdize)
+    void _col_factor_aux(const bool do_stdize)
     {
         _normalize_aux_cols(std_log_col_aux_nk,
                             logCol_aux_nk,
                             col_aux_nk,
-                            stoch,
                             do_stdize);
     }
 
@@ -248,10 +263,8 @@ void
 add_stat_by_col(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STOCH &stoch_,
                 const STD &std_)
 {
-    const bool stoch = stoch_.val;
     const bool do_stdize = std_.val;
 
     using T = typename MODEL::Type;
@@ -268,7 +281,7 @@ add_stat_by_col(const factorization_tag,
         Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
     fact.logCol_aux_nk += fact.theta_nk.log_mean();
 
-    fact._col_factor_aux(stoch, do_stdize);
+    fact._col_factor_aux(do_stdize);
 
     ///////////////////////////
     // Accumulate statistics //
@@ -286,11 +299,9 @@ void
 add_stat_by_row(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STOCH &stoch_,
                 const STD &std_)
 {
 
-    const bool stoch = stoch_.val;
     const bool do_stdize = std_.val;
 
     using T = typename MODEL::Type;
@@ -307,7 +318,7 @@ add_stat_by_row(const factorization_tag,
         Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
     fact.logRow_aux_dk += fact.beta_dk.log_mean();
 
-    fact._row_factor_aux(stoch, do_stdize);
+    fact._row_factor_aux(do_stdize);
 
     ///////////////////////////
     // Accumulate statistics //

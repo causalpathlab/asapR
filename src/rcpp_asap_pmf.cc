@@ -6,7 +6,6 @@
 //' @param maxK maximum number of factors
 //' @param max_iter max number of optimization steps
 //' @param min_iter min number of optimization steps
-//' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
@@ -33,7 +32,6 @@ Rcpp::List
 asap_fit_pmf(const Eigen::MatrixXf Y_,
              const std::size_t maxK,
              const std::size_t max_iter = 100,
-             const std::size_t burnin = 0,
              const bool verbose = true,
              const double a0 = 1,
              const double b0 = 1,
@@ -70,7 +68,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     gamma_t beta_dk(D, K, a0, b0, rng);
     gamma_t theta_nk(N, K, a0, b0, rng);
 
-    model_t model_dn(beta_dk, theta_nk, RSEED(rseed));
+    model_t model_dn(beta_dk, theta_nk, RSEED(rseed), NThreads(nthreads));
 
     Scalar llik = 0;
     initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
@@ -78,16 +76,16 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     TLOG_(verbose, "Finished initialization: " << llik);
 
     std::vector<Scalar> llik_trace;
-    llik_trace.reserve(max_iter + burnin + 1);
+    llik_trace.reserve(max_iter + 1);
     llik_trace.emplace_back(llik);
 
-    for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
+    for (std::size_t tt = 0; tt < max_iter; ++tt) {
         theta_nk.reset_stat_only();
-        add_stat_by_col(model_dn, Y_dn, STOCH(tt < burnin), STD(true));
+        add_stat_by_col(model_dn, Y_dn, STD(true));
         theta_nk.calibrate();
 
         beta_dk.reset_stat_only();
-        add_stat_by_row(model_dn, Y_dn, STOCH(tt < burnin), STD(false));
+        add_stat_by_row(model_dn, Y_dn, STD(false));
         beta_dk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);
@@ -102,7 +100,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
         llik_trace.emplace_back(llik);
 
-        if (tt > burnin && diff < EPS) {
+        if (tt > 1 && diff < EPS) {
             TLOG("Converged at " << tt << ", " << diff);
             break;
         }

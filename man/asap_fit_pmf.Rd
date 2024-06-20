@@ -8,7 +8,6 @@ asap_fit_pmf(
   Y_,
   maxK,
   max_iter = 100L,
-  burnin = 0L,
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
@@ -25,8 +24,6 @@ asap_fit_pmf(
 \item{maxK}{maximum number of factors}
 
 \item{max_iter}{max number of optimization steps}
-
-\item{burnin}{number of initiation steps (default: 50)}
 
 \item{verbose}{verbosity}
 

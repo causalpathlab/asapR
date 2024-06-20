@@ -9,7 +9,6 @@ asap_fit_pmf_larch(
   Y_,
   max_depth,
   max_iter = 100L,
-  burnin = 0L,
   verbose = TRUE,
   a0 = 1,
   b0 = 1,
@@ -27,8 +26,6 @@ asap_fit_pmf_larch(
 
 \item{max_iter}{max number of optimization steps}
 
-\item{burnin}{number of initiation steps (default: 50)}
-
 \item{verbose}{verbosity}
 
 \item{a0}{gamma(a0, b0) default: a0 = 1}
@@ -43,7 +40,7 @@ asap_fit_pmf_larch(
 
 \item{EPS}{(default: 1e-8)}
 
-\item{min_iter}{min number of optimization steps}
+\item{burnin}{number of initiation steps (default: 50)}
 
 \item{do_scale}{scale each column by standard deviation (default: TRUE)}
 }

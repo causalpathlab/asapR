@@ -34,6 +34,13 @@ struct RSEED : check_positive_t<std::size_t> {
     }
 };
 
+struct NThreads : check_positive_t<std::size_t> {
+    explicit NThreads(const std::size_t k)
+        : check_positive_t<std::size_t>(k)
+    {
+    }
+};
+
 struct NumFact : check_positive_t<std::size_t> {
     explicit NumFact(const std::size_t k)
         : check_positive_t<std::size_t>(k)
@@ -61,20 +68,18 @@ template <typename MODEL, typename Derived>
 void
 add_stat_by_col(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STOCH &stoch_,
                 const STD &std_)
 {
-    add_stat_by_col(typename MODEL::tag(), model, Y_dn, stoch_, std_);
+    add_stat_by_col(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 template <typename MODEL, typename Derived>
 void
 add_stat_by_row(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STOCH &stoch_,
                 const STD &std_)
 {
-    add_stat_by_row(typename MODEL::tag(), model, Y_dn, stoch_, std_);
+    add_stat_by_row(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 #endif

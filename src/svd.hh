@@ -27,9 +27,9 @@ public:
 
     using Vec = Eigen::Matrix<typename T::Scalar, Eigen::Dynamic, 1>;
 
-    const T matrixU() const { return U; }
-    const T matrixV() const { return V; }
-    const Vec singularValues() const { return D; }
+    T matrixU() const { return U; }
+    T matrixV() const { return V; }
+    Vec singularValues() const { return D; }
 
     template <typename Derived>
     void compute(Eigen::MatrixBase<Derived> const &X)

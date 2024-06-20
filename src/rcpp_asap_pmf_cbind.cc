@@ -11,7 +11,6 @@
 //' @param maxK maximum number of factors
 //' @param max_iter max number of optimization steps
 //' @param min_iter min number of optimization steps
-//' @param burnin number of initiation steps (default: 50)
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
@@ -37,7 +36,6 @@ Rcpp::List
 asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const std::size_t maxK,
                    const std::size_t max_iter = 100,
-                   const std::size_t burnin = 0,
                    const bool verbose = true,
                    const double a0 = 1,
                    const double b0 = 1,
@@ -114,7 +112,10 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     for (auto theta_nk_ptr : theta_nk_ptr_vec) {
         gamma_t &theta_nk = *theta_nk_ptr.get();
         model_dn_ptr_vec.emplace_back(
-            std::make_shared<model_t>(beta_dk, theta_nk, RSEED(rseed)));
+            std::make_shared<model_t>(beta_dk,
+                                      theta_nk,
+                                      RSEED(rseed),
+                                      NThreads(nthreads)));
     }
 
     using norm_dist_t = boost::random::normal_distribution<Scalar>;
@@ -144,10 +145,10 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     TLOG_(verbose, "Finished initialization: " << llik);
 
     std::vector<Scalar> llik_trace;
-    llik_trace.reserve(max_iter + burnin + 1);
+    llik_trace.reserve(max_iter + 1);
     llik_trace.emplace_back(llik);
 
-    for (std::size_t tt = 0; tt < (burnin + max_iter); ++tt) {
+    for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 
         ///////////////////////////////////////////
         // Add matrix data to each model's stats //
@@ -161,11 +162,11 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
             // a. Update theta based on the current beta
             theta_nk.reset_stat_only();
-            add_stat_by_col(model_dn, y_dn, STOCH(tt < burnin), STD(true));
+            add_stat_by_col(model_dn, y_dn, STD(true));
             theta_nk.calibrate();
 
             // b. Update beta factors based on the new theta
-            add_stat_by_row(model_dn, y_dn, STOCH(tt < burnin), STD(false));
+            add_stat_by_row(model_dn, y_dn, STD(false));
         }
 
         beta_dk.calibrate();
@@ -189,7 +190,7 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
 
         llik_trace.emplace_back(llik);
 
-        if (tt > burnin && diff < EPS) {
+        if (tt > 1 && diff < EPS) {
             TLOG("Converged at " << tt << ", " << diff);
             break;
         }
