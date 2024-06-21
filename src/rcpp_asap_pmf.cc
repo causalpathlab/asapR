@@ -1,4 +1,4 @@
-#include "rcpp_asap.hh"
+#include "rcpp_asap_pmf.hh"
 
 //' A quick PMF estimation based on alternating Poisson regressions
 //'

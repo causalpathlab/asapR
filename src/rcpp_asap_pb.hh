@@ -1,6 +1,7 @@
 #include "rcpp_asap.hh"
 #include "rcpp_asap_stat.hh"
 #include "rcpp_mtx_data.hh"
+#include "gamma_parameter.hh"
 
 #ifndef RCPP_ASAP_PB_HH_
 #define RCPP_ASAP_PB_HH_

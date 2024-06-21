@@ -10,8 +10,9 @@
 using namespace mmutil::io;
 using namespace mmutil::bgzf;
 
-#include "clustering.hh"
-#include "dirichlet_prior.hh"
-#include "poisson_cluster_model.hh"
+#include "clustering_util.hh"
+#include "clustering_alg.hh"
+#include "clustering_dirichlet_prior.hh"
+#include "clustering_poisson_model.hh"
 
 #endif

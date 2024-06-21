@@ -12,8 +12,10 @@
 #include <xoshiro.h>
 #include "clustering_util.hh"
 
-#ifndef CLUSTERING_HH_
-#define CLUSTERING_HH_
+#ifndef CLUSTERING_ALG_HH_
+#define CLUSTERING_ALG_HH_
+
+namespace rcpp { namespace clustering {
 
 template <typename T>
 struct clustering_status_t {
@@ -199,5 +201,7 @@ clustering_by_lcvi(clustering_status_t<S> &status,
         TLOG("Done -- lcvi");
     }
 }
+
+}}
 
 #endif

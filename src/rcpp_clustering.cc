@@ -1,4 +1,4 @@
-#include "rcpp_cluster.hh"
+#include "rcpp_clustering.hh"
 
 //' Clustering the rows of a count data matrix
 //'
@@ -24,6 +24,9 @@ fit_poisson_cluster_rows(const Eigen::MatrixXf X,
                          const std::size_t burnin = 10,
                          const bool verbose = true)
 {
+
+    using namespace rcpp::clustering;
+
     using F = poisson_component_t<Mat>;
     using F0 = trunc_dpm_t<Mat>;
 

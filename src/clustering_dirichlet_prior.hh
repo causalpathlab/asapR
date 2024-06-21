@@ -16,6 +16,8 @@
 #ifndef DPM_HH_
 #define DPM_HH_
 
+namespace rcpp { namespace clustering {
+
 template <typename T>
 struct trunc_dpm_t {
 
@@ -202,7 +204,10 @@ public:
         return logPr;
     }
 
-    const RowVec &log_lcvi() { return elbo(); }
+    const RowVec &log_lcvi()
+    {
+        return elbo();
+    }
     const std::vector<Scalar> size() const
     {
         std::vector<Scalar> ret(K);
@@ -222,5 +227,7 @@ private:
 
     std::vector<Index> sortedIndexes;
 };
+
+}}
 
 #endif

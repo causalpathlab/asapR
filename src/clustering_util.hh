@@ -3,6 +3,8 @@
 #ifndef CLUSTERING_UTIL_HH_
 #define CLUSTERING_UTIL_HH_
 
+namespace rcpp { namespace clustering {
+
 template <typename T>
 inline T
 sort_cluster_index(std::vector<T> &_membership, const T cutoff = 0)
@@ -65,5 +67,7 @@ print_histogram(const std::vector<T> &nn, //
     }
     ofs << "</histogram>" << std::endl;
 }
+
+}}
 
 #endif

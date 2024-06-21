@@ -1,10 +1,11 @@
-#ifndef RCPP_ASAP_REGRESSION_HH_
-#define RCPP_ASAP_REGRESSION_HH_
-
 #include "rcpp_asap.hh"
+#include "gamma_parameter.hh"
 #include "rcpp_asap_batch.hh"
 #include "rcpp_mtx_data.hh"
 #include "rcpp_eigenSparse_data.hh"
+
+#ifndef RCPP_ASAP_REGRESSION_HH_
+#define RCPP_ASAP_REGRESSION_HH_
 
 namespace asap { namespace regression {
 

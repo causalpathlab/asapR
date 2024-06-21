@@ -2,6 +2,7 @@
 #include "rcpp_asap.hh"
 #include "gamma_parameter.hh"
 #include "rcpp_util_struct.hh"
+#include "rcpp_model_common.hh"
 #include "rcpp_model_factorization_larch.hh"
 #include "rcpp_model_factorization_three.hh"
 

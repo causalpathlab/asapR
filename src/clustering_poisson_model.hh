@@ -1,7 +1,9 @@
 #include "mmutil.hh"
 
-#ifndef POISSON_CLUSTER_MODEL_HH_
-#define POISSON_CLUSTER_MODEL_HH_
+#ifndef CLUSTERING_POISSON_MODEL_HH_
+#define CLUSTERING_POISSON_MODEL_HH_
+
+namespace rcpp { namespace clustering {
 
 template <typename T>
 struct poisson_component_t {
@@ -92,8 +94,7 @@ struct poisson_component_t {
 
     RowVec posterior_log_mean() const
     {
-        return (Freq_stat.unaryExpr(digamma_op).array() -
-                fastlog(N_stat + b0))
+        return (Freq_stat.unaryExpr(digamma_op).array() - fastlog(N_stat + b0))
             .matrix();
     }
 
@@ -130,4 +131,5 @@ private:
     digamma_op_t digamma_op;
 };
 
+}}
 #endif
