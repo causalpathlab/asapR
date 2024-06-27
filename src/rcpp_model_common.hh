@@ -66,20 +66,29 @@ initialize_stat(MODEL &model,
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_col(MODEL &model,
+add_stat_to_col(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)
 {
-    add_stat_by_col(typename MODEL::tag(), model, Y_dn, std_);
+    add_stat_to_col(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_row(MODEL &model,
+add_stat_to_row(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)
 {
-    add_stat_by_row(typename MODEL::tag(), model, Y_dn, std_);
+    add_stat_to_row(typename MODEL::tag(), model, Y_dn, std_);
+}
+
+template <typename MODEL, typename Derived>
+void
+add_stat_to_mid(MODEL &model,
+                const Eigen::MatrixBase<Derived> &Y_dn,
+                const STD &std_)
+{
+    add_stat_to_mid(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 #endif

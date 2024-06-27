@@ -165,11 +165,7 @@ log_likelihood(const factorization_tag,
 
     llik += (Y_dn * col_aux_nk.cwiseProduct(theta_nk.log_mean())).sum() / denom;
 
-    llik -=
-        ((row_aux_dk.cwiseProduct(beta_dk.mean()).colwise().sum()) *
-         (col_aux_nk.cwiseProduct(theta_nk.mean()).transpose().rowwise().sum()))
-            .sum() /
-        denom;
+    llik -= (beta_dk.mean() * theta_nk.mean().transpose()).sum() / denom;
 
     return llik;
 }
@@ -260,7 +256,7 @@ initialize_stat(const factorization_tag,
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_col(const factorization_tag,
+add_stat_to_col(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)
@@ -296,7 +292,7 @@ add_stat_by_col(const factorization_tag,
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_row(const factorization_tag,
+add_stat_to_row(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)

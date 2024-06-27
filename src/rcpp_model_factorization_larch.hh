@@ -101,10 +101,10 @@ private:
     softmax_op_t<Type> softmax;
 
     template <typename Derived>
-    void _normalize_aux_cols(stdizer_t<Derived> &std_log_aux,
-                             Eigen::MatrixBase<Derived> &log_aux,
-                             Eigen::MatrixBase<Derived> &aux,
-                             const bool do_stdize)
+    inline void _normalize_aux_cols(stdizer_t<Derived> &std_log_aux,
+                                    Eigen::MatrixBase<Derived> &log_aux,
+                                    Eigen::MatrixBase<Derived> &aux,
+                                    const bool do_stdize)
     {
         if (do_stdize) {
             std_log_aux.colwise();
@@ -169,17 +169,19 @@ log_likelihood(const factorization_larch_tag,
     typename Mat::Scalar llik = 0;
     typename Mat::Scalar denom = N * D;
 
-    llik += (Y_dn.transpose() *
-             fact.row_aux_dl.cwiseProduct(fact.beta_dl.log_mean()))
+    llik += (Y_dn.cwiseProduct(fact.row_aux_dl * fact.A_lk *
+                               fact.col_aux_nk.transpose()))
                 .sum() /
         denom;
 
-    llik += ((fact.row_aux_dl * fact.A_lk)
-                 .cwiseProduct(
-                     (Y_dn *
-                      fact.col_aux_nk.cwiseProduct(fact.theta_nk.log_mean()))))
-                .sum() /
-        denom;
+    // llik += (Y_dn * (fact.col_aux_nk.cwiseProduct(fact.theta_nk.log_mean())))
+    //             .sum() /
+    //     denom;
+
+    // llik += (Y_dn.transpose() *
+    //          (fact.row_aux_dl.cwiseProduct(fact.beta_dl.log_mean())))
+    //             .sum() /
+    //     denom;
 
     llik -= (fact.beta_dl.mean() * fact.A_lk * fact.theta_nk.mean().transpose())
                 .sum() /
@@ -275,7 +277,7 @@ initialize_stat(const factorization_larch_tag,
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_row(const factorization_larch_tag,
+add_stat_to_row(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)
@@ -317,7 +319,7 @@ add_stat_by_row(const factorization_larch_tag,
 
 template <typename MODEL, typename Derived>
 void
-add_stat_by_col(const factorization_larch_tag,
+add_stat_to_col(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const STD &std_)

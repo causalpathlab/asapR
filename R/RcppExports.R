@@ -413,10 +413,10 @@ asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
     .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, EPS, NUM_THREADS)
 }
 
-#' Test
+#' Estimate two-layered PMF (experimental)
 #'
-asap_fit_pmf_linking <- function(X_, Y_, max_K, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_linking', PACKAGE = 'asapR', X_, Y_, max_K, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
+asap_fit_pmf_linking <- function(X_, Y_, maxK, max_iter = 100L, burnin = 0L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_linking', PACKAGE = 'asapR', X_, Y_, maxK, max_iter, burnin, verbose, a0, b0, do_log1p, rseed, svd_init, EPS, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions

@@ -93,11 +93,11 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 
         beta_dl.reset_stat_only();
-        add_stat_by_row(model_dn, Y_dn, STD(false));
+        add_stat_to_row(model_dn, Y_dn, STD(false));
         beta_dl.calibrate();
 
         theta_nk.reset_stat_only();
-        add_stat_by_col(model_dn, Y_dn, STD(true));
+        add_stat_to_col(model_dn, Y_dn, STD(true));
         theta_nk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);

@@ -2,12 +2,12 @@
 % Please edit documentation in R/RcppExports.R
 \name{asap_fit_pmf_linking}
 \alias{asap_fit_pmf_linking}
-\title{Test}
+\title{Estimate two-layered PMF (experimental)}
 \usage{
 asap_fit_pmf_linking(
   X_,
   Y_,
-  max_K,
+  maxK,
   max_iter = 100L,
   burnin = 0L,
   verbose = TRUE,
@@ -21,5 +21,5 @@ asap_fit_pmf_linking(
 )
 }
 \description{
-Test
+Estimate two-layered PMF (experimental)
 }

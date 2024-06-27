@@ -53,7 +53,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
     exp_op<Mat> exp;
     log1p_op<Mat> log1p;
-    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
 
     TLOG_(verbose, "Data: " << Y_dn.rows() << " x " << Y_dn.cols());
 
@@ -72,7 +72,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
     Scalar llik = 0;
     initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
-    log_likelihood(model_dn, Y_dn);
+    llik = log_likelihood(model_dn, Y_dn);
     TLOG_(verbose, "Finished initialization: " << llik);
 
     std::vector<Scalar> llik_trace;
@@ -81,11 +81,11 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
     for (std::size_t tt = 0; tt < max_iter; ++tt) {
         theta_nk.reset_stat_only();
-        add_stat_by_col(model_dn, Y_dn, STD(true));
+        add_stat_to_col(model_dn, Y_dn, STD(true));
         theta_nk.calibrate();
 
         beta_dk.reset_stat_only();
-        add_stat_by_row(model_dn, Y_dn, STD(false));
+        add_stat_to_row(model_dn, Y_dn, STD(false));
         beta_dk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);
