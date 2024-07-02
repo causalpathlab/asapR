@@ -14,7 +14,6 @@
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
-//' @param do_scale scale each column by standard deviation (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param EPS (default: 1e-8)

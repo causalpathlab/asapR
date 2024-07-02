@@ -9,7 +9,8 @@
 //' @param verbose verbosity
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
-//' @param do_scale scale each column by standard deviation (default: TRUE)
+//' @param normalize_cols normalize columns by col_norm (default: FALSE)
+//' @param col_norm (default: 1e4)
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param svd_init initialize by SVD (default: FALSE)
@@ -38,6 +39,8 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
              const bool do_log1p = false,
              const std::size_t rseed = 1337,
              const bool svd_init = false,
+             const bool normalize_cols = false,
+             const double col_norm = 1e4,
              const double EPS = 1e-8,
              const std::size_t NUM_THREADS = 0)
 {
@@ -50,10 +53,18 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     using RNG = dqrng::xoshiro256plus;
     using gamma_t = gamma_param_t<Eigen::MatrixXf, RNG>;
     using model_t = factorization_t<gamma_t, gamma_t, RNG>;
+    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
 
     exp_op<Mat> exp;
     log1p_op<Mat> log1p;
-    const Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+    Mat Y_dn = do_log1p ? Y_.unaryExpr(log1p) : Y_;
+
+    const RowVec row_sum = Y_dn.colwise().sum();
+
+    if (normalize_cols) {
+        Y_dn.array().rowwise() /= (row_sum.array() + 1.0 / col_norm);
+        Y_dn *= col_norm;
+    }
 
     TLOG_(verbose, "Data: " << Y_dn.rows() << " x " << Y_dn.cols());
 
@@ -119,5 +130,6 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
                               Rcpp::_["log.beta.sd"] = beta_dk.log_sd(),
                               Rcpp::_["theta"] = theta_nk.mean(),
                               Rcpp::_["log.theta.sd"] = theta_nk.log_sd(),
-                              Rcpp::_["log.theta"] = theta_nk.log_mean());
+                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
+                              Rcpp::_["row.sum"] = row_sum);
 }

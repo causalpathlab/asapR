@@ -35,7 +35,7 @@ pbt_dep_adj(const std::size_t depth)
         triplets.emplace_back(ET(rows.at(k) - 1, k, 1));
     }
 
-    for (std::size_t d = 1; d < depth; ++d) {
+    for (std::size_t d = 1; d <= depth; ++d) {
         for (std::size_t k = 0; k < rows.size(); ++k) {
             rows[k] = std::floor(rows[k] / 2);
         }
@@ -51,21 +51,21 @@ pbt_dep_adj(const std::size_t depth)
 std::size_t
 pbt_num_depth_to_leaves(const std::size_t depth)
 {
-    return 1 << (depth - 1);
+    return 1 << depth;
 }
 
 std::size_t
 pbt_num_depth_to_nodes(const std::size_t depth)
 {
-    return (1 << depth) - 1;
+    return (1 << (depth + 1)) - 1;
 }
 
 std::size_t
 pbt_num_leaves_to_nodes(const std::size_t num_leaves)
 {
-    const std::size_t depth = std::ceil(std::log2(num_leaves)) + 1;
+    const std::size_t depth = std::ceil(std::log2(num_leaves));
     ASSERT(depth < 1, "too shallow PBT");
-    return (1 << depth) - 1; // number of intermediate tree
+    return pbt_num_depth_to_nodes(depth);
 }
 
 }} // end of namespace
