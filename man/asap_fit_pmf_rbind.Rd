@@ -13,6 +13,8 @@ asap_fit_pmf_rbind(
   a0 = 1,
   b0 = 1,
   do_log1p = FALSE,
+  do_stdize_row = FALSE,
+  do_stdize_col = TRUE,
   rseed = 1337L,
   EPS = 1e-08,
   NUM_THREADS = 0L
@@ -38,8 +40,6 @@ asap_fit_pmf_rbind(
 \item{EPS}{(default: 1e-8)}
 
 \item{min_iter}{min number of optimization steps}
-
-\item{do_scale}{scale each column by standard deviation (default: TRUE)}
 }
 \value{
 a list that contains:

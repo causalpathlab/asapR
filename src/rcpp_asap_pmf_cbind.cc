@@ -39,6 +39,8 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const double a0 = 1,
                    const double b0 = 1,
                    const bool do_log1p = false,
+                   const bool do_stdize_row = false,
+                   const bool do_stdize_col = true,
                    const std::size_t rseed = 1337,
                    const double EPS = 1e-8,
                    const std::size_t NUM_THREADS = 0)
@@ -161,11 +163,11 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
             // a. Update theta based on the current beta
             theta_nk.reset_stat_only();
-            add_stat_to_col(model_dn, y_dn, STD(true));
+            add_stat_to_col(model_dn, y_dn, STD(do_stdize_col));
             theta_nk.calibrate();
 
             // b. Update beta factors based on the new theta
-            add_stat_to_row(model_dn, y_dn, STD(false));
+            add_stat_to_row(model_dn, y_dn, STD(do_stdize_row));
         }
 
         beta_dk.calibrate();

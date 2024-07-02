@@ -19,7 +19,7 @@ Horizontal concatenation."><!-- mathjax --><script src="https://cdnjs.cloudflare
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">asapR</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.1</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.2</span>
       </span>
     </div>
 
@@ -46,7 +46,16 @@ Horizontal concatenation."><!-- mathjax --><script src="https://cdnjs.cloudflare
       <a href="../articles/note_faster_nmf_approximation.html">3. Expedite Poisson-NMF estimation via alternating regression models</a>
     </li>
     <li>
+      <a href="../articles/note_linking_nmf.html">5. Linking NMF</a>
+    </li>
+    <li>
+      <a href="../articles/note_linking.html">UNKNOWN TITLE</a>
+    </li>
+    <li>
       <a href="../articles/note_multi_nmf.html">4. Can estimate a dictionary matrix shared across multiple observations of data matrices?</a>
+    </li>
+    <li>
+      <a href="../articles/note_tree_pmf.html"></a>
     </li>
   </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
@@ -78,6 +87,7 @@ Horizontal concatenation.</p>
 <span>  rseed <span class="op">=</span> <span class="fl">42L</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  NUM_THREADS <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>  CELL_NORM <span class="op">=</span> <span class="fl">10000</span>,</span>
 <span>  BLOCK_SIZE <span class="op">=</span> <span class="fl">1000L</span>,</span>
 <span>  do_batch_adj <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  do_log1p <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -111,6 +121,10 @@ Horizontal concatenation.</p>
 
 <dt>NUM_THREADS</dt>
 <dd><p>number of threads in data reading</p></dd>
+
+
+<dt>CELL_NORM</dt>
+<dd><p>normalization constant per each data point</p></dd>
 
 
 <dt>BLOCK_SIZE</dt>

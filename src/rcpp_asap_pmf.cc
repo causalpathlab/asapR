@@ -40,6 +40,8 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
              const std::size_t rseed = 1337,
              const bool svd_init = false,
              const bool normalize_cols = false,
+             const bool do_stdize_row = false,
+             const bool do_stdize_col = true,
              const double col_norm = 1e4,
              const double EPS = 1e-8,
              const std::size_t NUM_THREADS = 0)
@@ -91,12 +93,13 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     llik_trace.emplace_back(llik);
 
     for (std::size_t tt = 0; tt < max_iter; ++tt) {
+
         theta_nk.reset_stat_only();
-        add_stat_to_col(model_dn, Y_dn, STD(true));
+        add_stat_to_col(model_dn, Y_dn, STD(do_stdize_col));
         theta_nk.calibrate();
 
         beta_dk.reset_stat_only();
-        add_stat_to_row(model_dn, Y_dn, STD(false));
+        add_stat_to_row(model_dn, Y_dn, STD(do_stdize_row));
         beta_dk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);
