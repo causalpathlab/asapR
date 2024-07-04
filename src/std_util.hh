@@ -38,12 +38,10 @@ std_argsort(const Vec &data)
  * vector -> map: name -> position index
  */
 template <typename S, typename IDX>
-std::unordered_map<S, IDX>
-make_position_dict(const std::vector<S> &name_vec)
+void
+make_position_dict(const std::vector<S> &name_vec,
+                   std::unordered_map<S, IDX> &name_to_id)
 {
-
-    std::unordered_map<S, IDX> name_to_id;
-
     for (IDX i = 0; i < name_vec.size(); ++i) {
         const S &j = name_vec.at(i);
         if (name_to_id.count(j) == 0) {
@@ -52,7 +50,17 @@ make_position_dict(const std::vector<S> &name_vec)
             WLOG("Found a duplicate key: " << j);
         }
     }
+}
 
+/**
+ * vector -> map: name -> position index
+ */
+template <typename S, typename IDX>
+std::unordered_map<S, IDX>
+make_position_dict(const std::vector<S> &name_vec)
+{
+    std::unordered_map<S, IDX> name_to_id;
+    make_position_dict(name_vec, name_to_id);
     return name_to_id;
 }
 

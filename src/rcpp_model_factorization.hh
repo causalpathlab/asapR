@@ -284,7 +284,7 @@ add_stat_to_col(const factorization_tag,
     ///////////////////////////
 
     fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
-                       Y_dn.colwise().sum().transpose().array())
+                       Y_dn.transpose().rowwise().sum().array())
                           .matrix(),
                       ColVec::Ones(fact.N) *
                           fact.beta_dk.mean().colwise().sum());

@@ -13,6 +13,7 @@ asap_random_bulk_cbind_mtx(
   idx_files,
   num_factors,
   r_batch_names = NULL,
+  rows_restrict = NULL,
   rename_columns = TRUE,
   take_union_rows = FALSE,
   rseed = 42L,

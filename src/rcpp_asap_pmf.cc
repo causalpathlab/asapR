@@ -10,7 +10,6 @@
 //' @param a0 gamma(a0, b0) default: a0 = 1
 //' @param b0 gamma(a0, b0) default: b0 = 1
 //' @param normalize_cols normalize columns by col_norm (default: FALSE)
-//' @param col_norm (default: 1e4)
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param svd_init initialize by SVD (default: FALSE)
@@ -42,7 +41,6 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
              const bool normalize_cols = false,
              const bool do_stdize_row = false,
              const bool do_stdize_col = true,
-             const double col_norm = 1e4,
              const double EPS = 1e-8,
              const std::size_t NUM_THREADS = 0)
 {
@@ -64,7 +62,8 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     const RowVec row_sum = Y_dn.colwise().sum();
 
     if (normalize_cols) {
-        Y_dn.array().rowwise() /= (row_sum.array() + 1.0 / col_norm);
+        const Scalar col_norm = Y_dn.rows();
+        Y_dn.array().rowwise() /= (row_sum.array() + EPS);
         Y_dn *= col_norm;
     }
 

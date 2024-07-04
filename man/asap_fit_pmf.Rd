@@ -17,7 +17,6 @@ asap_fit_pmf(
   normalize_cols = FALSE,
   do_stdize_row = FALSE,
   do_stdize_col = TRUE,
-  col_norm = 10000,
   EPS = 1e-08,
   NUM_THREADS = 0L
 )
@@ -42,8 +41,6 @@ asap_fit_pmf(
 \item{svd_init}{initialize by SVD (default: FALSE)}
 
 \item{normalize_cols}{normalize columns by col_norm (default: FALSE)}
-
-\item{col_norm}{(default: 1e4)}
 
 \item{EPS}{(default: 1e-8)}
 

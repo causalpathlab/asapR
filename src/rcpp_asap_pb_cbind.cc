@@ -229,6 +229,7 @@ asap_random_bulk_cbind_mtx(
     const std::vector<std::string> idx_files,
     const std::size_t num_factors,
     const Rcpp::Nullable<Rcpp::StringVector> r_batch_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> rows_restrict = R_NilValue,
     const bool rename_columns = true,
     const bool take_union_rows = false,
     const std::size_t rseed = 42,
@@ -323,13 +324,22 @@ asap_random_bulk_cbind_mtx(
     std::vector<std::string> pos2row;
     std::unordered_map<std::string, Index> row2pos;
 
-    rcpp::util::take_common_names(row_files,
-                                  pos2row,
-                                  row2pos,
-                                  take_union_rows,
-                                  MAX_ROW_WORD,
-                                  ROW_WORD_SEP);
-    TLOG_(verbose, "Found " << row2pos.size() << " row names");
+    if (rows_restrict.isNotNull()) {
+
+        rcpp::util::copy(Rcpp::StringVector(rows_restrict), pos2row);
+        make_position_dict(pos2row, row2pos);
+
+    } else {
+
+        rcpp::util::take_common_names(row_files,
+                                      pos2row,
+                                      row2pos,
+                                      take_union_rows,
+                                      MAX_ROW_WORD,
+                                      ROW_WORD_SEP);
+
+        TLOG_(verbose, "Found " << row2pos.size() << " row names");
+    }
 
     ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
 
