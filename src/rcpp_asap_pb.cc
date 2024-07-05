@@ -40,7 +40,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_random_bulk(
+asap_random_bulk_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,
@@ -48,6 +48,7 @@ asap_random_bulk(
     const std::size_t num_factors,
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_n = R_NilValue,
     const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_d = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> rows_restrict = R_NilValue,
     const std::size_t rseed = 42,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 0,
@@ -116,6 +117,19 @@ asap_random_bulk(
                                     mtx_tuple_t::IDX(idx_file)),
                         MAX_ROW_WORD,
                         ROW_WORD_SEP);
+
+    std::vector<std::string> pos2row;
+    std::unordered_map<std::string, Index> row2pos;
+
+    if (rows_restrict.isNotNull()) {
+
+        rcpp::util::copy(Rcpp::StringVector(rows_restrict), pos2row);
+        make_position_dict(pos2row, row2pos);
+
+        ASSERT_RETL(pos2row.size() == D, "check the rows_restrict");
+
+        mtx_data.relocate_rows(row2pos);
+    }
 
     using RNG = dqrng::xoshiro256plus;
     RNG rng(rseed);

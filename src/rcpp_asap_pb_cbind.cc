@@ -121,7 +121,7 @@ asap_random_bulk_cbind(
     }
 
     ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
-    ASSERT_RETL(pos2row.size() == D, "check the r_row_names");
+    ASSERT_RETL(pos2row.size() == D, "check the rows_restrict");
 
     std::vector<std::string> columns;
     columns.reserve(Ntot);

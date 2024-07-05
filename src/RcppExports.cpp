@@ -151,9 +151,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// asap_random_bulk
-Rcpp::List asap_random_bulk(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_n, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_d, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const double CELL_NORM, const std::size_t BLOCK_SIZE, const bool do_log1p, const bool do_down_sample, const bool save_aux_data, const bool weighted_rand_proj, const std::size_t CELL_PER_SAMPLE, const double a0, const double b0, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
-RcppExport SEXP _asapR_asap_random_bulk(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP num_factorsSEXP, SEXP r_covar_nSEXP, SEXP r_covar_dSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP CELL_NORMSEXP, SEXP BLOCK_SIZESEXP, SEXP do_log1pSEXP, SEXP do_down_sampleSEXP, SEXP save_aux_dataSEXP, SEXP weighted_rand_projSEXP, SEXP CELL_PER_SAMPLESEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
+// asap_random_bulk_mtx
+Rcpp::List asap_random_bulk_mtx(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const std::size_t num_factors, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_n, const Rcpp::Nullable<Rcpp::NumericMatrix> r_covar_d, const Rcpp::Nullable<Rcpp::StringVector> rows_restrict, const std::size_t rseed, const bool verbose, const std::size_t NUM_THREADS, const double CELL_NORM, const std::size_t BLOCK_SIZE, const bool do_log1p, const bool do_down_sample, const bool save_aux_data, const bool weighted_rand_proj, const std::size_t CELL_PER_SAMPLE, const double a0, const double b0, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
+RcppExport SEXP _asapR_asap_random_bulk_mtx(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP num_factorsSEXP, SEXP r_covar_nSEXP, SEXP r_covar_dSEXP, SEXP rows_restrictSEXP, SEXP rseedSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP CELL_NORMSEXP, SEXP BLOCK_SIZESEXP, SEXP do_log1pSEXP, SEXP do_down_sampleSEXP, SEXP save_aux_dataSEXP, SEXP weighted_rand_projSEXP, SEXP CELL_PER_SAMPLESEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -164,6 +164,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type num_factors(num_factorsSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericMatrix> >::type r_covar_n(r_covar_nSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::NumericMatrix> >::type r_covar_d(r_covar_dSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<Rcpp::StringVector> >::type rows_restrict(rows_restrictSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
@@ -180,7 +181,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const char >::type ROW_WORD_SEP(ROW_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_random_bulk(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rseed, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, do_log1p, do_down_sample, save_aux_data, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
+    rcpp_result_gen = Rcpp::wrap(asap_random_bulk_mtx(mtx_file, row_file, col_file, idx_file, num_factors, r_covar_n, r_covar_d, rows_restrict, rseed, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, do_log1p, do_down_sample, save_aux_data, weighted_rand_proj, CELL_PER_SAMPLE, a0, b0, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -791,7 +792,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_build_interaction_mtx", (DL_FUNC) &_asapR_asap_build_interaction_mtx, 22},
     {"_asapR_asap_interaction_random_bulk", (DL_FUNC) &_asapR_asap_interaction_random_bulk, 28},
     {"_asapR_asap_interaction_pmf_stat_mtx", (DL_FUNC) &_asapR_asap_interaction_pmf_stat_mtx, 22},
-    {"_asapR_asap_random_bulk", (DL_FUNC) &_asapR_asap_random_bulk, 23},
+    {"_asapR_asap_random_bulk_mtx", (DL_FUNC) &_asapR_asap_random_bulk_mtx, 24},
     {"_asapR_asap_random_bulk_cbind", (DL_FUNC) &_asapR_asap_random_bulk_cbind, 18},
     {"_asapR_asap_random_bulk_cbind_mtx", (DL_FUNC) &_asapR_asap_random_bulk_cbind_mtx, 27},
     {"_asapR_asap_random_bulk_rbind_mtx", (DL_FUNC) &_asapR_asap_random_bulk_rbind_mtx, 21},
