@@ -103,6 +103,7 @@ private:
             log_aux.row(ii) = softmax.log_row(log_aux.row(ii));
         }
         aux = log_aux.unaryExpr(exp);
+        aux.array().colwise() /= aux.array().rowwise().sum();
     }
 
 public:
@@ -259,7 +260,8 @@ void
 add_stat_to_col(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
     const bool do_stdize = std_.val;
 
@@ -283,11 +285,20 @@ add_stat_to_col(const factorization_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
-                       Y_dn.transpose().rowwise().sum().array())
-                          .matrix(),
-                      ColVec::Ones(fact.N) *
-                          fact.beta_dk.mean().colwise().sum());
+    if (dc_.val) {
+        fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
+                           Y_dn.transpose().rowwise().sum().array())
+                              .matrix(),
+                          Y_dn.transpose().rowwise().mean() *
+                              (Y_dn.rowwise().mean().transpose() *
+                               fact.beta_dk.mean()));
+    } else {
+        fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
+                           Y_dn.transpose().rowwise().sum().array())
+                              .matrix(),
+                          ColVec::Ones(fact.N) *
+                              fact.beta_dk.mean().colwise().sum());
+    }
 }
 
 template <typename MODEL, typename Derived>
@@ -295,7 +306,8 @@ void
 add_stat_to_row(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
 
     const bool do_stdize = std_.val;
@@ -320,11 +332,19 @@ add_stat_to_row(const factorization_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
-                      Y_dn.rowwise().sum().array())
-                         .matrix(),
-                     ColVec::Ones(fact.D) *
-                         fact.theta_nk.mean().colwise().sum());
+    if (dc_.val) {
+        fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
+                          Y_dn.rowwise().sum().array())
+                             .matrix(),
+                         Y_dn.rowwise().mean() *
+                             (Y_dn.colwise().mean() * fact.theta_nk.mean()));
+    } else {
+        fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
+                          Y_dn.rowwise().sum().array())
+                             .matrix(),
+                         ColVec::Ones(fact.D) *
+                             fact.theta_nk.mean().colwise().sum());
+    }
 }
 
 #endif

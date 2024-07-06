@@ -378,8 +378,8 @@ asap_random_bulk_rbind_mtx <- function(mtx_files, row_files, col_files, idx_file
 #' }
 #'
 #'
-asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, normalize_cols = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf', PACKAGE = 'asapR', Y_, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, normalize_cols, do_stdize_row, do_stdize_col, EPS, NUM_THREADS)
+asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, do_degree_correction = FALSE, normalize_cols = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf', PACKAGE = 'asapR', Y_, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_stdize_row, do_stdize_col, do_degree_correction, normalize_cols, EPS, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
@@ -469,8 +469,8 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #' }
 #'
 #'
-asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, normalize_cols = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_larch', PACKAGE = 'asapR', Y_, max_depth, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_stdize_row, do_stdize_col, normalize_cols, EPS, NUM_THREADS)
+asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, do_degree_correction = FALSE, normalize_cols = FALSE, EPS = 1e-8, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_larch', PACKAGE = 'asapR', Y_, max_depth, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_stdize_row, do_stdize_col, do_degree_correction, normalize_cols, EPS, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

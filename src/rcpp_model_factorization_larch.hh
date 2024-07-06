@@ -118,6 +118,7 @@ private:
             log_aux.row(ii) = softmax.log_row(log_aux.row(ii));
         }
         aux = log_aux.unaryExpr(exp);
+        aux.array().colwise() /= aux.array().rowwise().sum();
     }
 
 public:
@@ -213,7 +214,8 @@ _initialize_stat_random(const factorization_larch_tag,
 
     Mat temp_dl = fact.beta_dl.sample();
     fact.beta_dl.update(temp_dl, Mat::Ones(D, L));
-    Mat temp_nk = fact.theta_nk.sample();
+
+    Mat temp_nk = fact.theta_nk.sample() * 10.0;
     fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
 
     fact.beta_dl.calibrate();
@@ -280,15 +282,33 @@ void
 add_stat_to_row(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
 
     const bool do_stdize = std_.val;
+    const bool do_dc = dc_.val;
 
     using T = typename MODEL::Type;
     using ColVec = typename Eigen::internal::plain_col_type<T>::type;
 
     at_least_one_op<T> at_least_one;
+
+    //////////////////////////////////////////////
+    // Estimation of auxiliary variables (j,k)  //
+    //////////////////////////////////////////////
+
+    if (do_stdize) {
+        fact.logCol_aux_nk =
+            Y_dn.transpose() * fact.beta_dl.log_mean() * fact.A_lk;
+
+        fact.logCol_aux_nk.array().colwise() /=
+            Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
+
+        fact.logCol_aux_nk += fact.theta_nk.log_mean();
+
+        fact._col_factor_aux(false); // must not standardize
+    }
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (i,l)  //
@@ -308,13 +328,43 @@ add_stat_to_row(const factorization_larch_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
-                      Y_dn.rowwise().sum().array())
-                         .matrix(),
-                     ColVec::Ones(fact.D) *
-                         (fact.theta_nk.mean() * fact.A_lk.transpose())
-                             .colwise()
-                             .sum());
+    if (do_dc) {
+
+        if (do_stdize) {
+            fact.beta_dl.add(fact.row_aux_dl.cwiseProduct(
+                                 Y_dn * fact.col_aux_nk *
+                                 fact.A_lk.transpose()),
+                             Y_dn.rowwise().mean() *
+                                 (Y_dn.colwise().mean() * fact.theta_nk.mean() *
+                                  fact.A_lk.transpose()));
+        } else {
+            fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
+                              Y_dn.rowwise().sum().array())
+                                 .matrix(),
+                             Y_dn.rowwise().mean() *
+                                 (Y_dn.colwise().mean() * fact.theta_nk.mean() *
+                                  fact.A_lk.transpose()));
+        }
+
+    } else {
+        if (do_stdize) {
+            fact.beta_dl.add(fact.row_aux_dl.cwiseProduct(
+                                 Y_dn * fact.col_aux_nk *
+                                 fact.A_lk.transpose()),
+                             ColVec::Ones(fact.D) *
+                                 (fact.theta_nk.mean() * fact.A_lk.transpose())
+                                     .colwise()
+                                     .sum());
+        } else {
+            fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
+                              Y_dn.rowwise().sum().array())
+                                 .matrix(),
+                             ColVec::Ones(fact.D) *
+                                 (fact.theta_nk.mean() * fact.A_lk.transpose())
+                                     .colwise()
+                                     .sum());
+        }
+    }
 }
 
 template <typename MODEL, typename Derived>
@@ -322,9 +372,11 @@ void
 add_stat_to_col(const factorization_larch_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
     const bool do_stdize = std_.val;
+    const bool do_dc = dc_.val;
 
     using T = typename MODEL::Type;
     using ColVec = typename Eigen::internal::plain_col_type<T>::type;
@@ -335,22 +387,23 @@ add_stat_to_col(const factorization_larch_tag,
     // Estimation of auxiliary variables (i,l)  //
     //////////////////////////////////////////////
 
-    fact.logRow_aux_dl =
-        Y_dn * fact.theta_nk.log_mean() * fact.A_lk.transpose();
+    if (do_stdize) {
+        fact.logRow_aux_dl =
+            Y_dn * fact.theta_nk.log_mean() * fact.A_lk.transpose();
 
-    fact.logRow_aux_dl.array().colwise() /=
-        Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
+        fact.logRow_aux_dl.array().colwise() /=
+            Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
 
-    fact.logRow_aux_dl += fact.beta_dl.log_mean();
+        fact.logRow_aux_dl += fact.beta_dl.log_mean();
 
-    fact._row_factor_aux(false);
+        fact._row_factor_aux(false); // must not standardize
+    }
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (j,k)  //
     //////////////////////////////////////////////
 
-    fact.logCol_aux_nk = Y_dn.transpose() *
-        fact.row_aux_dl.cwiseProduct(fact.beta_dl.log_mean()) * fact.A_lk;
+    fact.logCol_aux_nk = Y_dn.transpose() * fact.beta_dl.log_mean() * fact.A_lk;
 
     fact.logCol_aux_nk.array().colwise() /=
         Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
@@ -363,10 +416,40 @@ add_stat_to_col(const factorization_larch_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    fact.theta_nk.add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
-                                                   fact.row_aux_dl * fact.A_lk),
-                      ColVec::Ones(fact.N) *
-                          (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
+    if (do_dc) {
+
+        if (do_stdize) {
+            fact.theta_nk.add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
+                                                           fact.row_aux_dl *
+                                                           fact.A_lk),
+                              Y_dn.transpose().rowwise().mean() *
+                                  (Y_dn.transpose().colwise().mean() *
+                                   fact.beta_dl.mean() * fact.A_lk));
+        } else {
+            fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
+                               Y_dn.transpose().rowwise().sum().array())
+                                  .matrix(),
+                              Y_dn.transpose().rowwise().mean() *
+                                  (Y_dn.transpose().colwise().mean() *
+                                   fact.beta_dl.mean() * fact.A_lk));
+        }
+    } else {
+
+        if (do_stdize) {
+            fact.theta_nk
+                .add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
+                                                  fact.row_aux_dl * fact.A_lk),
+                     ColVec::Ones(fact.N) *
+                         (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
+        } else {
+            fact.theta_nk
+                .add((fact.col_aux_nk.array().colwise() *
+                      Y_dn.transpose().rowwise().sum().array())
+                         .matrix(),
+                     ColVec::Ones(fact.N) *
+                         (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
+        }
+    }
 }
 
 #endif

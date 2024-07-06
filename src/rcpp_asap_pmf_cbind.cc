@@ -163,11 +163,11 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
             // a. Update theta based on the current beta
             theta_nk.reset_stat_only();
-            add_stat_to_col(model_dn, y_dn, STD(do_stdize_col));
+            add_stat_to_col(model_dn, y_dn, DO_AUX_STD(do_stdize_col));
             theta_nk.calibrate();
 
             // b. Update beta factors based on the new theta
-            add_stat_to_row(model_dn, y_dn, STD(do_stdize_row));
+            add_stat_to_row(model_dn, y_dn, DO_AUX_STD(do_stdize_row));
         }
 
         beta_dk.calibrate();

@@ -11,8 +11,16 @@ struct STOCH {
     const bool val;
 };
 
-struct STD {
-    explicit STD(const bool v)
+struct DO_AUX_STD {
+    explicit DO_AUX_STD(const bool v)
+        : val(v)
+    {
+    }
+    const bool val;
+};
+
+struct DO_DEGREE_CORRECTION {
+    explicit DO_DEGREE_CORRECTION(const bool v)
         : val(v)
     {
     }
@@ -68,27 +76,69 @@ template <typename MODEL, typename Derived>
 void
 add_stat_to_col(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
-    add_stat_to_col(typename MODEL::tag(), model, Y_dn, std_);
+    add_stat_to_col(typename MODEL::tag(), model, Y_dn, std_, dc_);
 }
 
 template <typename MODEL, typename Derived>
 void
 add_stat_to_row(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
-    add_stat_to_row(typename MODEL::tag(), model, Y_dn, std_);
+    add_stat_to_row(typename MODEL::tag(), model, Y_dn, std_, dc_);
 }
 
 template <typename MODEL, typename Derived>
 void
 add_stat_to_mid(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const STD &std_)
+                const DO_AUX_STD &std_,
+                const DO_DEGREE_CORRECTION &dc_)
 {
-    add_stat_to_mid(typename MODEL::tag(), model, Y_dn, std_);
+    add_stat_to_mid(typename MODEL::tag(), model, Y_dn, std_, dc_);
+}
+
+template <typename MODEL, typename Derived>
+void
+add_stat_to_col(MODEL &model,
+                const Eigen::MatrixBase<Derived> &Y_dn,
+                const DO_AUX_STD &std_)
+{
+    add_stat_to_col(typename MODEL::tag(),
+                    model,
+                    Y_dn,
+                    std_,
+                    DO_DEGREE_CORRECTION(true));
+}
+
+template <typename MODEL, typename Derived>
+void
+add_stat_to_row(MODEL &model,
+                const Eigen::MatrixBase<Derived> &Y_dn,
+                const DO_AUX_STD &std_)
+{
+    add_stat_to_row(typename MODEL::tag(),
+                    model,
+                    Y_dn,
+                    std_,
+                    DO_DEGREE_CORRECTION(true));
+}
+
+template <typename MODEL, typename Derived>
+void
+add_stat_to_mid(MODEL &model,
+                const Eigen::MatrixBase<Derived> &Y_dn,
+                const DO_AUX_STD &std_)
+{
+    add_stat_to_mid(typename MODEL::tag(),
+                    model,
+                    Y_dn,
+                    std_,
+                    DO_DEGREE_CORRECTION(true));
 }
 
 #endif

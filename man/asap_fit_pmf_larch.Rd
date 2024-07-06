@@ -17,6 +17,7 @@ asap_fit_pmf_larch(
   svd_init = FALSE,
   do_stdize_row = FALSE,
   do_stdize_col = TRUE,
+  do_degree_correction = FALSE,
   normalize_cols = FALSE,
   EPS = 1e-08,
   NUM_THREADS = 0L

@@ -985,7 +985,7 @@ struct log_op {
     using Scalar = typename T::Scalar;
     const Scalar operator()(const Scalar &x) const
     {
-        return x < 0. ? 0. : fasterlog(x);
+        return x <= 0. ? 0. : fasterlog(x);
     }
 };
 
