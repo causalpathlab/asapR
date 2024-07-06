@@ -22,6 +22,8 @@ struct factorization_larch_t {
         : beta_dl(_row_dl)
         , theta_nk(_col_nk)
         , A_lk(_A_lk)
+        , W_l(A_lk.transpose().colwise().sum())
+        , V_k(A_lk.colwise().sum())
         , D(beta_dl.rows())
         , N(theta_nk.rows())
         , L(beta_dl.cols())
@@ -40,7 +42,7 @@ struct factorization_larch_t {
         ASSERT(beta_dl.cols() == A_lk.rows(),
                "row factors and A_lk must be compatible");
 
-        randomize_auxiliaries();
+        init();
     }
 
     template <typename Derived>
@@ -52,6 +54,8 @@ struct factorization_larch_t {
         : beta_dl(_row_dl)
         , theta_nk(_col_nk)
         , A_lk(_A_lk)
+        , W_l(A_lk.transpose().colwise().sum())
+        , V_k(A_lk.colwise().sum())
         , D(beta_dl.rows())
         , N(theta_nk.rows())
         , L(beta_dl.cols())
@@ -70,19 +74,26 @@ struct factorization_larch_t {
         ASSERT(beta_dl.cols() == A_lk.rows(),
                "row factors and A_lk must be compatible");
 
-        randomize_auxiliaries();
+        init();
     }
 
+private:
+    void init() { randomize_auxiliaries(); }
+
+public:
     ROW &beta_dl;
     COL &theta_nk;
 
-    Mat A_lk;
+    const Mat A_lk;
+    const RowVec W_l;
+    const RowVec V_k;
 
     const Index D;
     const Index N;
     const Index L;
     const Index K;
 
+public:
     Type logRow_aux_dl;
     Type row_aux_dl;
     Type logCol_aux_nk;
@@ -100,42 +111,50 @@ public:
 private:
     softmax_op_t<Type> softmax;
 
-    template <typename Derived>
-    inline void _normalize_aux_cols(stdizer_t<Derived> &std_log_aux,
-                                    Eigen::MatrixBase<Derived> &log_aux,
-                                    Eigen::MatrixBase<Derived> &aux,
-                                    const bool do_stdize)
+public:
+    void _row_factor_aux(const bool do_stdize)
     {
+
         if (do_stdize) {
-            std_log_aux.colwise();
+            std_log_row_aux_dl.colwise();
         }
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(num_threads)
 #pragma omp for
 #endif
-        for (Index ii = 0; ii < aux.rows(); ++ii) {
-            log_aux.row(ii) = softmax.log_row(log_aux.row(ii));
+        for (Index ii = 0; ii < logRow_aux_dl.rows(); ++ii) {
+            if (do_stdize) {
+                logRow_aux_dl.row(ii) =
+                    softmax.log_row_weighted(logRow_aux_dl.row(ii), W_l);
+            } else {
+                logRow_aux_dl.row(ii) = softmax.log_row(logRow_aux_dl.row(ii));
+            }
         }
-        aux = log_aux.unaryExpr(exp);
-        aux.array().colwise() /= aux.array().rowwise().sum();
-    }
 
-public:
-    void _row_factor_aux(const bool do_stdize)
-    {
-        _normalize_aux_cols(std_log_row_aux_dl,
-                            logRow_aux_dl,
-                            row_aux_dl,
-                            do_stdize);
+        row_aux_dl = logRow_aux_dl.unaryExpr(exp);
     }
 
     void _col_factor_aux(const bool do_stdize)
     {
-        _normalize_aux_cols(std_log_col_aux_nk,
-                            logCol_aux_nk,
-                            col_aux_nk,
-                            do_stdize);
+        if (do_stdize) {
+            std_log_col_aux_nk.colwise();
+        }
+
+#if defined(_OPENMP)
+#pragma omp parallel num_threads(num_threads)
+#pragma omp for
+#endif
+        for (Index jj = 0; jj < logCol_aux_nk.rows(); ++jj) {
+            if (do_stdize) {
+                logCol_aux_nk.row(jj) =
+                    softmax.log_row_weighted(logCol_aux_nk.row(jj), V_k);
+            } else {
+                logCol_aux_nk.row(jj) = softmax.log_row(logCol_aux_nk.row(jj));
+            }
+        }
+
+        col_aux_nk = logCol_aux_nk.unaryExpr(exp);
     }
 
 private:
@@ -291,24 +310,9 @@ add_stat_to_row(const factorization_larch_tag,
 
     using T = typename MODEL::Type;
     using ColVec = typename Eigen::internal::plain_col_type<T>::type;
+    using RowVec = typename Eigen::internal::plain_row_type<T>::type;
 
     at_least_one_op<T> at_least_one;
-
-    //////////////////////////////////////////////
-    // Estimation of auxiliary variables (j,k)  //
-    //////////////////////////////////////////////
-
-    if (do_stdize) {
-        fact.logCol_aux_nk =
-            Y_dn.transpose() * fact.beta_dl.log_mean() * fact.A_lk;
-
-        fact.logCol_aux_nk.array().colwise() /=
-            Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
-
-        fact.logCol_aux_nk += fact.theta_nk.log_mean();
-
-        fact._col_factor_aux(false); // must not standardize
-    }
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (i,l)  //
@@ -320,6 +324,8 @@ add_stat_to_row(const factorization_larch_tag,
     fact.logRow_aux_dl.array().colwise() /=
         Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
 
+    fact.logRow_aux_dl.array().rowwise() /= fact.W_l.array();
+
     fact.logRow_aux_dl += fact.beta_dl.log_mean();
 
     fact._row_factor_aux(do_stdize);
@@ -330,40 +336,24 @@ add_stat_to_row(const factorization_larch_tag,
 
     if (do_dc) {
 
-        if (do_stdize) {
-            fact.beta_dl.add(fact.row_aux_dl.cwiseProduct(
-                                 Y_dn * fact.col_aux_nk *
-                                 fact.A_lk.transpose()),
-                             Y_dn.rowwise().mean() *
-                                 (Y_dn.colwise().mean() * fact.theta_nk.mean() *
-                                  fact.A_lk.transpose()));
-        } else {
-            fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
-                              Y_dn.rowwise().sum().array())
-                                 .matrix(),
-                             Y_dn.rowwise().mean() *
-                                 (Y_dn.colwise().mean() * fact.theta_nk.mean() *
-                                  fact.A_lk.transpose()));
-        }
+        fact.beta_dl.add(((fact.row_aux_dl.array().rowwise() * fact.W_l.array())
+                              .colwise() *
+                          Y_dn.rowwise().sum().array())
+                             .matrix(),
+                         Y_dn.rowwise().mean() *
+                             (Y_dn.colwise().mean() * fact.theta_nk.mean() *
+                              fact.A_lk.transpose()));
 
     } else {
-        if (do_stdize) {
-            fact.beta_dl.add(fact.row_aux_dl.cwiseProduct(
-                                 Y_dn * fact.col_aux_nk *
-                                 fact.A_lk.transpose()),
-                             ColVec::Ones(fact.D) *
-                                 (fact.theta_nk.mean() * fact.A_lk.transpose())
-                                     .colwise()
-                                     .sum());
-        } else {
-            fact.beta_dl.add((fact.row_aux_dl.array().colwise() *
-                              Y_dn.rowwise().sum().array())
-                                 .matrix(),
-                             ColVec::Ones(fact.D) *
-                                 (fact.theta_nk.mean() * fact.A_lk.transpose())
-                                     .colwise()
-                                     .sum());
-        }
+
+        fact.beta_dl.add(((fact.row_aux_dl.array().rowwise() * fact.W_l.array())
+                              .colwise() *
+                          Y_dn.rowwise().sum().array())
+                             .matrix(),
+                         ColVec::Ones(fact.D) *
+                             (fact.theta_nk.mean() * fact.A_lk.transpose())
+                                 .colwise()
+                                 .sum());
     }
 }
 
@@ -394,8 +384,9 @@ add_stat_to_col(const factorization_larch_tag,
         fact.logRow_aux_dl.array().colwise() /=
             Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
 
-        fact.logRow_aux_dl += fact.beta_dl.log_mean();
+        fact.logRow_aux_dl.array().rowwise() /= fact.W_l.array();
 
+        fact.logRow_aux_dl += fact.beta_dl.log_mean();
         fact._row_factor_aux(false); // must not standardize
     }
 
@@ -408,6 +399,8 @@ add_stat_to_col(const factorization_larch_tag,
     fact.logCol_aux_nk.array().colwise() /=
         Y_dn.colwise().sum().transpose().unaryExpr(at_least_one).array();
 
+    fact.logCol_aux_nk.array().rowwise() /= fact.V_k.array();
+
     fact.logCol_aux_nk += fact.theta_nk.log_mean();
 
     fact._col_factor_aux(do_stdize);
@@ -418,37 +411,31 @@ add_stat_to_col(const factorization_larch_tag,
 
     if (do_dc) {
 
-        if (do_stdize) {
-            fact.theta_nk.add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
-                                                           fact.row_aux_dl *
-                                                           fact.A_lk),
-                              Y_dn.transpose().rowwise().mean() *
-                                  (Y_dn.transpose().colwise().mean() *
-                                   fact.beta_dl.mean() * fact.A_lk));
-        } else {
-            fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
-                               Y_dn.transpose().rowwise().sum().array())
-                                  .matrix(),
-                              Y_dn.transpose().rowwise().mean() *
-                                  (Y_dn.transpose().colwise().mean() *
-                                   fact.beta_dl.mean() * fact.A_lk));
-        }
+        // (fact.col_aux_nk
+        //      .cwiseProduct(Y_dn.transpose() * fact.row_aux_dl * fact.A_lk)
+        //      .array()
+        //      .rowwise() *
+        //  fact.V_k.array())
+        //     .matrix();
+
+        fact.theta_nk.add(((fact.col_aux_nk.array().rowwise() *
+                            fact.V_k.array())
+                               .colwise() *
+                           Y_dn.transpose().rowwise().sum().array())
+                              .matrix(),
+                          Y_dn.transpose().rowwise().mean() *
+                              (Y_dn.transpose().colwise().mean() *
+                               fact.beta_dl.mean() * fact.A_lk));
+
     } else {
 
-        if (do_stdize) {
-            fact.theta_nk
-                .add(fact.col_aux_nk.cwiseProduct(Y_dn.transpose() *
-                                                  fact.row_aux_dl * fact.A_lk),
-                     ColVec::Ones(fact.N) *
-                         (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
-        } else {
-            fact.theta_nk
-                .add((fact.col_aux_nk.array().colwise() *
-                      Y_dn.transpose().rowwise().sum().array())
-                         .matrix(),
-                     ColVec::Ones(fact.N) *
-                         (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
-        }
+        fact.theta_nk
+            .add(((fact.col_aux_nk.array().rowwise() * fact.V_k.array())
+                      .colwise() *
+                  Y_dn.transpose().rowwise().sum().array())
+                     .matrix(),
+                 ColVec::Ones(fact.N) *
+                     (fact.beta_dl.mean() * fact.A_lk).colwise().sum());
     }
 }
 

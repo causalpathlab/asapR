@@ -42,7 +42,8 @@ struct softmax_op_t {
         return log_col(logits).unaryExpr(exp_op);
     }
 
-    inline RowVec log_row(Eigen::Ref<const RowVec> logits)
+    template <typename V>
+    inline V _log_V(Eigen::Ref<const V> logits)
     {
         Index K = logits.size();
         Scalar log_denom = logits.coeff(0);
@@ -52,14 +53,42 @@ struct softmax_op_t {
         return (logits.array() - log_denom).eval();
     }
 
+    template <typename V>
+    inline V _log_V_weighted(Eigen::Ref<const V> logits,
+                             Eigen::Ref<const V> weights)
+    {
+        const Scalar max_logits = logits.maxCoeff();
+        const Scalar wse = (logits.array() - max_logits)
+                               .matrix()
+                               .unaryExpr(exp_op)
+                               .cwiseProduct(weights)
+                               .sum();
+
+        const Scalar log_denom = max_logits + fasterlog(wse);
+
+        return (logits.array() - log_denom).eval();
+    }
+
+    inline RowVec log_row(Eigen::Ref<const RowVec> logits)
+    {
+        return _log_V<RowVec>(logits);
+    }
+
+    inline RowVec log_row_weighted(Eigen::Ref<const RowVec> logits,
+                                   Eigen::Ref<const RowVec> weights)
+    {
+        return _log_V_weighted<RowVec>(logits, weights);
+    }
+
     inline ColVec log_col(Eigen::Ref<const ColVec> logits)
     {
-        Index K = logits.size();
-        Scalar log_denom = logits.coeff(0);
-        for (Index k = 1; k < K; ++k) {
-            log_denom = log_sum_exp(log_denom, logits.coeff(k));
-        }
-        return (logits.array() - log_denom).eval();
+        return _log_V<ColVec>(logits);
+    }
+
+    inline ColVec log_col_weighted(Eigen::Ref<const ColVec> logits,
+                                   Eigen::Ref<const ColVec> weights)
+    {
+        return _log_V_weighted<ColVec>(logits, weights);
     }
 
     struct log_sum_exp_t {
@@ -76,8 +105,12 @@ struct softmax_op_t {
     } log_sum_exp;
 
     struct exp_op_t {
-        const Scalar operator()(const Scalar x) const { return fastexp(x); }
+        const Scalar operator()(const Scalar x) const { return fasterexp(x); }
     } exp_op;
+
+    struct log_op_t {
+        const Scalar operator()(const Scalar x) const { return fasterlog(x); }
+    } log_op;
 };
 
 template <typename T, typename RNG>
