@@ -97,7 +97,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     Scalar llik = 0;
     initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
     llik = log_likelihood(model_dn, Y_dn);
-    TLOG_(verbose, "Created the model: " << llik);
+    TLOG_(verbose, "Initialized the model: " << llik);
 
     std::vector<Scalar> llik_trace;
     llik_trace.reserve(max_iter + 1);
@@ -113,16 +113,6 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                     DO_AUX_STD(true),
                     DO_DEGREE_CORRECTION(true));
     theta_nk.calibrate();
-
-    theta_nk.reset_stat_only();
-    add_stat_to_row(model_dn,
-                    Y_dn,
-                    DO_AUX_STD(true),
-                    DO_DEGREE_CORRECTION(true));
-    theta_nk.calibrate();
-
-    llik = log_likelihood(model_dn, Y_dn);
-    TLOG_(verbose, "Initialized the model parameters: " << llik);
 
     for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 

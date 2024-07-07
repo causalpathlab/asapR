@@ -155,18 +155,17 @@ log_likelihood(const factorization_tag,
     typename Mat::Scalar llik = 0;
     typename Mat::Scalar denom = N * D;
 
-    const auto &row_aux_dk = fact.row_aux_dk;
-    const auto &col_aux_nk = fact.col_aux_nk;
-    const auto &beta_dk = fact.beta_dk;
-    const auto &theta_nk = fact.theta_nk;
-
-    llik +=
-        (row_aux_dk.cwiseProduct(beta_dk.log_mean()).transpose() * Y_dn).sum() /
+    llik += (fact.row_aux_dk.cwiseProduct(fact.beta_dk.log_mean()).transpose() *
+             Y_dn)
+                .sum() /
         denom;
 
-    llik += (Y_dn * col_aux_nk.cwiseProduct(theta_nk.log_mean())).sum() / denom;
+    llik +=
+        (Y_dn * fact.col_aux_nk.cwiseProduct(fact.theta_nk.log_mean())).sum() /
+        denom;
 
-    llik -= (beta_dk.mean() * theta_nk.mean().transpose()).sum() / denom;
+    llik -=
+        (fact.beta_dk.mean() * fact.theta_nk.mean().transpose()).sum() / denom;
 
     return llik;
 }

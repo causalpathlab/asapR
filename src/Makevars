@@ -8,8 +8,8 @@
 CXX_STD = CXX17
 WARN = -Wno-ignored-attributes -Wno-unused-function -Wno-unused-const-variable -Wno-pointer-arith -Wno-unused-result -Wno-unused-but-set-variable -Wno-unused-local-typedefs -Wno-sign-compare -Wno-maybe-uninitialized -Wno-unused-variable
 
-DEBUG = -DDEBUG -DEIGEN_DEBUG -O0 -g
-## DEBUG = -DEIGEN_NO_DEBUG -O3 
+## DEBUG = -DDEBUG -DEIGEN_DEBUG -O0 -g
+DEBUG = -DEIGEN_NO_DEBUG -O3 
 PKG_CFLAGS += $(SHLIB_OPENMP_CFLAGS) $(SHLIB_OPENMP_CXXFLAGS) -I. $(WARN) $(DEBUG)
 PKG_CXXFLAGS += $(SHLIB_OPENMP_CFLAGS) $(SHLIB_OPENMP_CXXFLAGS) -I. $(WARN) $(DEBUG)
 PKG_LIBS += -lm -lz -L. $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS) $(SHLIB_OPENMP_CFLAGS) $(SHLIB_OPENMP_CXXFLAGS)
