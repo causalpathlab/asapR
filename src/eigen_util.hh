@@ -1014,12 +1014,22 @@ struct log1p_op {
 };
 
 template <typename T>
-struct log_op {
+struct safe_log_op {
     using Scalar = typename T::Scalar;
+
+    explicit safe_log_op(const Scalar _min_val)
+        : min_val(_min_val)
+        , min_log_val(fasterlog(min_val))
+    {
+    }
+
     const Scalar operator()(const Scalar &x) const
     {
-        return x <= 0. ? 0. : fasterlog(x);
+        return x <= min_val ? min_log_val : fasterlog(x);
     }
+
+    const Scalar min_val;
+    const Scalar min_log_val;
 };
 
 template <typename T>

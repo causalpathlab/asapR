@@ -152,16 +152,15 @@ log_likelihood(const factorization_tag,
     const auto D = fact.D;
     const auto N = fact.N;
     const auto K = fact.K;
-    typename Mat::Scalar llik = 0;
-    typename Mat::Scalar denom = N * D;
+    typename MODEL::Type::Scalar llik = 0;
+    typename MODEL::Type::Scalar denom = N * D;
 
-    llik += (fact.row_aux_dk.cwiseProduct(fact.beta_dk.log_mean()).transpose() *
-             Y_dn)
+    safe_log_op<typename MODEL::Type> safe_log(1e-8);
+
+    llik += Y_dn.cwiseProduct(fact.beta_dk.mean() *
+                              fact.theta_nk.mean().transpose())
+                .unaryExpr(safe_log)
                 .sum() /
-        denom;
-
-    llik +=
-        (Y_dn * fact.col_aux_nk.cwiseProduct(fact.theta_nk.log_mean())).sum() /
         denom;
 
     llik -=
@@ -192,10 +191,12 @@ _initialize_stat_random(const factorization_tag,
 
     Mat temp_dk = fact.beta_dk.sample();
     fact.beta_dk.update(temp_dk, Mat::Ones(D, K));
-    Mat temp_nk = fact.theta_nk.sample();
-    fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
-
     fact.beta_dk.calibrate();
+
+    // Mat temp_nk = fact.theta_nk.sample();
+    // fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
+
+    fact.theta_nk.reset_stat_only();
     fact.theta_nk.calibrate();
 }
 

@@ -28,13 +28,13 @@ struct factorization_larch_t {
         , N(theta_nk.rows())
         , L(beta_dl.cols())
         , K(theta_nk.cols())
-        , logRow_aux_dl(D, L)
-        , row_aux_dl(D, L)
+        // , logRow_aux_dl(D, L)
+        // , row_aux_dl(D, L)
         , logRow_aux_dk(D, K)
         , row_aux_dk(D, K)
         , logCol_aux_nk(N, K)
         , col_aux_nk(N, K)
-        , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
+        // , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , rng(rseed.val)
@@ -45,7 +45,7 @@ struct factorization_larch_t {
         ASSERT(beta_dl.cols() == A_lk.rows(),
                "row factors and A_lk must be compatible");
 
-        init();
+        randomize_auxiliaries();
     }
 
     template <typename Derived>
@@ -63,13 +63,13 @@ struct factorization_larch_t {
         , N(theta_nk.rows())
         , L(beta_dl.cols())
         , K(theta_nk.cols())
-        , logRow_aux_dl(D, L)
-        , row_aux_dl(D, L)
+        // , logRow_aux_dl(D, L)
+        // , row_aux_dl(D, L)
         , logRow_aux_dk(D, K)
         , row_aux_dk(D, K)
         , logCol_aux_nk(N, K)
         , col_aux_nk(N, K)
-        , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
+        // , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , rng(rseed.val)
@@ -80,11 +80,8 @@ struct factorization_larch_t {
         ASSERT(beta_dl.cols() == A_lk.rows(),
                "row factors and A_lk must be compatible");
 
-        init();
+        randomize_auxiliaries();
     }
-
-private:
-    void init() { randomize_auxiliaries(); }
 
 public:
     ROW &beta_dl;
@@ -100,14 +97,14 @@ public:
     const Index K;
 
 public:
-    Type logRow_aux_dl;
-    Type row_aux_dl;
+    // Type logRow_aux_dl;
+    // Type row_aux_dl;
     Type logRow_aux_dk;
     Type row_aux_dk;
     Type logCol_aux_nk;
     Type col_aux_nk;
 
-    stdizer_t<Type> std_log_row_aux_dl;
+    // stdizer_t<Type> std_log_row_aux_dl;
     stdizer_t<Type> std_log_row_aux_dk;
     stdizer_t<Type> std_log_col_aux_nk;
 
@@ -125,7 +122,7 @@ public:
     {
 
         if (do_stdize) {
-            std_log_row_aux_dl.colwise();
+            // std_log_row_aux_dl.colwise();
             std_log_row_aux_dk.colwise();
         }
 
@@ -133,18 +130,18 @@ public:
 #pragma omp parallel num_threads(num_threads)
 #pragma omp for
 #endif
-        for (Index ii = 0; ii < logRow_aux_dk.rows(); ++ii) {
+        for (Index ii = 0; ii < D; ++ii) {
             if (do_stdize) {
-                logRow_aux_dl.row(ii) = softmax.log_row(logRow_aux_dl.row(ii));
+                // logRow_aux_dl.row(ii) = softmax.log_row(logRow_aux_dl.row(ii));
                 logRow_aux_dk.row(ii) = softmax.log_row(logRow_aux_dk.row(ii));
             } else {
-                logRow_aux_dl.row(ii) =
-                    softmax.log_row_weighted(logRow_aux_dl.row(ii), W_l);
+                // logRow_aux_dl.row(ii) =
+                //     softmax.log_row_weighted(logRow_aux_dl.row(ii), W_l);
                 logRow_aux_dk.row(ii) =
                     softmax.log_row_weighted(logRow_aux_dk.row(ii), V_k);
             }
         }
-        row_aux_dl = logRow_aux_dl.unaryExpr(exp);
+        // row_aux_dl = logRow_aux_dl.unaryExpr(exp);
         row_aux_dk = logRow_aux_dk.unaryExpr(exp);
     }
 
@@ -158,7 +155,7 @@ public:
 #pragma omp parallel num_threads(num_threads)
 #pragma omp for
 #endif
-        for (Index jj = 0; jj < logCol_aux_nk.rows(); ++jj) {
+        for (Index jj = 0; jj < N; ++jj) {
             if (do_stdize) {
                 logCol_aux_nk.row(jj) =
                     softmax.log_row_weighted(logCol_aux_nk.row(jj), V_k);
@@ -173,17 +170,23 @@ public:
 private:
     void randomize_auxiliaries()
     {
-        logRow_aux_dl = Type::Random(D, L);
-        for (Index ii = 0; ii < D; ++ii) {
-            row_aux_dl.row(ii) = softmax.apply_row(logRow_aux_dl.row(ii));
-        }
+        // logRow_aux_dl = Type::Random(D, L);
+        // std_log_row_aux_dl.colwise();
+
+        // for (Index ii = 0; ii < D; ++ii) {
+        //     row_aux_dl.row(ii) = softmax.apply_row(logRow_aux_dl.row(ii));
+        // }
 
         logRow_aux_dk = Type::Random(D, K);
+        std_log_row_aux_dk.colwise();
+
         for (Index ii = 0; ii < D; ++ii) {
             row_aux_dk.row(ii) = softmax.apply_row(logRow_aux_dk.row(ii));
         }
 
         logCol_aux_nk = Type::Random(N, K);
+        std_log_col_aux_nk.colwise();
+
         for (Index jj = 0; jj < N; ++jj) {
             col_aux_nk.row(jj) = softmax.apply_row(logCol_aux_nk.row(jj));
         }
@@ -204,16 +207,15 @@ log_likelihood(const factorization_larch_tag,
     const auto D = fact.D;
     const auto N = fact.N;
     const auto K = fact.K;
-    typename Mat::Scalar llik = 0;
-    typename Mat::Scalar denom = N * D;
+    typename MODEL::Type::Scalar llik = 0;
+    typename MODEL::Type::Scalar denom = N * D;
 
-    llik += (Y_dn.transpose() *
-             fact.row_aux_dl.cwiseProduct(fact.beta_dl.log_mean()) * fact.A_lk)
+    safe_log_op<typename MODEL::Type> safe_log(1e-8);
+
+    llik += Y_dn.cwiseProduct(fact.beta_dl.mean() * fact.A_lk *
+                              fact.theta_nk.mean().transpose())
+                .unaryExpr(safe_log)
                 .sum() /
-        denom;
-
-    llik +=
-        (Y_dn * fact.col_aux_nk.cwiseProduct(fact.theta_nk.log_mean())).sum() /
         denom;
 
     llik -= (fact.beta_dl.mean() * fact.A_lk * fact.theta_nk.mean().transpose())
@@ -246,11 +248,9 @@ _initialize_stat_random(const factorization_larch_tag,
 
     Mat temp_dl = fact.beta_dl.sample();
     fact.beta_dl.update(temp_dl, Mat::Ones(D, L));
-
-    Mat temp_nk = fact.theta_nk.sample() * 10.0;
-    fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
-
     fact.beta_dl.calibrate();
+
+    fact.theta_nk.reset_stat_only();
     fact.theta_nk.calibrate();
 }
 
@@ -278,20 +278,18 @@ _initialize_stat_svd(const factorization_larch_tag,
                .unaryExpr(clamp_);
 
     const std::size_t lu_iter = 5;
-    RandomizedSVD<Derived> svd(K, lu_iter);
+    RandomizedSVD<Derived> svd(L, lu_iter);
     svd.compute(yy);
 
     {
-        T temp_dl = fact.beta_dl.sample();
-        fact.beta_dl.update(temp_dl, Mat::Ones(D, L));
-    }
-    {
-        T a = svd.matrixV().unaryExpr(at_least_zero);
-        T b = T::Ones(N, K) / static_cast<Scalar>(N);
-        fact.theta_nk.update(a, b);
+        T a = svd.matrixU().unaryExpr(at_least_zero);
+        T b = T::Ones(D, L);
+        fact.beta_dl.update(a, b);
     }
 
     fact.beta_dl.calibrate();
+
+    fact.theta_nk.reset_stat_only();
     fact.theta_nk.calibrate();
 }
 
@@ -331,26 +329,24 @@ add_stat_to_row(const factorization_larch_tag,
     // Estimation of auxiliary variables (i,l)  //
     //////////////////////////////////////////////
 
-    fact.logRow_aux_dl =
-        (((Y_dn * fact.theta_nk.log_mean() * fact.A_lk.transpose())
-              .array()
-              .colwise() /
-          Y_dn.rowwise().sum().unaryExpr(at_least_one).array())
-             .rowwise() /
-         fact.W_l.array())
-            .matrix();
+    // fact.logRow_aux_dl =
+    //     Y_dn * fact.theta_nk.log_mean() * fact.A_lk.transpose();
 
-    fact.logRow_aux_dl += fact.beta_dl.log_mean();
+    // fact.logRow_aux_dl.array().colwise() /=
+    //     Y_dn.rowwise().sum().unaryExpr(at_least_one).array();
 
-    fact._row_factor_aux(do_stdize);
+    // fact.logRow_aux_dl.array().rowwise() /= fact.W_l.array();
+
+    // fact.logRow_aux_dl += fact.beta_dl.log_mean();
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (i,k)  //
     //////////////////////////////////////////////
 
-    fact.logRow_aux_dk = ((Y_dn * fact.theta_nk.log_mean()).array().colwise() /
-                          Y_dn.rowwise().sum().unaryExpr(at_least_one).array())
-                             .matrix();
+    fact.logRow_aux_dk =
+        ((Y_dn * fact.theta_nk.log_mean()).array().colwise() /
+         (Y_dn.rowwise().sum().unaryExpr(at_least_one).array()))
+            .matrix();
 
     fact.logRow_aux_dk +=
         ((fact.beta_dl.log_mean() * fact.A_lk).array().rowwise() /

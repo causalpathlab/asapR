@@ -70,7 +70,7 @@ stretch_matrix_columns(const Eigen::MatrixXf Y,
         ret.array() += pseudo_count;
     }
 
-    log_op<Mat> log;
+    safe_log_op<Mat> log(1e-8);
     exp_op<Mat> exp;
     ret = ret.unaryExpr(log).eval();
     stdizer_t<Mat> std(ret);

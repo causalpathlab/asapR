@@ -85,7 +85,6 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
 
     const Mat A_lk = rcpp::util::pbt_dep_adj(max_depth);
     const std::size_t L = A_lk.rows(), K = A_lk.cols();
-    // A_lk.array() += 1.0 / static_cast<Scalar>(L * K);
 
     RNG rng(rseed);
 
@@ -103,25 +102,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     llik_trace.reserve(max_iter + 1);
     llik_trace.emplace_back(llik);
 
-    ////////////////////////////////
-    // break in the model fitting //
-    ////////////////////////////////
-
-    theta_nk.reset_stat_only();
-    add_stat_to_col(model_dn,
-                    Y_dn,
-                    DO_AUX_STD(true),
-                    DO_DEGREE_CORRECTION(true));
-    theta_nk.calibrate();
-
     for (std::size_t tt = 0; tt < (max_iter); ++tt) {
-
-        beta_dl.reset_stat_only();
-        add_stat_to_row(model_dn,
-                        Y_dn,
-                        DO_AUX_STD(do_stdize_row),
-                        DO_DEGREE_CORRECTION(do_degree_correction));
-        beta_dl.calibrate();
 
         theta_nk.reset_stat_only();
         add_stat_to_col(model_dn,
@@ -129,6 +110,13 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                         DO_AUX_STD(do_stdize_col),
                         DO_DEGREE_CORRECTION(do_degree_correction));
         theta_nk.calibrate();
+
+        beta_dl.reset_stat_only();
+        add_stat_to_row(model_dn,
+                        Y_dn,
+                        DO_AUX_STD(do_stdize_row),
+                        DO_DEGREE_CORRECTION(do_degree_correction));
+        beta_dl.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);
 
