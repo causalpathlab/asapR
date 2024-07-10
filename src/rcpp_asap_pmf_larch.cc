@@ -86,8 +86,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     const Mat A_lk = rcpp::util::pbt_dep_adj(max_depth);
     const std::size_t L = A_lk.rows(), K = A_lk.cols();
 
-    const bool do_stdize_row = N >= D;
-    const bool do_stdize_col = D >= N;
+    const bool do_stdize_row = (N > D), do_stdize_col = (D >= N);
 
     RNG rng(rseed);
 

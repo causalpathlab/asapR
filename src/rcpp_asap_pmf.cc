@@ -77,8 +77,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     const std::size_t D = Y_dn.rows(), N = Y_dn.cols();
     const std::size_t K = std::min(std::min(maxK, N), D);
 
-    const bool do_stdize_row = N >= D;
-    const bool do_stdize_col = D >= N;
+    const bool do_stdize_row = (N > D), do_stdize_col = (D >= N);
 
     RNG rng(rseed);
     gamma_t beta_dk(D, K, a0, b0, rng);

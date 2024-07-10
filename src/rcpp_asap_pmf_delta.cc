@@ -87,8 +87,7 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
                         << "this data:" << y_dn.rows());
     }
 
-    const bool do_stdize_row = N >= D;
-    const bool do_stdize_col = D >= N;
+    const bool do_stdize_row = (N > D), do_stdize_col = (D >= N);
 
     using ref_model_t = factorization_t<gamma_t, gamma_t, RNG>;
     using delta_model_t = factorization_delta_t<gamma_t, gamma_t, RNG>;
