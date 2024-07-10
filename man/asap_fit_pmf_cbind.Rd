@@ -17,6 +17,7 @@ asap_fit_pmf_cbind(
   do_stdize_col = TRUE,
   rseed = 1337L,
   EPS = 1e-08,
+  jitter = 1,
   NUM_THREADS = 0L
 )
 }
@@ -38,6 +39,8 @@ asap_fit_pmf_cbind(
 \item{rseed}{random seed (default: 1337)}
 
 \item{EPS}{(default: 1e-8)}
+
+\item{jitter}{(default: 1)}
 
 \item{min_iter}{min number of optimization steps}
 }

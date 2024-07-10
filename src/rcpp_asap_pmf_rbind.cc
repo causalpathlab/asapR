@@ -1,7 +1,10 @@
 #include "rcpp_asap_pmf_rbind.hh"
 
 //' A quick PMF estimation based on alternating Poisson regressions
-//' while sharing a factor loading/topic proportion matrix
+//' while sharing a factor loading/topic proportion matrix while
+//' concatenating the rows of data matrices
+//'
+//' Each Y(t) ~ beta(t) * theta
 //'
 //' @param y_dn_vec a list of non-negative data matrices (gene x sample)
 //' @param maxK maximum number of factors
@@ -13,6 +16,7 @@
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param EPS (default: 1e-8)
+//' @param jitter (default: 1)
 //'
 //' @return a list that contains:
 //'  \itemize{
@@ -39,6 +43,7 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const bool do_stdize_col = true,
                    const std::size_t rseed = 1337,
                    const double EPS = 1e-8,
+                   const double jitter = 1.0,
                    const std::size_t NUM_THREADS = 0)
 {
     const std::size_t nthreads =
@@ -91,8 +96,7 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     gamma_t theta_nk(N, K, a0, b0, rng);
 
     {
-        Mat temp_nk = theta_nk.sample();
-        theta_nk.update(temp_nk, Mat::Ones(N, K));
+        theta_nk.reset_stat_only();
         theta_nk.calibrate();
     }
 
@@ -107,6 +111,7 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     std::vector<std::shared_ptr<model_t>> model_dn_ptr_vec;
     for (auto beta_dk_ptr : beta_dk_ptr_vec) {
         gamma_t &beta_dk = *beta_dk_ptr.get();
+
         model_dn_ptr_vec.emplace_back(
             std::make_shared<model_t>(beta_dk,
                                       theta_nk,
@@ -124,7 +129,7 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
         const std::size_t d = y_dn.rows();
         const Mat temp_dk = Mat::NullaryExpr(d, K, rnorm);
         exp_op<Mat> exp;
-        beta_dk.update(temp_dk.unaryExpr(exp), Mat::Ones(d, K));
+        beta_dk.update(temp_dk.unaryExpr(exp) * jitter, Mat::Ones(d, K));
         beta_dk.calibrate();
     }
 
@@ -156,13 +161,14 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
             gamma_t &beta_dk = *beta_dk_ptr_vec[m].get();
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
 
-            // a. Update beta factors based on the new theta
+            // a. Update theta based on the current beta
+            add_stat_to_col(model_dn, y_dn, DO_AUX_STD(do_stdize_col));
+            theta_nk.calibrate();
+
+            // b. Update beta factors based on the new theta
             beta_dk.reset_stat_only();
             add_stat_to_row(model_dn, y_dn, DO_AUX_STD(do_stdize_row));
             beta_dk.calibrate();
-
-            // b. Update theta based on the current beta
-            add_stat_to_col(model_dn, y_dn, DO_AUX_STD(do_stdize_col));
         }
 
         theta_nk.calibrate();

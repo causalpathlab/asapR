@@ -1,4 +1,4 @@
-#include "rcpp_asap_pmf_struct.hh"
+#include "rcpp_asap_pmf_larch.hh"
 #include "rcpp_util_struct.hh"
 
 //' A quick PMF estimation based on alternating Poisson regressions
@@ -15,6 +15,7 @@
 //' @param rseed random seed (default: 1337)
 //' @param svd_init initialize by SVD (default: FALSE)
 //' @param EPS (default: 1e-8)
+//' @param jitter (default: 1.0)
 //'
 //' @return a list that contains:
 //'  \itemize{
@@ -39,11 +40,10 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
                    const bool do_log1p = false,
                    const std::size_t rseed = 1337,
                    const bool svd_init = false,
-                   const bool do_stdize_row = false,
-                   const bool do_stdize_col = true,
                    const bool do_degree_correction = false,
                    const bool normalize_cols = false,
                    const double EPS = 1e-8,
+                   const double jitter = 1.0,
                    const std::size_t NUM_THREADS = 0)
 {
     const std::size_t nthreads =
@@ -86,6 +86,9 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     const Mat A_lk = rcpp::util::pbt_dep_adj(max_depth);
     const std::size_t L = A_lk.rows(), K = A_lk.cols();
 
+    const bool do_stdize_row = N >= D;
+    const bool do_stdize_col = D >= N;
+
     RNG rng(rseed);
 
     gamma_t beta_dl(D, L, a0, b0, rng);
@@ -94,7 +97,7 @@ asap_fit_pmf_larch(const Eigen::MatrixXf Y_,
     model_t model_dn(beta_dl, theta_nk, A_lk, RSEED(rseed), NThreads(nthreads));
 
     Scalar llik = 0;
-    initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
+    initialize_stat(model_dn, Y_dn, DO_SVD(svd_init), jitter);
     llik = log_likelihood(model_dn, Y_dn);
     TLOG_(verbose, "Initialized the model: " << llik);
 

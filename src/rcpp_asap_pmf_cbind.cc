@@ -17,6 +17,7 @@
 //' @param do_log1p do log(1+y) transformation
 //' @param rseed random seed (default: 1337)
 //' @param EPS (default: 1e-8)
+//' @param jitter (default: 1)
 //'
 //' @return a list that contains:
 //'  \itemize{
@@ -43,6 +44,7 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const bool do_stdize_col = true,
                    const std::size_t rseed = 1337,
                    const double EPS = 1e-8,
+                   const double jitter = 1,
                    const std::size_t NUM_THREADS = 0)
 {
     const std::size_t nthreads =
@@ -130,7 +132,7 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
         const std::size_t n = y_dn.cols();
         const Mat temp_nk = Mat::NullaryExpr(n, K, rnorm);
         exp_op<Mat> exp;
-        theta_nk.update(temp_nk.unaryExpr(exp), Mat::Ones(n, K));
+        theta_nk.update(temp_nk.unaryExpr(exp) * jitter, Mat::Ones(n, K));
         theta_nk.calibrate();
     }
 
@@ -168,6 +170,7 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
 
             // b. Update beta factors based on the new theta
             add_stat_to_row(model_dn, y_dn, DO_AUX_STD(do_stdize_row));
+            beta_dk.calibrate();
         }
 
         beta_dk.calibrate();

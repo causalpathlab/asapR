@@ -5,6 +5,6 @@
 #include "rcpp_model_common.hh"
 #include "rcpp_model_factorization_larch.hh"
 
-#ifndef RCPP_ASAP_PMF_STRUCT_HH_
-#define RCPP_ASAP_PMF_STRUCT_HH_
+#ifndef RCPP_ASAP_PMF_LARCH_HH_
+#define RCPP_ASAP_PMF_LARCH_HH_
 #endif

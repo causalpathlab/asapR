@@ -14,6 +14,7 @@
 //' @param rseed random seed (default: 1337)
 //' @param svd_init initialize by SVD (default: FALSE)
 //' @param EPS (default: 1e-8)
+//' @param jitter (default: 0.1)
 //'
 //' @return a list that contains:
 //'  \itemize{
@@ -38,11 +39,10 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
              const bool do_log1p = false,
              const std::size_t rseed = 1337,
              const bool svd_init = false,
-             const bool do_stdize_row = false,
-             const bool do_stdize_col = true,
              const bool do_degree_correction = false,
              const bool normalize_cols = false,
              const double EPS = 1e-8,
+             const double jitter = 1.0,
              const std::size_t NUM_THREADS = 0)
 {
     const std::size_t nthreads =
@@ -76,15 +76,18 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
     const std::size_t D = Y_dn.rows(), N = Y_dn.cols();
     const std::size_t K = std::min(std::min(maxK, N), D);
-    RNG rng(rseed);
 
+    const bool do_stdize_row = N >= D;
+    const bool do_stdize_col = D >= N;
+
+    RNG rng(rseed);
     gamma_t beta_dk(D, K, a0, b0, rng);
     gamma_t theta_nk(N, K, a0, b0, rng);
 
     model_t model_dn(beta_dk, theta_nk, RSEED(rseed), NThreads(nthreads));
 
     Scalar llik = 0;
-    initialize_stat(model_dn, Y_dn, DO_SVD { svd_init });
+    initialize_stat(model_dn, Y_dn, DO_SVD(svd_init), jitter);
     llik = log_likelihood(model_dn, Y_dn);
     TLOG_(verbose, "Finished initialization: " << llik);
 

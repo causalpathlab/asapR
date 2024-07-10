@@ -15,11 +15,10 @@ asap_fit_pmf_larch(
   do_log1p = FALSE,
   rseed = 1337L,
   svd_init = FALSE,
-  do_stdize_row = FALSE,
-  do_stdize_col = TRUE,
   do_degree_correction = FALSE,
   normalize_cols = FALSE,
   EPS = 1e-08,
+  jitter = 1,
   NUM_THREADS = 0L
 )
 }
@@ -45,6 +44,8 @@ asap_fit_pmf_larch(
 \item{normalize_cols}{normalize columns by col_norm (default: FALSE)}
 
 \item{EPS}{(default: 1e-8)}
+
+\item{jitter}{(default: 1.0)}
 }
 \value{
 a list that contains:

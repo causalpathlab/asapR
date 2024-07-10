@@ -72,13 +72,10 @@ struct factorization_t {
     stdizer_t<Type> std_log_row_aux_dk;
     stdizer_t<Type> std_log_col_aux_nk;
 
-private:
     RNG rng;
 
-public:
     const std::size_t num_threads;
 
-private:
     softmax_op_t<Type> softmax;
 
     template <typename Derived>
@@ -106,7 +103,6 @@ private:
         aux.array().colwise() /= aux.array().rowwise().sum();
     }
 
-public:
     void _row_factor_aux(const bool do_stdize)
     {
         _normalize_aux_cols(std_log_row_aux_dk,
@@ -123,7 +119,6 @@ public:
                             do_stdize);
     }
 
-private:
     void randomize_auxiliaries()
     {
         logRow_aux_dk = Type::Random(D, K);
@@ -137,7 +132,6 @@ private:
         }
     }
 
-private:
     exp_op<Type> exp;
     log1p_op<Type> log1p;
 };
@@ -173,13 +167,15 @@ template <typename MODEL, typename Derived>
 void initialize_stat(const factorization_tag,
                      MODEL &fact,
                      const Eigen::MatrixBase<Derived> &Y_dn,
-                     const DO_SVD &do_svd);
+                     const DO_SVD &do_svd,
+                     const typename MODEL::Scalar jitter);
 
 template <typename MODEL, typename Derived>
 void
 _initialize_stat_random(const factorization_tag,
                         MODEL &fact,
-                        const Eigen::MatrixBase<Derived> &Y_dn)
+                        const Eigen::MatrixBase<Derived> &Y_dn,
+                        const typename MODEL::Scalar jitter)
 {
     using Mat = typename MODEL::Type;
     using Index = typename Mat::Index;
@@ -189,7 +185,14 @@ _initialize_stat_random(const factorization_tag,
     const Index N = fact.N;
     const Index K = fact.K;
 
-    Mat temp_dk = fact.beta_dk.sample();
+    // auto &rng = fact.rng;
+    // auto &exp = fact.exp;
+    // using norm_dist_t = boost::random::normal_distribution<Scalar>;
+    // norm_dist_t norm_dist(0., 1.);
+    // auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
+    // Mat temp_dk = Mat::NullaryExpr(D, K, rnorm).unaryExpr(exp) * jitter;
+
+    Mat temp_dk = fact.beta_dk.sample() * jitter;
     fact.beta_dk.update(temp_dk, Mat::Ones(D, K));
     fact.beta_dk.calibrate();
 
@@ -204,7 +207,8 @@ template <typename MODEL, typename Derived>
 void
 _initialize_stat_svd(const factorization_tag,
                      MODEL &fact,
-                     const Eigen::MatrixBase<Derived> &Y_dn)
+                     const Eigen::MatrixBase<Derived> &Y_dn,
+                     const typename MODEL::Scalar jitter)
 {
     using T = typename MODEL::Type;
     using Index = typename T::Index;
@@ -227,12 +231,12 @@ _initialize_stat_svd(const factorization_tag,
     svd.compute(yy);
 
     {
-        T a = svd.matrixU().unaryExpr(at_least_zero);
+        T a = svd.matrixU().unaryExpr(at_least_zero) * jitter;
         T b = T::Ones(D, K) / static_cast<Scalar>(D);
         fact.beta_dk.update(a, b);
     }
     {
-        T a = svd.matrixV().unaryExpr(at_least_zero);
+        T a = svd.matrixV().unaryExpr(at_least_zero) * jitter;
         T b = T::Ones(N, K) / static_cast<Scalar>(N);
         fact.theta_nk.update(a, b);
     }
@@ -246,12 +250,13 @@ void
 initialize_stat(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_SVD &do_svd)
+                const DO_SVD &do_svd,
+                const typename MODEL::Scalar jitter)
 {
     if (do_svd.val) {
-        _initialize_stat_svd(factorization_tag(), fact, Y_dn);
+        _initialize_stat_svd(factorization_tag(), fact, Y_dn, jitter);
     } else {
-        _initialize_stat_random(factorization_tag(), fact, Y_dn);
+        _initialize_stat_random(factorization_tag(), fact, Y_dn, jitter);
     }
 }
 

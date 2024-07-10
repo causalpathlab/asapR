@@ -67,9 +67,10 @@ template <typename MODEL, typename Derived>
 void
 initialize_stat(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_SVD &do_svd)
+                const DO_SVD &do_svd,
+		const typename MODEL::Scalar jitter = 1.0)
 {
-    initialize_stat(typename MODEL::tag(), model, Y_dn, do_svd);
+  initialize_stat(typename MODEL::tag(), model, Y_dn, do_svd, jitter);
 }
 
 template <typename MODEL, typename Derived>
