@@ -89,8 +89,8 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
 
     const bool do_stdize_row = (N > D), do_stdize_col = (D >= N);
 
-    using ref_model_t = factorization_t<gamma_t, gamma_t, RNG>;
-    using delta_model_t = factorization_delta_t<gamma_t, gamma_t, RNG>;
+    using ref_model_t = factorization_t<gamma_t, gamma_t>;
+    using delta_model_t = factorization_delta_t<gamma_t, gamma_t>;
 
     RNG rng(rseed);
 
@@ -104,10 +104,7 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
     gamma_t theta_nk(N, K, a0, b0, rng);
     gamma_t beta_dk(D, K, a0, b0, rng);
 
-    ref_model_t ref_model_dn(beta_dk,
-                             theta_nk,
-                             RSEED(rseed),
-                             NThreads(nthreads));
+    ref_model_t ref_model_dn(beta_dk, theta_nk, NThreads(nthreads));
 
     initialize_stat(ref_model_dn, Yref_dn, DO_SVD(svd_init), jitter);
 
@@ -137,7 +134,6 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
             std::make_shared<delta_model_t>(beta_dk,
                                             delta_dk,
                                             theta_nk,
-                                            RSEED(rseed),
                                             NThreads(nthreads)));
     }
 

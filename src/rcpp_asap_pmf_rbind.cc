@@ -39,8 +39,6 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const double a0 = 1,
                    const double b0 = 1,
                    const bool do_log1p = false,
-                   const bool do_stdize_row = false,
-                   const bool do_stdize_col = true,
                    const std::size_t rseed = 1337,
                    const double EPS = 1e-8,
                    const double jitter = 1.0,
@@ -62,7 +60,7 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
 
     std::size_t K = maxK;
 
-    Index N = 0;
+    Index N = 0, Dmax = 0;
     for (const Eigen::MatrixXf &y_dn : y_dn_vec) {
         TLOG_(verbose, "Y: " << y_dn.rows() << " x " << y_dn.cols());
 
@@ -74,9 +72,12 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                             << "the previous data: " << N << " vs. "
                             << "this data:" << y_dn.cols());
         }
+        Dmax = std::max(Dmax, y_dn.rows());
     }
 
-    using model_t = factorization_t<gamma_t, gamma_t, RNG>;
+    const bool do_stdize_row = (N > Dmax), do_stdize_col = (Dmax >= N);
+
+    using model_t = factorization_t<gamma_t, gamma_t>;
 
     RNG rng(rseed);
 
@@ -113,23 +114,15 @@ asap_fit_pmf_rbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
         gamma_t &beta_dk = *beta_dk_ptr.get();
 
         model_dn_ptr_vec.emplace_back(
-            std::make_shared<model_t>(beta_dk,
-                                      theta_nk,
-                                      RSEED(rseed),
-                                      NThreads(nthreads)));
+            std::make_shared<model_t>(beta_dk, theta_nk, NThreads(nthreads)));
     }
-
-    using norm_dist_t = boost::random::normal_distribution<Scalar>;
-    norm_dist_t norm_dist(0., 1.);
-    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
 
     for (std::size_t m = 0; m < M; ++m) {
         gamma_t &beta_dk = *beta_dk_ptr_vec[m].get();
         const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
         const std::size_t d = y_dn.rows();
-        const Mat temp_dk = Mat::NullaryExpr(d, K, rnorm);
-        exp_op<Mat> exp;
-        beta_dk.update(temp_dk.unaryExpr(exp) * jitter, Mat::Ones(d, K));
+        const Mat temp_dk = beta_dk.sample() * jitter;
+        beta_dk.update(temp_dk, Mat::Ones(d, K));
         beta_dk.calibrate();
     }
 

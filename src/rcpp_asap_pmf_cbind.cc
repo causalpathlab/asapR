@@ -40,8 +40,6 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                    const double a0 = 1,
                    const double b0 = 1,
                    const bool do_log1p = false,
-                   const bool do_stdize_row = false,
-                   const bool do_stdize_col = true,
                    const std::size_t rseed = 1337,
                    const double EPS = 1e-8,
                    const double jitter = 1,
@@ -62,7 +60,7 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     TLOG_(verbose, "Found " << M << " data matrices.");
 
     std::size_t K = maxK;
-    Index D = 0;
+    Index D = 0, Nmax = 0;
     for (const Eigen::MatrixXf &y_dn : y_dn_vec) {
 
         TLOG_(verbose, "Y: " << y_dn.rows() << " x " << y_dn.cols());
@@ -77,9 +75,12 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
                             << "the previous data: " << D << " vs. "
                             << "this data:" << y_dn.rows());
         }
+        Nmax = std::max(Nmax, y_dn.cols());
     }
 
-    using model_t = factorization_t<gamma_t, gamma_t, RNG>;
+    const bool do_stdize_row = (Nmax > D), do_stdize_col = (D >= Nmax);
+
+    using model_t = factorization_t<gamma_t, gamma_t>;
 
     RNG rng(rseed);
 
@@ -98,12 +99,6 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
 
     gamma_t beta_dk(D, K, a0, b0, rng);
 
-    {
-        Mat temp_dk = beta_dk.sample();
-        beta_dk.update(temp_dk, Mat::Ones(D, K));
-        beta_dk.calibrate();
-    }
-
     std::vector<std::shared_ptr<gamma_t>> theta_nk_ptr_vec;
     for (const Eigen::MatrixXf &y : y_dn_vec) {
         const std::size_t n = y.cols();
@@ -115,24 +110,16 @@ asap_fit_pmf_cbind(const std::vector<Eigen::MatrixXf> y_dn_vec,
     for (auto theta_nk_ptr : theta_nk_ptr_vec) {
         gamma_t &theta_nk = *theta_nk_ptr.get();
         model_dn_ptr_vec.emplace_back(
-            std::make_shared<model_t>(beta_dk,
-                                      theta_nk,
-                                      RSEED(rseed),
-                                      NThreads(nthreads)));
+            std::make_shared<model_t>(beta_dk, theta_nk, NThreads(nthreads)));
     }
-
-    using norm_dist_t = boost::random::normal_distribution<Scalar>;
-    norm_dist_t norm_dist(0., 1.);
-    auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
 
     for (std::size_t m = 0; m < M; ++m) {
         model_t &model_dn = *model_dn_ptr_vec[m].get();
         gamma_t &theta_nk = *theta_nk_ptr_vec[m].get();
         const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
         const std::size_t n = y_dn.cols();
-        const Mat temp_nk = Mat::NullaryExpr(n, K, rnorm);
-        exp_op<Mat> exp;
-        theta_nk.update(temp_nk.unaryExpr(exp) * jitter, Mat::Ones(n, K));
+        const Mat temp_nk = theta_nk.sample() * jitter;
+        theta_nk.update(temp_nk, Mat::Ones(n, K));
         theta_nk.calibrate();
     }
 

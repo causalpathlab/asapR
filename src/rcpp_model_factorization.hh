@@ -3,7 +3,7 @@
 
 struct factorization_tag { };
 
-template <typename ROW, typename COL, typename RNG>
+template <typename ROW, typename COL>
 struct factorization_t {
 
     using Type = typename ROW::Type;
@@ -11,33 +11,14 @@ struct factorization_t {
     using Scalar = typename Type::Scalar;
     using RowVec = typename Eigen::internal::plain_row_type<Type>::type;
 
-    using RNG_TYPE = RNG;
     using tag = factorization_tag;
 
-    explicit factorization_t(ROW &_row_dk, COL &_col_nk, const RSEED &rseed)
-        : beta_dk(_row_dk)
-        , theta_nk(_col_nk)
-        , D(beta_dk.rows())
-        , N(theta_nk.rows())
-        , K(beta_dk.cols())
-        , logRow_aux_dk(D, K)
-        , row_aux_dk(D, K)
-        , logCol_aux_nk(N, K)
-        , col_aux_nk(N, K)
-        , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
-        , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
-        , rng(rseed.val)
-        , num_threads(1)
+    explicit factorization_t(ROW &_row_dk, COL &_col_nk)
+        : factorization_t(_row_dk, _col_nk, NThreads(1))
     {
-        ASSERT(theta_nk.cols() == beta_dk.cols(),
-               "row and col factors must have the same # columns");
-        randomize_auxiliaries();
     }
 
-    explicit factorization_t(ROW &_row_dk,
-                             COL &_col_nk,
-                             const RSEED &rseed,
-                             const NThreads &nthr)
+    explicit factorization_t(ROW &_row_dk, COL &_col_nk, const NThreads &nthr)
         : beta_dk(_row_dk)
         , theta_nk(_col_nk)
         , D(beta_dk.rows())
@@ -49,7 +30,6 @@ struct factorization_t {
         , col_aux_nk(N, K)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
-        , rng(rseed.val)
         , num_threads(nthr.val)
     {
         ASSERT(theta_nk.cols() == beta_dk.cols(),
@@ -71,8 +51,6 @@ struct factorization_t {
 
     stdizer_t<Type> std_log_row_aux_dk;
     stdizer_t<Type> std_log_col_aux_nk;
-
-    RNG rng;
 
     const std::size_t num_threads;
 
@@ -151,14 +129,14 @@ log_likelihood(const factorization_tag,
 
     safe_log_op<typename MODEL::Type> safe_log(1e-8);
 
-    llik += Y_dn.cwiseProduct(fact.beta_dk.mean() *
-                              fact.theta_nk.mean().transpose())
-                .unaryExpr(safe_log)
-                .sum() /
-        denom;
+    llik += (Y_dn.cwiseProduct(
+                     (fact.beta_dk.mean() * fact.theta_nk.mean().transpose())
+                         .unaryExpr(safe_log))
+                 .sum() /
+             denom);
 
-    llik -=
-        (fact.beta_dk.mean() * fact.theta_nk.mean().transpose()).sum() / denom;
+    llik -= ((fact.beta_dk.mean() * fact.theta_nk.mean().transpose()).sum() /
+             denom);
 
     return llik;
 }
@@ -185,19 +163,9 @@ _initialize_stat_random(const factorization_tag,
     const Index N = fact.N;
     const Index K = fact.K;
 
-    // auto &rng = fact.rng;
-    // auto &exp = fact.exp;
-    // using norm_dist_t = boost::random::normal_distribution<Scalar>;
-    // norm_dist_t norm_dist(0., 1.);
-    // auto rnorm = [&rng, &norm_dist]() -> Scalar { return norm_dist(rng); };
-    // Mat temp_dk = Mat::NullaryExpr(D, K, rnorm).unaryExpr(exp) * jitter;
-
     Mat temp_dk = fact.beta_dk.sample() * jitter;
     fact.beta_dk.update(temp_dk, Mat::Ones(D, K));
     fact.beta_dk.calibrate();
-
-    // Mat temp_nk = fact.theta_nk.sample();
-    // fact.theta_nk.update(temp_nk, Mat::Ones(N, K));
 
     fact.theta_nk.reset_stat_only();
     fact.theta_nk.calibrate();

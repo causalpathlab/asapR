@@ -3,7 +3,7 @@
 
 struct factorization_larch_tag { };
 
-template <typename ROW, typename COL, typename RNG>
+template <typename ROW, typename COL>
 struct factorization_larch_t {
 
     using Type = typename ROW::Type;
@@ -11,48 +11,12 @@ struct factorization_larch_t {
     using Scalar = typename Type::Scalar;
     using RowVec = typename Eigen::internal::plain_row_type<Type>::type;
 
-    using RNG_TYPE = RNG;
     using tag = factorization_larch_tag;
 
     template <typename Derived>
     explicit factorization_larch_t(ROW &_row_dl,
                                    COL &_col_nk,
                                    const Eigen::MatrixBase<Derived> &_A_lk,
-                                   const RSEED &rseed)
-        : beta_dl(_row_dl)
-        , theta_nk(_col_nk)
-        , A_lk(_A_lk)
-        , W_l(A_lk.transpose().colwise().sum())
-        , V_k(A_lk.colwise().sum())
-        , D(beta_dl.rows())
-        , N(theta_nk.rows())
-        , L(beta_dl.cols())
-        , K(theta_nk.cols())
-        // , logRow_aux_dl(D, L)
-        // , row_aux_dl(D, L)
-        , logRow_aux_dk(D, K)
-        , row_aux_dk(D, K)
-        , logCol_aux_nk(N, K)
-        , col_aux_nk(N, K)
-        // , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
-        , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
-        , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
-        , rng(rseed.val)
-        , num_threads(1)
-    {
-        ASSERT(theta_nk.cols() == A_lk.cols(),
-               "col factors and A_lk must have the same number of columns");
-        ASSERT(beta_dl.cols() == A_lk.rows(),
-               "row factors and A_lk must be compatible");
-
-        randomize_auxiliaries();
-    }
-
-    template <typename Derived>
-    explicit factorization_larch_t(ROW &_row_dl,
-                                   COL &_col_nk,
-                                   const Eigen::MatrixBase<Derived> &_A_lk,
-                                   const RSEED &rseed,
                                    const NThreads &nthr)
         : beta_dl(_row_dl)
         , theta_nk(_col_nk)
@@ -72,7 +36,6 @@ struct factorization_larch_t {
         // , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
-        , rng(rseed.val)
         , num_threads(nthr.val)
     {
         ASSERT(theta_nk.cols() == A_lk.cols(),
@@ -81,6 +44,14 @@ struct factorization_larch_t {
                "row factors and A_lk must be compatible");
 
         randomize_auxiliaries();
+    }
+
+    template <typename Derived>
+    explicit factorization_larch_t(ROW &_row_dl,
+                                   COL &_col_nk,
+                                   const Eigen::MatrixBase<Derived> &_A_lk)
+        : factorization_larch_t(_row_dl, _col_nk, _A_lk, NThreads(1))
+    {
     }
 
     ROW &beta_dl;
@@ -105,8 +76,6 @@ struct factorization_larch_t {
     // stdizer_t<Type> std_log_row_aux_dl;
     stdizer_t<Type> std_log_row_aux_dk;
     stdizer_t<Type> std_log_col_aux_nk;
-
-    RNG rng;
 
     const std::size_t num_threads;
 
@@ -204,15 +173,16 @@ log_likelihood(const factorization_larch_tag,
 
     safe_log_op<typename MODEL::Type> safe_log(1e-8);
 
-    llik += Y_dn.cwiseProduct(fact.beta_dl.mean() * fact.A_lk *
-                              fact.theta_nk.mean().transpose())
-                .unaryExpr(safe_log)
-                .sum() /
-        denom;
+    llik += (Y_dn.cwiseProduct((fact.beta_dl.mean() * fact.A_lk *
+                                fact.theta_nk.mean().transpose())
+                                   .unaryExpr(safe_log))
+                 .sum() /
+             denom);
 
-    llik -= (fact.beta_dl.mean() * fact.A_lk * fact.theta_nk.mean().transpose())
-                .sum() /
-        denom;
+    llik -=
+        ((fact.beta_dl.mean() * fact.A_lk * fact.theta_nk.mean().transpose())
+             .sum() /
+         denom);
 
     return llik;
 }

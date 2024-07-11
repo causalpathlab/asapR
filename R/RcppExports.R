@@ -410,8 +410,8 @@ asap_fit_pmf <- function(Y_, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 =
 #' }
 #'
 #'
-asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, rseed = 1337L, EPS = 1e-8, jitter = 1, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, do_stdize_row, do_stdize_col, rseed, EPS, jitter, NUM_THREADS)
+asap_fit_pmf_cbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, jitter = 1, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_cbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, EPS, jitter, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
@@ -484,6 +484,43 @@ asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions
+#' across multiple matrices with the same dimensionality
+#'
+#' @param X_ reference data matrix (feature x sample)
+#' @param y_dn_vec a list of non-negative data matrices (feature x sample)
+#' @param maxK maximum number of factors
+#' @param max_iter max number of optimization steps
+#' @param min_iter min number of optimization steps
+#' @param verbose verbosity
+#' @param a0 gamma(a0, b0) default: a0 = 1
+#' @param b0 gamma(a0, b0) default: b0 = 1
+#' @param normalize_cols normalize columns by col_norm (default: FALSE)
+#' @param do_log1p do log(1+y) transformation
+#' @param rseed random seed (default: 1337)
+#' @param svd_init initialize by SVD (default: FALSE)
+#' @param EPS (default: 1e-8)
+#' @param jitter (default: 1)
+#'
+#' @return a list that contains:
+#'  \itemize{
+#'   \item log.likelihood log-likelihood trace
+#'   \item theta loading (sample x factor)
+#'   \item log.theta log-loading (sample x factor)
+#'   \item log.theta.sd sd(log-loading) (sample x factor)
+#'   \item beta dictionary (gene x factor)
+#'   \item log.beta log dictionary (gene x factor)
+#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
+#'   \item delta a list of dictionary matrices (gene x factor)
+#'   \item log.delta a list of log dictionary (gene x factor)
+#'   \item log.delta.sd a list of standard deviations (gene x factor)
+#' }
+#'
+#'
+asap_fit_pmf_linking <- function(X_, y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_degree_correction = FALSE, normalize_cols = FALSE, EPS = 1e-8, jitter = 1.0, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_linking', PACKAGE = 'asapR', X_, y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_degree_correction, normalize_cols, EPS, jitter, NUM_THREADS)
+}
+
+#' A quick PMF estimation based on alternating Poisson regressions
 #' while sharing a factor loading/topic proportion matrix while
 #' concatenating the rows of data matrices
 #'
@@ -513,8 +550,8 @@ asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a
 #' }
 #'
 #'
-asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, do_stdize_row = FALSE, do_stdize_col = TRUE, rseed = 1337L, EPS = 1e-8, jitter = 1.0, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, do_stdize_row, do_stdize_col, rseed, EPS, jitter, NUM_THREADS)
+asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, EPS = 1e-8, jitter = 1.0, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_rbind', PACKAGE = 'asapR', y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, EPS, jitter, NUM_THREADS)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

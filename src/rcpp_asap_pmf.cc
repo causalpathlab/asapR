@@ -53,7 +53,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
 
     using RNG = dqrng::xoshiro256plus;
     using gamma_t = gamma_param_t<Eigen::MatrixXf, RNG>;
-    using model_t = factorization_t<gamma_t, gamma_t, RNG>;
+    using model_t = factorization_t<gamma_t, gamma_t>;
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
 
     exp_op<Mat> exp;
@@ -83,7 +83,7 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     gamma_t beta_dk(D, K, a0, b0, rng);
     gamma_t theta_nk(N, K, a0, b0, rng);
 
-    model_t model_dn(beta_dk, theta_nk, RSEED(rseed), NThreads(nthreads));
+    model_t model_dn(beta_dk, theta_nk, NThreads(nthreads));
 
     Scalar llik = 0;
     initialize_stat(model_dn, Y_dn, DO_SVD(svd_init), jitter);

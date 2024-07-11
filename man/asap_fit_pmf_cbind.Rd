@@ -13,8 +13,6 @@ asap_fit_pmf_cbind(
   a0 = 1,
   b0 = 1,
   do_log1p = FALSE,
-  do_stdize_row = FALSE,
-  do_stdize_col = TRUE,
   rseed = 1337L,
   EPS = 1e-08,
   jitter = 1,
