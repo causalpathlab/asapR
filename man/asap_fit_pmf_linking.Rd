@@ -17,16 +17,15 @@ asap_fit_pmf_linking(
   rseed = 1337L,
   svd_init = FALSE,
   do_degree_correction = FALSE,
-  normalize_cols = FALSE,
   EPS = 1e-08,
   jitter = 1,
   NUM_THREADS = 0L
 )
 }
 \arguments{
-\item{X_}{reference data matrix (feature x sample)}
+\item{X_}{global data matrix (global feature x sample)}
 
-\item{y_dn_vec}{a list of non-negative data matrices (feature x sample)}
+\item{y_dn_vec}{a list of non-negative data matrices (local feature x sample)}
 
 \item{maxK}{maximum number of factors}
 
@@ -44,13 +43,13 @@ asap_fit_pmf_linking(
 
 \item{svd_init}{initialize by SVD (default: FALSE)}
 
-\item{normalize_cols}{normalize columns by col_norm (default: FALSE)}
-
 \item{EPS}{(default: 1e-8)}
 
 \item{jitter}{(default: 1)}
 
 \item{min_iter}{min number of optimization steps}
+
+\item{normalize_cols}{normalize columns by col_norm (default: FALSE)}
 }
 \value{
 a list that contains:
@@ -59,12 +58,12 @@ a list that contains:
 \item theta loading (sample x factor)
 \item log.theta log-loading (sample x factor)
 \item log.theta.sd sd(log-loading) (sample x factor)
-\item beta dictionary (gene x factor)
-\item log.beta log dictionary (gene x factor)
-\item log.beta.sd sd(log-dictionary) (gene x factor)
-\item delta a list of dictionary matrices (gene x factor)
-\item log.delta a list of log dictionary (gene x factor)
-\item log.delta.sd a list of standard deviations (gene x factor)
+\item beta dictionary (global feature x factor)
+\item log.beta log dictionary (global feature x factor)
+\item log.beta.sd sd(log-dictionary) (global feature x factor)
+\item alpha a list of dictionary matrices (local feature\link{t} x global feature)
+\item log.alpha a list of log dictionary (local feature\link{t} x global feature)
+\item log.alpha.sd a list of standard deviations (local feature\link{t} x global feature)
 }
 }
 \description{

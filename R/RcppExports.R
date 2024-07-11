@@ -486,8 +486,8 @@ asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a
 #' A quick PMF estimation based on alternating Poisson regressions
 #' across multiple matrices with the same dimensionality
 #'
-#' @param X_ reference data matrix (feature x sample)
-#' @param y_dn_vec a list of non-negative data matrices (feature x sample)
+#' @param X_ global data matrix (global feature x sample)
+#' @param y_dn_vec a list of non-negative data matrices (local feature x sample)
 #' @param maxK maximum number of factors
 #' @param max_iter max number of optimization steps
 #' @param min_iter min number of optimization steps
@@ -507,17 +507,17 @@ asap_fit_pmf_larch <- function(Y_, max_depth, max_iter = 100L, verbose = TRUE, a
 #'   \item theta loading (sample x factor)
 #'   \item log.theta log-loading (sample x factor)
 #'   \item log.theta.sd sd(log-loading) (sample x factor)
-#'   \item beta dictionary (gene x factor)
-#'   \item log.beta log dictionary (gene x factor)
-#'   \item log.beta.sd sd(log-dictionary) (gene x factor)
-#'   \item delta a list of dictionary matrices (gene x factor)
-#'   \item log.delta a list of log dictionary (gene x factor)
-#'   \item log.delta.sd a list of standard deviations (gene x factor)
+#'   \item beta dictionary (global feature x factor)
+#'   \item log.beta log dictionary (global feature x factor)
+#'   \item log.beta.sd sd(log-dictionary) (global feature x factor)
+#'   \item alpha a list of dictionary matrices (local feature[t] x global feature)
+#'   \item log.alpha a list of log dictionary (local feature[t] x global feature)
+#'   \item log.alpha.sd a list of standard deviations (local feature[t] x global feature)
 #' }
 #'
 #'
-asap_fit_pmf_linking <- function(X_, y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_degree_correction = FALSE, normalize_cols = FALSE, EPS = 1e-8, jitter = 1.0, NUM_THREADS = 0L) {
-    .Call('_asapR_asap_fit_pmf_linking', PACKAGE = 'asapR', X_, y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_degree_correction, normalize_cols, EPS, jitter, NUM_THREADS)
+asap_fit_pmf_linking <- function(X_, y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, a0 = 1, b0 = 1, do_log1p = FALSE, rseed = 1337L, svd_init = FALSE, do_degree_correction = FALSE, EPS = 1e-8, jitter = 1.0, NUM_THREADS = 0L) {
+    .Call('_asapR_asap_fit_pmf_linking', PACKAGE = 'asapR', X_, y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_degree_correction, EPS, jitter, NUM_THREADS)
 }
 
 #' A quick PMF estimation based on alternating Poisson regressions

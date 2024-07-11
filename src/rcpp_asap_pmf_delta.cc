@@ -156,17 +156,27 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
 
     for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 
-        ///////////////////////////////////////////
-        // Add matrix data to each model's stats //
-        ///////////////////////////////////////////
+        //////////////////
+        // global model //
+        //////////////////
 
         theta_nk.reset_stat_only();
-        add_stat_to_col(ref_model_dn, Yref_dn, DO_AUX_STD(do_stdize_col));
+        add_stat_to_col(ref_model_dn,
+                        Yref_dn,
+                        DO_AUX_STD(do_stdize_col),
+                        DO_DEGREE_CORRECTION(do_degree_correction));
         theta_nk.calibrate();
 
         beta_dk.reset_stat_only();
-        add_stat_to_row(ref_model_dn, Yref_dn, DO_AUX_STD(do_stdize_row));
+        add_stat_to_row(ref_model_dn,
+                        Yref_dn,
+                        DO_AUX_STD(do_stdize_row),
+                        DO_DEGREE_CORRECTION(do_degree_correction));
         beta_dk.calibrate();
+
+        ///////////////////////////////////////////
+        // Add matrix data to each model's stats //
+        ///////////////////////////////////////////
 
         for (std::size_t m = 0; m < M; ++m) {
             delta_model_t &delta_model_dn = *delta_model_dn_ptr_vec[m].get();
@@ -174,12 +184,18 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
 
             // a. Update theta based on the current beta and delta
-            add_stat_to_col(delta_model_dn, y_dn, DO_AUX_STD(do_stdize_col));
+            add_stat_to_col(delta_model_dn,
+                            y_dn,
+                            DO_AUX_STD(do_stdize_col),
+                            DO_DEGREE_CORRECTION(do_degree_correction));
             theta_nk.calibrate();
 
             // b. Update delta and beta factors based on the new theta
             delta_dk.reset_stat_only();
-            add_stat_to_row(delta_model_dn, y_dn, DO_AUX_STD(do_stdize_row));
+            add_stat_to_row(delta_model_dn,
+                            y_dn,
+                            DO_AUX_STD(do_stdize_row),
+                            DO_DEGREE_CORRECTION(do_degree_correction));
             delta_dk.calibrate();
             beta_dk.calibrate();
         }
@@ -188,13 +204,13 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
         theta_nk.calibrate();
 
         llik = log_likelihood(ref_model_dn, Yref_dn);
-        TLOG_(verbose, "Reference data:  " << llik);
+        // TLOG_(verbose, "Reference data:  " << llik);
 
         for (std::size_t m = 0; m < M; ++m) {
             delta_model_t &delta_model_dn = *delta_model_dn_ptr_vec[m].get();
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
             const Scalar _llik = log_likelihood(delta_model_dn, y_dn);
-            TLOG_(verbose, "Delta data [" << m << "]:  " << _llik);
+            // TLOG_(verbose, "Delta data [" << m << "]:  " << _llik);
             llik += _llik;
         }
 
@@ -204,7 +220,7 @@ asap_fit_pmf_delta(const Eigen::MatrixXf y_ref,
                   std::abs(llik + EPS)) :
                  llik);
 
-        TLOG_(verbose, "Total [ " << tt << " ] " << llik << ", " << diff);
+        TLOG_(verbose, "Delta [ " << tt << " ] " << llik << ", " << diff);
 
         llik_trace.emplace_back(llik);
 

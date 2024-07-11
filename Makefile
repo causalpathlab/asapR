@@ -6,6 +6,11 @@ HDR := $(wildcard src/*.hh)
 
 all: $(PKG)_$(VER).tar.gz
 
+build:
+	R -e "Rcpp::compileAttributes(verbose=TRUE)"
+	R -e "usethis::use_roxygen_md(); roxygen2md::roxygen2md(); devtools::document()"
+	R CMD build . --no-build-vignettes
+
 clean:
 	rm -f src/*.o src/*.so
 	rm -f $(PKG)_$(VER).tar.gz

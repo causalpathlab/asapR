@@ -376,8 +376,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // asap_fit_pmf_linking
-Rcpp::List asap_fit_pmf_linking(const Eigen::MatrixXf X_, const std::vector<Eigen::MatrixXf> y_dn_vec, const std::size_t maxK, const std::size_t max_iter, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const bool do_degree_correction, const bool normalize_cols, const double EPS, const double jitter, const std::size_t NUM_THREADS);
-RcppExport SEXP _asapR_asap_fit_pmf_linking(SEXP X_SEXP, SEXP y_dn_vecSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP do_degree_correctionSEXP, SEXP normalize_colsSEXP, SEXP EPSSEXP, SEXP jitterSEXP, SEXP NUM_THREADSSEXP) {
+Rcpp::List asap_fit_pmf_linking(const Eigen::MatrixXf X_, const std::vector<Eigen::MatrixXf> y_dn_vec, const std::size_t maxK, const std::size_t max_iter, const bool verbose, const double a0, const double b0, const bool do_log1p, const std::size_t rseed, const bool svd_init, const bool do_degree_correction, const double EPS, const double jitter, const std::size_t NUM_THREADS);
+RcppExport SEXP _asapR_asap_fit_pmf_linking(SEXP X_SEXP, SEXP y_dn_vecSEXP, SEXP maxKSEXP, SEXP max_iterSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP do_log1pSEXP, SEXP rseedSEXP, SEXP svd_initSEXP, SEXP do_degree_correctionSEXP, SEXP EPSSEXP, SEXP jitterSEXP, SEXP NUM_THREADSSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -392,11 +392,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::size_t >::type rseed(rseedSEXP);
     Rcpp::traits::input_parameter< const bool >::type svd_init(svd_initSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_degree_correction(do_degree_correctionSEXP);
-    Rcpp::traits::input_parameter< const bool >::type normalize_cols(normalize_colsSEXP);
     Rcpp::traits::input_parameter< const double >::type EPS(EPSSEXP);
     Rcpp::traits::input_parameter< const double >::type jitter(jitterSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_fit_pmf_linking(X_, y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_degree_correction, normalize_cols, EPS, jitter, NUM_THREADS));
+    rcpp_result_gen = Rcpp::wrap(asap_fit_pmf_linking(X_, y_dn_vec, maxK, max_iter, verbose, a0, b0, do_log1p, rseed, svd_init, do_degree_correction, EPS, jitter, NUM_THREADS));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -848,7 +847,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_pmf_cbind", (DL_FUNC) &_asapR_asap_fit_pmf_cbind, 11},
     {"_asapR_asap_fit_pmf_delta", (DL_FUNC) &_asapR_asap_fit_pmf_delta, 15},
     {"_asapR_asap_fit_pmf_larch", (DL_FUNC) &_asapR_asap_fit_pmf_larch, 14},
-    {"_asapR_asap_fit_pmf_linking", (DL_FUNC) &_asapR_asap_fit_pmf_linking, 15},
+    {"_asapR_asap_fit_pmf_linking", (DL_FUNC) &_asapR_asap_fit_pmf_linking, 14},
     {"_asapR_asap_fit_pmf_rbind", (DL_FUNC) &_asapR_asap_fit_pmf_rbind, 11},
     {"_asapR_asap_topic_pmf", (DL_FUNC) &_asapR_asap_topic_pmf, 9},
     {"_asapR_asap_pmf_stat", (DL_FUNC) &_asapR_asap_pmf_stat, 10},
