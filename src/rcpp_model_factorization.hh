@@ -10,6 +10,7 @@ struct factorization_t {
     using Index = typename Type::Index;
     using Scalar = typename Type::Scalar;
     using RowVec = typename Eigen::internal::plain_row_type<Type>::type;
+    using ColVec = typename Eigen::internal::plain_col_type<Type>::type;
 
     using tag = factorization_tag;
 
@@ -24,6 +25,8 @@ struct factorization_t {
         , D(beta_dk.rows())
         , N(theta_nk.rows())
         , K(beta_dk.cols())
+        , row_degree_d(D)
+        , col_degree_n(N)
         , logRow_aux_dk(D, K)
         , row_aux_dk(D, K)
         , logCol_aux_nk(N, K)
@@ -35,6 +38,8 @@ struct factorization_t {
         ASSERT(theta_nk.cols() == beta_dk.cols(),
                "row and col factors must have the same # columns");
         randomize_auxiliaries();
+        row_degree_d.setOnes();
+        col_degree_n.setOnes();
     }
 
     ROW &beta_dk;
@@ -43,6 +48,9 @@ struct factorization_t {
     const Index D;
     const Index N;
     const Index K;
+
+    ColVec row_degree_d;
+    ColVec col_degree_n;
 
     Type logRow_aux_dk;
     Type row_aux_dk;
@@ -130,12 +138,16 @@ log_likelihood(const factorization_tag,
     safe_log_op<typename MODEL::Type> safe_log(1e-8);
 
     llik += (Y_dn.cwiseProduct(
-                     (fact.beta_dk.mean() * fact.theta_nk.mean().transpose())
+                     (fact.row_degree_d.asDiagonal() * fact.beta_dk.mean() *
+                      (fact.col_degree_n.asDiagonal() * fact.theta_nk.mean())
+                          .transpose())
                          .unaryExpr(safe_log))
                  .sum() /
              denom);
 
-    llik -= ((fact.beta_dk.mean() * fact.theta_nk.mean().transpose()).sum() /
+    llik -= ((fact.row_degree_d.transpose() * fact.beta_dk.mean() *
+              fact.theta_nk.mean().transpose() * fact.col_degree_n)
+                 .sum() /
              denom);
 
     return llik;
@@ -146,6 +158,7 @@ void initialize_stat(const factorization_tag,
                      MODEL &fact,
                      const Eigen::MatrixBase<Derived> &Y_dn,
                      const DO_SVD &do_svd,
+                     const DO_DEGREE_CORRECTION &do_dc,
                      const typename MODEL::Scalar jitter);
 
 template <typename MODEL, typename Derived>
@@ -219,12 +232,21 @@ initialize_stat(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_SVD &do_svd,
+                const DO_DEGREE_CORRECTION &do_dc,
                 const typename MODEL::Scalar jitter)
 {
     if (do_svd.val) {
         _initialize_stat_svd(factorization_tag(), fact, Y_dn, jitter);
     } else {
         _initialize_stat_random(factorization_tag(), fact, Y_dn, jitter);
+    }
+
+    if (do_dc.val) {
+        fact.row_degree_d = Y_dn.rowwise().mean();
+        fact.col_degree_n = Y_dn.transpose().rowwise().mean();
+    } else {
+        fact.row_degree_d.setOnes();
+        fact.col_degree_n.setOnes();
     }
 }
 
@@ -233,8 +255,7 @@ void
 add_stat_to_col(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_AUX_STD &std_,
-                const DO_DEGREE_CORRECTION &dc_)
+                const DO_AUX_STD &std_)
 {
     const bool do_stdize = std_.val;
 
@@ -258,20 +279,10 @@ add_stat_to_col(const factorization_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    if (dc_.val) {
-        fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
-                           Y_dn.transpose().rowwise().sum().array())
-                              .matrix(),
-                          Y_dn.transpose().rowwise().mean() *
-                              (Y_dn.rowwise().mean().transpose() *
-                               fact.beta_dk.mean()));
-    } else {
-        fact.theta_nk.add((fact.col_aux_nk.array().colwise() *
-                           Y_dn.transpose().rowwise().sum().array())
-                              .matrix(),
-                          ColVec::Ones(fact.N) *
-                              fact.beta_dk.mean().colwise().sum());
-    }
+    fact.theta_nk.add(Y_dn.colwise().sum().asDiagonal() * fact.col_aux_nk,
+                      fact.col_degree_n *
+                          (fact.row_degree_d.transpose() *
+                           fact.beta_dk.mean()));
 }
 
 template <typename MODEL, typename Derived>
@@ -279,8 +290,7 @@ void
 add_stat_to_row(const factorization_tag,
                 MODEL &fact,
                 const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_AUX_STD &std_,
-                const DO_DEGREE_CORRECTION &dc_)
+                const DO_AUX_STD &std_)
 {
 
     const bool do_stdize = std_.val;
@@ -305,19 +315,10 @@ add_stat_to_row(const factorization_tag,
     // Accumulate statistics //
     ///////////////////////////
 
-    if (dc_.val) {
-        fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
-                          Y_dn.rowwise().sum().array())
-                             .matrix(),
-                         Y_dn.rowwise().mean() *
-                             (Y_dn.colwise().mean() * fact.theta_nk.mean()));
-    } else {
-        fact.beta_dk.add((fact.row_aux_dk.array().colwise() *
-                          Y_dn.rowwise().sum().array())
-                             .matrix(),
-                         ColVec::Ones(fact.D) *
-                             fact.theta_nk.mean().colwise().sum());
-    }
+    fact.beta_dk.add(Y_dn.rowwise().sum().asDiagonal() * fact.row_aux_dk,
+                     fact.row_degree_d *
+                         (fact.col_degree_n.transpose() *
+                          fact.theta_nk.mean()));
 }
 
 #endif

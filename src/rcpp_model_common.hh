@@ -68,39 +68,10 @@ void
 initialize_stat(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_SVD &do_svd,
+                const DO_DEGREE_CORRECTION &do_dc,
                 const typename MODEL::Scalar jitter = 1.0)
 {
-    initialize_stat(typename MODEL::tag(), model, Y_dn, do_svd, jitter);
-}
-
-template <typename MODEL, typename Derived>
-void
-add_stat_to_col(MODEL &model,
-                const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_AUX_STD &std_,
-                const DO_DEGREE_CORRECTION &dc_)
-{
-    add_stat_to_col(typename MODEL::tag(), model, Y_dn, std_, dc_);
-}
-
-template <typename MODEL, typename Derived>
-void
-add_stat_to_row(MODEL &model,
-                const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_AUX_STD &std_,
-                const DO_DEGREE_CORRECTION &dc_)
-{
-    add_stat_to_row(typename MODEL::tag(), model, Y_dn, std_, dc_);
-}
-
-template <typename MODEL, typename Derived>
-void
-add_stat_to_mid(MODEL &model,
-                const Eigen::MatrixBase<Derived> &Y_dn,
-                const DO_AUX_STD &std_,
-                const DO_DEGREE_CORRECTION &dc_)
-{
-    add_stat_to_mid(typename MODEL::tag(), model, Y_dn, std_, dc_);
+    initialize_stat(typename MODEL::tag(), model, Y_dn, do_svd, do_dc, jitter);
 }
 
 template <typename MODEL, typename Derived>
@@ -109,11 +80,7 @@ add_stat_to_col(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_AUX_STD &std_)
 {
-    add_stat_to_col(typename MODEL::tag(),
-                    model,
-                    Y_dn,
-                    std_,
-                    DO_DEGREE_CORRECTION(false));
+    add_stat_to_col(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 template <typename MODEL, typename Derived>
@@ -122,11 +89,7 @@ add_stat_to_row(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_AUX_STD &std_)
 {
-    add_stat_to_row(typename MODEL::tag(),
-                    model,
-                    Y_dn,
-                    std_,
-                    DO_DEGREE_CORRECTION(false));
+    add_stat_to_row(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 template <typename MODEL, typename Derived>
@@ -135,11 +98,7 @@ add_stat_to_mid(MODEL &model,
                 const Eigen::MatrixBase<Derived> &Y_dn,
                 const DO_AUX_STD &std_)
 {
-    add_stat_to_mid(typename MODEL::tag(),
-                    model,
-                    Y_dn,
-                    std_,
-                    DO_DEGREE_CORRECTION(false));
+    add_stat_to_mid(typename MODEL::tag(), model, Y_dn, std_);
 }
 
 #endif

@@ -96,10 +96,10 @@ system.time(out <- asap_fit_pmf(Y, maxK=7))
 
 ```{r fig.width=5, fig.height=5}
 u.order <- order(apply(uu, 1, which.max))
-pheatmap(out$beta[u.order, ], Rowv=NA, Colv=NA, scale="column", cluster_rows = F)
+pheatmap(out$log.beta[u.order, ], Rowv=NA, Colv=NA, cluster_rows = F, cluster_cols = F)
 ```
 
 ```{r fig.width=5, fig.height=5}
 v.order <- order(apply(vv, 1, which.max))
-pheatmap(out$log.theta[v.order, ], Rowv=NA, Colv=NA, scale="column", cluster_rows = F)
+pheatmap(out$log.theta[v.order, ], Rowv=NA, Colv=NA, cluster_rows = F, cluster_cols = F)
 ```

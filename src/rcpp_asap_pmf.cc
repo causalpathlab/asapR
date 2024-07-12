@@ -86,7 +86,11 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     model_t model_dn(beta_dk, theta_nk, NThreads(nthreads));
 
     Scalar llik = 0;
-    initialize_stat(model_dn, Y_dn, DO_SVD(svd_init), jitter);
+    initialize_stat(model_dn,
+                    Y_dn,
+                    DO_SVD(svd_init),
+                    DO_DEGREE_CORRECTION(do_degree_correction),
+                    jitter);
     llik = log_likelihood(model_dn, Y_dn);
     TLOG_(verbose, "Finished initialization: " << llik);
 
@@ -97,17 +101,11 @@ asap_fit_pmf(const Eigen::MatrixXf Y_,
     for (std::size_t tt = 0; tt < max_iter; ++tt) {
 
         theta_nk.reset_stat_only();
-        add_stat_to_col(model_dn,
-                        Y_dn,
-                        DO_AUX_STD(do_stdize_col),
-                        DO_DEGREE_CORRECTION(do_degree_correction));
+        add_stat_to_col(model_dn, Y_dn, DO_AUX_STD(do_stdize_col));
         theta_nk.calibrate();
 
         beta_dk.reset_stat_only();
-        add_stat_to_row(model_dn,
-                        Y_dn,
-                        DO_AUX_STD(do_stdize_row),
-                        DO_DEGREE_CORRECTION(do_degree_correction));
+        add_stat_to_row(model_dn, Y_dn, DO_AUX_STD(do_stdize_row));
         beta_dk.calibrate();
 
         llik = log_likelihood(model_dn, Y_dn);

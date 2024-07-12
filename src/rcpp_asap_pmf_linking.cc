@@ -83,8 +83,7 @@ asap_fit_pmf_linking(const Eigen::MatrixXf X_,
                         << "this data:" << y_dn.cols());
     }
 
-    const bool do_stdize_mid = true;
-    const bool do_stdize_col = false;
+    const bool do_stdize_mid = (N > L), do_stdize_col = (L >= N);
     const bool do_stdize_row = false;
 
     RNG rng(rseed);
@@ -93,9 +92,6 @@ asap_fit_pmf_linking(const Eigen::MatrixXf X_,
 
     gamma_t theta_nk(N, K, a0, b0, rng);
     gamma_t beta_lk(L, K, a0, b0, rng);
-
-    ref_model_t ref_model_ln(beta_lk, theta_nk, NThreads(nthreads));
-    initialize_stat(ref_model_ln, x_ln, DO_SVD(svd_init), jitter);
 
     std::vector<std::shared_ptr<gamma_t>> alpha_dl_ptr_vec;
 
@@ -123,20 +119,28 @@ asap_fit_pmf_linking(const Eigen::MatrixXf X_,
                                               NThreads(nthreads)));
     }
 
-    Scalar llik = log_likelihood(ref_model_ln, x_ln);
-
-    TLOG_(verbose, "Reference data:  " << llik);
-
     for (std::size_t m = 0; m < M; ++m) {
         linking_model_t &linking_model_dn = *linking_model_dn_ptr_vec[m].get();
         const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
-        initialize_stat(linking_model_dn, y_dn, DO_SVD(svd_init), jitter);
-        const Scalar _llik = log_likelihood(linking_model_dn, y_dn);
-        TLOG_(verbose, "linking data [" << m << "]:  " << _llik);
-        llik += _llik;
+        initialize_stat(linking_model_dn,
+                        y_dn,
+                        DO_SVD(svd_init),
+                        DO_DEGREE_CORRECTION(do_degree_correction),
+                        jitter);
     }
 
-    TLOG_(verbose, "Finished initialization: " << llik);
+    ////////////////////////////
+    // reference global model //
+    ////////////////////////////
+
+    ref_model_t ref_model_ln(beta_lk, theta_nk, NThreads(nthreads));
+    initialize_stat(ref_model_ln,
+                    x_ln,
+                    DO_SVD(svd_init),
+                    DO_DEGREE_CORRECTION(do_degree_correction),
+                    jitter);
+
+    Scalar llik = log_likelihood(ref_model_ln, x_ln);
 
     std::vector<Scalar> llik_trace;
     llik_trace.reserve(max_iter + 1);
@@ -144,23 +148,61 @@ asap_fit_pmf_linking(const Eigen::MatrixXf X_,
 
     for (std::size_t tt = 0; tt < (max_iter); ++tt) {
 
-        //////////////////
-        // global model //
-        //////////////////
-
         theta_nk.reset_stat_only();
-        add_stat_to_col(ref_model_ln,
-                        x_ln,
-                        DO_AUX_STD(do_stdize_col),
-                        DO_DEGREE_CORRECTION(do_degree_correction));
+        add_stat_to_col(ref_model_ln, x_ln, DO_AUX_STD(do_stdize_col));
         theta_nk.calibrate();
 
         beta_lk.reset_stat_only();
-        add_stat_to_row(ref_model_ln,
-                        x_ln,
-                        DO_AUX_STD(do_stdize_row),
-                        DO_DEGREE_CORRECTION(do_degree_correction));
+        add_stat_to_row(ref_model_ln, x_ln, DO_AUX_STD(do_stdize_mid));
         beta_lk.calibrate();
+
+        llik = log_likelihood(ref_model_ln, x_ln);
+
+        const Scalar diff =
+            (llik_trace.size() > 0 ?
+                 (std::abs(llik - llik_trace.at(llik_trace.size() - 1)) /
+                  std::abs(llik + EPS)) :
+                 llik);
+
+        TLOG_(verbose, "Reference [ " << tt << " ] " << llik << ", " << diff);
+
+        llik_trace.emplace_back(llik);
+
+        if (tt > 1 && diff < EPS) {
+            TLOG("Converged at " << tt << ", " << diff);
+            break;
+        }
+
+        try {
+            Rcpp::checkUserInterrupt();
+        } catch (Rcpp::internal::InterruptedException e) {
+            WLOG("Interruption by the user at t=" << tt);
+            break;
+        }
+    }
+
+    llik = log_likelihood(ref_model_ln, x_ln);
+    TLOG_(verbose, "Reference data:  " << llik);
+
+    for (std::size_t m = 0; m < M; ++m) {
+        linking_model_t &linking_model_dn = *linking_model_dn_ptr_vec[m].get();
+	linking_model_dn.alpha_dl.reset_stat_only();
+	linking_model_dn.alpha_dl.calibrate();
+        const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
+        const Scalar _llik = log_likelihood(linking_model_dn, y_dn);
+        TLOG_(verbose, "linking data [" << m << "]:  " << _llik);
+        llik += _llik;
+    }
+
+    TLOG_(verbose, "Finished initialization: " << llik);
+
+    llik_trace.clear();
+    llik_trace.reserve(max_iter + 1);
+
+    for (std::size_t tt = 0; tt < (max_iter); ++tt) {
+
+        // theta_nk.reset_stat_only();
+        // beta_lk.reset_stat_only();
 
         ///////////////////////////////////////////
         // Add matrix data to each model's stats //
@@ -172,32 +214,20 @@ asap_fit_pmf_linking(const Eigen::MatrixXf X_,
 
             const Eigen::MatrixXf &y_dn = y_dn_vec.at(m);
 
-            // a. Update alpha factors based on the new theta
             gamma_t &alpha_dl = *alpha_dl_ptr_vec[m].get();
             alpha_dl.reset_stat_only();
-            add_stat_to_row(linking_model_dn,
-                            y_dn,
-                            DO_AUX_STD(do_stdize_row),
-                            DO_DEGREE_CORRECTION(do_degree_correction));
+            add_stat_to_row(linking_model_dn, y_dn, DO_AUX_STD(do_stdize_row));
             alpha_dl.calibrate();
 
-            // b. Update beta factors based on the new theta
-            add_stat_to_mid(linking_model_dn,
-                            y_dn,
-                            DO_AUX_STD(do_stdize_mid),
-                            DO_DEGREE_CORRECTION(do_degree_correction));
-            beta_lk.calibrate();
-
-            // c. Update theta based on the current beta and alpha
-            add_stat_to_col(linking_model_dn,
-                            y_dn,
-                            DO_AUX_STD(do_stdize_col),
-                            DO_DEGREE_CORRECTION(do_degree_correction));
-            theta_nk.calibrate();
+            // add_stat_to_mid(linking_model_dn, y_dn, DO_AUX_STD(do_stdize_mid));
+            // add_stat_to_col(linking_model_dn, y_dn, DO_AUX_STD(do_stdize_col));
         }
 
-        beta_lk.calibrate();
-        theta_nk.calibrate();
+        // add_stat_to_col(ref_model_ln, x_ln, DO_AUX_STD(do_stdize_col));
+        // theta_nk.calibrate();
+
+        // add_stat_to_row(ref_model_ln, x_ln, DO_AUX_STD(do_stdize_mid));
+        // beta_lk.calibrate();
 
         llik = log_likelihood(ref_model_ln, x_ln);
 
