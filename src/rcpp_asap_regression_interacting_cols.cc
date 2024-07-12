@@ -1,4 +1,4 @@
-#include "rcpp_asap_interaction_regression.hh"
+#include "rcpp_asap_regression_interacting_cols.hh"
 
 //' Topic statistics to estimate factor loading
 //'
@@ -33,7 +33,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_interaction_pmf_stat_mtx(
+asap_pmf_stat_interacting_columns_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,

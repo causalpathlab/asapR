@@ -1,7 +1,7 @@
 #include "rcpp_asap.hh"
-#include "rcpp_asap_pb.hh"
-#include "rcpp_asap_regression.hh"
 #include "rcpp_util.hh"
+#include "rcpp_mtx_data.hh"
+#include "rcpp_eigenSparse_data.hh"
 
 #ifndef RCPP_ASAP_INTERACTION_HH_
 #define RCPP_ASAP_INTERACTION_HH_

@@ -1,4 +1,4 @@
-#include "rcpp_asap_interaction_network.hh"
+#include "rcpp_asap_network_cols.hh"
 
 //' Identify pairs of columns interacting with one another
 //'
@@ -21,7 +21,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_build_interaction(
+asap_build_interacting_columns(
     const Eigen::SparseMatrix<float> &y_dn,
     const Eigen::SparseMatrix<float> &z_dm,
     const Eigen::MatrixXf log_beta,
@@ -126,7 +126,7 @@ asap_build_interaction(
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_build_interaction_mtx(
+asap_build_interaction_columns_mtx(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,

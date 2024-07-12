@@ -1,4 +1,4 @@
-#include "rcpp_asap_interaction_pb.hh"
+#include "rcpp_asap_pb_interacting_cols.hh"
 
 //' Generate approximate pseudo-bulk interaction data by random projections
 //'
@@ -49,7 +49,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_interaction_random_bulk(
+asap_random_bulk_interacting_columns(
     const std::string mtx_file,
     const std::string row_file,
     const std::string col_file,
