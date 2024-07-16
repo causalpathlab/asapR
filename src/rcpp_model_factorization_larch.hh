@@ -30,10 +30,13 @@ struct factorization_larch_t {
         , K(theta_nk.cols())
         , row_degree_d(D)
         , col_degree_n(N)
+        , logRow_aux_dl(D, L)
+        , row_aux_dl(D, L)
         , logRow_aux_dk(D, K)
         , row_aux_dk(D, K)
         , logCol_aux_nk(N, K)
         , col_aux_nk(N, K)
+        , std_log_row_aux_dl(logRow_aux_dl, 1, 1)
         , std_log_row_aux_dk(logRow_aux_dk, 1, 1)
         , std_log_col_aux_nk(logCol_aux_nk, 1, 1)
         , num_threads(nthr.val)
@@ -71,11 +74,14 @@ struct factorization_larch_t {
     ColVec row_degree_d;
     ColVec col_degree_n;
 
+    Type logRow_aux_dl;
+    Type row_aux_dl;
     Type logRow_aux_dk;
     Type row_aux_dk;
     Type logCol_aux_nk;
     Type col_aux_nk;
 
+    stdizer_t<Type> std_log_row_aux_dl;
     stdizer_t<Type> std_log_row_aux_dk;
     stdizer_t<Type> std_log_col_aux_nk;
 
@@ -87,6 +93,7 @@ struct factorization_larch_t {
     {
 
         if (do_stdize) {
+            std_log_row_aux_dl.colwise();
             std_log_row_aux_dk.colwise();
         }
 
@@ -96,13 +103,17 @@ struct factorization_larch_t {
 #endif
         for (Index ii = 0; ii < D; ++ii) {
             if (do_stdize) {
+                logRow_aux_dl.row(ii) = softmax.log_row(logRow_aux_dl.row(ii));
                 logRow_aux_dk.row(ii) = softmax.log_row(logRow_aux_dk.row(ii));
             } else {
+                logRow_aux_dl.row(ii) =
+                    softmax.log_row_weighted(logRow_aux_dl.row(ii), W_l);
                 logRow_aux_dk.row(ii) =
                     softmax.log_row_weighted(logRow_aux_dk.row(ii), V_k);
             }
         }
 
+        row_aux_dl = logRow_aux_dl.unaryExpr(exp);
         row_aux_dk = logRow_aux_dk.unaryExpr(exp);
     }
 
@@ -130,6 +141,11 @@ struct factorization_larch_t {
 
     void randomize_auxiliaries()
     {
+        logRow_aux_dl = Type::Random(D, L);
+        for (Index ii = 0; ii < D; ++ii) {
+            row_aux_dl.row(ii) = softmax.apply_row(logRow_aux_dl.row(ii));
+        }
+
         logRow_aux_dk = Type::Random(D, K);
         std_log_row_aux_dk.colwise();
 
@@ -302,6 +318,23 @@ add_stat_to_row(const factorization_larch_tag,
     using RowVec = typename Eigen::internal::plain_row_type<T>::type;
 
     at_least_one_op<T> at_least_one;
+
+    //////////////////////////////////////////////
+    // Estimation of auxiliary variables (i,l)  //
+    //////////////////////////////////////////////
+
+    fact.logRow_aux_dl =
+        (((Y_dn * fact.theta_nk.log_mean() * fact.A_lk.transpose())
+              .array()
+              .colwise() /
+          Y_dn.rowwise().sum().unaryExpr(at_least_one).array())
+             .rowwise() /
+         fact.W_l.array())
+            .matrix();
+
+    fact.logRow_aux_dl += fact.beta_dl.log_mean();
+
+    fact._row_factor_aux(do_stdize);
 
     //////////////////////////////////////////////
     // Estimation of auxiliary variables (i,k)  //

@@ -153,15 +153,9 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    const std::size_t too_many_columns = 1000;
-
     Mat vv;
 
-    if (Q_kn.cols() < too_many_columns) {
-        Eigen::BDCSVD<Mat> svd;
-        svd.compute(Q_kn, Eigen::ComputeThinU | Eigen::ComputeThinV);
-        vv = svd.matrixV();
-    } else {
+    {
         const std::size_t lu_iter = 5;
         RandomizedSVD<Mat> svd(Q_kn.rows(), lu_iter);
         svd.compute(Q_kn);
