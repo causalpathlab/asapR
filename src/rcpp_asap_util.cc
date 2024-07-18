@@ -18,6 +18,17 @@ stretch_matrix_columns(const Eigen::MatrixXf Y,
                        const double std_max = 8,
                        const bool verbose = true)
 {
+
+    if (Y.rows() < 1 || Y.cols() < 1) {
+        TLOG_(verbose, "Empty matrix: " << Y.rows() << " x " << Y.cols());
+        return Rcpp::NumericMatrix(Rcpp::wrap(Y));
+    }
+
+    if (Y.minCoeff() < 0) {
+        TLOG_(verbose, "Found negative values");
+        return Rcpp::NumericMatrix(Rcpp::wrap(Y));
+    }
+
     std::vector<Scalar> quantile(Y.size());
     Eigen::Map<Eigen::MatrixXf>(quantile.data(), Y.rows(), Y.cols()) = Y;
 
@@ -47,10 +58,10 @@ stretch_matrix_columns(const Eigen::MatrixXf Y,
         ub = *std::max_element(quantile.begin(), quantile.end());
     }
 
-    if (lb < 0) {
-        WLOG("Found negative values");
-        return Rcpp::NumericMatrix(Rcpp::wrap(Y));
-    }
+    // if (lb < 0) {
+    //     WLOG("Found negative values");
+    //     return Rcpp::NumericMatrix(Rcpp::wrap(Y));
+    // }
 
     TLOG_(verbose,
           "Shrink the raw values "
