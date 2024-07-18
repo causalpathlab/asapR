@@ -213,16 +213,12 @@ _initialize_stat_svd(const factorization_tag,
 
     {
         T a = svd.matrixU().unaryExpr(at_least_zero) * jitter;
-        T b = T::Ones(D, K) / static_cast<Scalar>(D);
+        T b = T::Ones(D, K);
         fact.beta_dk.update(a, b);
     }
-    {
-        T a = svd.matrixV().unaryExpr(at_least_zero) * jitter;
-        T b = T::Ones(N, K) / static_cast<Scalar>(N);
-        fact.theta_nk.update(a, b);
-    }
-
     fact.beta_dk.calibrate();
+
+    fact.theta_nk.reset_stat_only();
     fact.theta_nk.calibrate();
 }
 
