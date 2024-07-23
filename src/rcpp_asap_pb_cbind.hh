@@ -111,8 +111,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         offset += Nb;
 
         TLOG_(verbose,
-              "processed file set #" << (b + 1) << " for random projection of "
-                                     << Nb << " / " << offset << " cells");
+              "Random proj file set [" << (b + 1) << "] of " << Nb << " / "
+                                       << offset << " cells");
     }
 
     if (B > 1) {
@@ -284,7 +284,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             offset += Nb;
 
             TLOG_(verbose,
-                  "processed file set [" << (b + 1) << "] for pseudobulk for "
+                  "Take observed data [" << (b + 1) << "] for pseudobulk for "
                                          << Nb << " / " << offset << " cells");
         } // for each batch
     }
@@ -337,8 +337,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         }
 
         TLOG_(verbose,
-              "Estimating matched statics for " << Ntot << " cells across " << S
-                                                << " samples...");
+              "Matching " << Ntot << " cells across " << S << " samples...");
 
         zsum_ds = Mat::Zero(D, S); // gene x PB counterfactual
 
@@ -398,7 +397,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                             ++nneigh;
                         }
                     }
-                }
+                } // each batch
 
                 if (nneigh > 1) {
                     mmutil::match::normalize_weights(nneigh, cum_dist, weights);
@@ -406,13 +405,18 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                     for (Index k = 0; k < nneigh; ++k) {
                         w_per_cell(k) = weights.at(k);
                     }
-                    zsum_ds.col(s) +=
-                        z_per_cell * w_per_cell / w_per_cell.sum();
+#pragma omp critical
+                    {
+                        zsum_ds.col(s) +=
+                            z_per_cell * w_per_cell / w_per_cell.sum();
+                    }
                 } else {
-                    zsum_ds.col(s) += z_per_cell.col(0);
+#pragma omp critical
+                    {
+                        zsum_ds.col(s) += z_per_cell.col(0);
+                    }
                 }
             } // for each glob index
-
 #pragma omp critical
             {
                 Nprocessed += 1;
@@ -497,7 +501,6 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         log_delta_db = delta_param.log_mean();
 
         mu_ds = mu_param.mean();
-
     } else {
 
         //////////////////////////////////////////////////

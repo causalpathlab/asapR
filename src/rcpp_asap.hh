@@ -4,6 +4,9 @@
 // [[Rcpp::plugins(cpp17)]]
 #include <Rcpp.h>
 
+#define EIGEN_USE_BLAS
+#define EIGEN_USE_LAPACK
+
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 
