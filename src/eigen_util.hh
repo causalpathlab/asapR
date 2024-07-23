@@ -631,7 +631,7 @@ public:
     const Index D1, D2;
     const Scalar rate_m, rate_v;
 
-    const T &colwise(const Scalar eps = 1e-8)
+    void colwise(const Scalar eps = 1e-8)
     {
         rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
         rowNobs.array() += eps;
@@ -661,10 +661,9 @@ public:
 
         X.array().rowwise() -= rowMu.array();
         X.array().rowwise() /= (rowSd.array() + eps);
-        return X;
     }
 
-    const T &colwise_scale(const Scalar eps = 1e-8)
+    void colwise_scale(const Scalar eps = 1e-8)
     {
         rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
         rowNobs.array() += eps;
@@ -698,7 +697,6 @@ public:
         }
 
         X.array().rowwise() /= (rowSd.array() + eps);
-        return X;
     }
 
 private:

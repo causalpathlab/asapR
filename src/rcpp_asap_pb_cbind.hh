@@ -265,17 +265,20 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                 const Index ub = std::min(Nb, block_size + lb);
                 const Mat y = data_loaders.at(b).read_reloc(lb, ub);
 
-                for (Index loc = 0; loc < (ub - lb); ++loc) {
-                    const Index glob = loc + lb + offset;
-                    const Index s = positions.at(glob);
+#pragma omp critical
+                {
+                    for (Index loc = 0; loc < (ub - lb); ++loc) {
+                        const Index glob = loc + lb + offset;
+                        const Index s = positions.at(glob);
 
-                    if (s < NA_POS) {
-                        size_s(s) += 1.;
-                        ysum_ds.col(s) += y.col(loc);
-                        n_bs(b, s) = n_bs(b, s) + 1.;
+                        if (s < NA_POS) {
+                            size_s(s) += 1.;
+                            ysum_ds.col(s) += y.col(loc);
+                            n_bs(b, s) = n_bs(b, s) + 1.;
+                        }
                     }
+                    delta_num_db.col(b) += y.rowwise().sum();
                 }
-                delta_num_db.col(b) += y.rowwise().sum();
             }
 
             offset += Nb;

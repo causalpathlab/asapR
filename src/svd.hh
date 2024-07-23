@@ -32,7 +32,7 @@ public:
     Vec singularValues() const { return D; }
 
     template <typename Derived>
-    void compute(Eigen::MatrixBase<Derived> const &X)
+    void compute(const Eigen::MatrixBase<Derived> &X)
     {
         using Index = typename Derived::Index;
         const Index nr = X.rows();
@@ -94,7 +94,7 @@ private:
 
     template <typename Derived>
     void
-    rand_subspace_iteration(Eigen::MatrixBase<Derived> const &X, // data matrix
+    rand_subspace_iteration(const Eigen::MatrixBase<Derived> &X, // data matrix
                             const int rank_and_oversample)
     { // rank + alpha
 
