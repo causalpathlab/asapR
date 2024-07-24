@@ -303,7 +303,9 @@ run_pmf_stat_adj(Data &data,
     TLOG_(verbose, "lnX: " << logX_dk.rows() << " x " << logX_dk.cols());
     TLOG_(verbose, "lnX0: " << logX0_db.rows() << " x " << logX0_db.cols());
     Rtot_nk.resize(N, K);
+    Rtot_nk.setZero();
     Ytot_n.resize(N, 1);
+    Ytot_n.setZero();
     Index Nprocessed = 0;
 
     if (verbose) {
@@ -391,18 +393,24 @@ run_pmf_stat_adj(Data &data,
         } // end of omp critical
     }
 
-    residual_columns_inplace(Rtot_nk, R0tot_nk);
+    TLOG_(verbose, "regress out batch effects from the correlation statistics");
+
+    standardize_columns_inplace(R0tot_nk);
 
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-    for (Index j = 0; j < N; ++j) {
-        Rtot_nk.row(j) = softmax.log_row(Rtot_nk.row(j));
+    for (Index k = 0; k < K; ++k) {
+        ColVec x = R0tot_nk.col(k);
+        ColVec y = Rtot_nk.col(k);
+        residual_columns_inplace(y, x);
+        Rtot_nk.col(k) = y;
     }
 
     if (!verbose)
         Rcpp::Rcerr << std::endl;
+
     TLOG_(verbose, "done -> topic stat");
 
     return EXIT_SUCCESS;
