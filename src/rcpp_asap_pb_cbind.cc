@@ -169,7 +169,11 @@ asap_random_bulk_cbind(
     options.CELL_NORM = CELL_NORM;
     options.BLOCK_SIZE = BLOCK_SIZE;
 
-    return run_asap_pb_cbind(data_loaders, pos2row, columns, options);
+    return run_asap_pb_cbind(data_loaders,
+                             pos2row,
+                             columns,
+                             batch_names,
+                             options);
 }
 
 //' Generate approximate pseudo-bulk data by random projections
@@ -391,5 +395,9 @@ asap_random_bulk_cbind_mtx(
         data_loaders.at(b).relocate_rows(row2pos);
     }
 
-    return run_asap_pb_cbind(data_loaders, pos2row, columns, options);
+    return run_asap_pb_cbind(data_loaders,
+                             pos2row,
+                             columns,
+                             batch_names,
+                             options);
 }

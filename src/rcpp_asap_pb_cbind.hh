@@ -12,6 +12,7 @@ Rcpp::List
 run_asap_pb_cbind(std::vector<T> &data_loaders,
                   const std::vector<std::string> &pos2row,
                   const std::vector<std::string> &columns,
+                  const std::vector<std::string> &batch_names,
                   const asap::pb::options_t &options)
 {
 
@@ -20,6 +21,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     const Index B = data_loaders.size();
     const Index D = pos2row.size();    // dimensionality
     const Index Ntot = columns.size(); // samples
+
+    ASSERT_RETL(B == batch_names.size(), "Should have matching batch names");
 
     const Index K = options.K;
 
@@ -535,24 +538,35 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     for (std::size_t s = 1; s <= S; ++s)
         s_.push_back(std::to_string(s));
 
+    Mat mean_ds;
+
     if (!save_aux_data) {
         Qstd_nk.resize(0, 0);
         ysum_ds.resize(0, 0);
         zsum_ds.resize(0, 0);
         delta_num_db.resize(0, 0);
+    } else if (do_batch_adj) {
+        mean_ds.resize(D, S);
+        gamma_param_t<Mat, RNG> mean_param(D, S, a0, b0, rng);
+        Mat temp_ds = Mat::Ones(D, S).array().rowwise() * size_s.array();
+        mean_param.update(ysum_ds, temp_ds);
+        mean_param.calibrate();
+        mean_ds = mean_param.mean();
     }
 
     TLOG_(verbose, "Done");
 
     return List::create(_["PB"] = named(mu_ds, d_, s_),
+                        _["mean"] = named(mean_ds, d_, s_),
                         _["sum"] = named(ysum_ds, d_, s_),
                         _["matched.sum"] = named(zsum_ds, d_, s_),
                         _["sum_db"] = named_rows(delta_num_db, d_),
                         _["size"] = size_s,
                         _["prob_sb"] = named_rows(prob_bs.transpose(), s_),
                         _["size_sb"] = named_rows(n_bs.transpose(), s_),
-                        _["batch.effect"] = named_rows(delta_db, d_),
-                        _["log.batch.effect"] = named_rows(log_delta_db, d_),
+                        _["batch.effect"] = named(delta_db, d_, batch_names),
+                        _["log.batch.effect"] =
+                            named(log_delta_db, d_, batch_names),
                         _["batch.membership"] = r_batch,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
