@@ -10,7 +10,7 @@
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of parallel threads (default: 1)
 //'
-//' @param stdize_r standardize correlation matrix R (default: TRUE)
+//' @param do_stdize_r standardize correlation matrix R (default: FALSE)
 //' @param verbose (default: TRUE)
 //'
 //' @return a list that contains:
@@ -30,7 +30,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
                const double b0 = 1.0,
                const std::size_t max_iter = 10,
                const std::size_t NUM_THREADS = 0,
-               const bool stdize_r = true,
+               const bool do_stdize_r = false,
                const bool verbose = true)
 {
 
@@ -64,7 +64,7 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
     RowVec tempK(K);
 
     Mat r_nk = R_nk;
-    if (stdize_r) {
+    if (do_stdize_r) {
         standardize_columns_inplace(r_nk);
     }
 
@@ -96,7 +96,8 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
 //' @param r_log_delta D x B log batch effect matrix
-//' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+//' @param do_stdize_beta use standardized log_beta (Default: FALSE)
+//' @param do_stdize_r standardize correlation matrix R (default: FALSE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -122,7 +123,8 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
               const Eigen::MatrixXf log_beta,
               const Rcpp::StringVector beta_row_names,
               const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
-              const bool do_stdize_beta = true,
+              const bool do_stdize_beta = false,
+              const bool do_stdize_r = false,
               const bool do_log1p = false,
               const bool verbose = false,
               const std::size_t NUM_THREADS = 0,
@@ -149,31 +151,36 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
     Mat Rtot_nk, Ytot_n, delta_db;
     exp_op<Mat> exp;
 
+    CHK_RETL_(run_pmf_stat(data, log_beta, pos2row, options, Rtot_nk, Ytot_n),
+              "failed to compute topic pmf stat");
+
+    if (do_stdize_r) {
+        standardize_columns_inplace(Rtot_nk);
+    }
+
     if (r_log_delta.isNotNull()) {
         Mat log_delta = Rcpp::as<Mat>(r_log_delta);
 
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(run_pmf_stat_adj(data,
-                                   log_beta,
-                                   log_delta,
-                                   pos2row,
-                                   options,
-                                   Rtot_nk,
-                                   Ytot_n),
-                  "failed to compute topic pmf ipw stat");
-
+        const Index B = log_delta.cols();
         delta_db = log_delta.unaryExpr(exp);
-    } else {
 
+        // 1. Estimate correlation induced by delta
+        TLOG_(verbose, "Estimate correlations with the batch effects");
+        Mat R0tot_nb, Y0tot_n;
         CHK_RETL_(run_pmf_stat(data,
-                               log_beta,
+                               log_delta,
                                pos2row,
                                options,
-                               Rtot_nk,
-                               Ytot_n),
-                  "failed to compute topic pmf stat");
+                               R0tot_nb,
+                               Y0tot_n),
+                  "failed to compute null stat");
+
+        // 2. Take residuals
+        TLOG_(verbose, "Regress out the batch effect correlations");
+        residual_columns_inplace(Rtot_nk, R0tot_nb);
     }
 
     const Index N = Rtot_nk.rows(), K = Rtot_nk.cols();
@@ -203,7 +210,7 @@ asap_pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
 //' @param r_log_delta D x B log batch effect matrix
-//' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+//' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
 //' @param NUM_THREADS number of threads in data reading
@@ -234,7 +241,8 @@ asap_pmf_stat_mtx(
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
     const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
-    const bool do_stdize_beta = true,
+    const bool do_stdize_beta = false,
+    const bool do_stdize_r = false,
     const bool do_log1p = false,
     const bool verbose = false,
     const std::size_t NUM_THREADS = 0,
@@ -275,31 +283,43 @@ asap_pmf_stat_mtx(
 
     mtx_data_t data(tup, options.MAX_ROW_WORD, options.ROW_WORD_SEP);
 
+    CHK_RETL_(asap::regression::run_pmf_stat(data,
+                                             log_beta,
+                                             pos2row,
+                                             options,
+                                             Rtot_nk,
+                                             Ytot_n),
+              "unable to compute topic statistics");
+
+    if (do_stdize_r) {
+        standardize_columns_inplace(Rtot_nk);
+    }
+
     if (r_log_delta.isNotNull()) {
         Mat log_delta = Rcpp::as<Mat>(r_log_delta);
 
         ASSERT_RETL(log_delta.rows() == log_beta.rows(),
                     "rows(delta) != rows(beta)");
 
-        CHK_RETL_(asap::regression::run_pmf_stat_adj(data,
-                                                     log_beta,
-                                                     log_delta,
-                                                     pos2row,
-                                                     options,
-                                                     Rtot_nk,
-                                                     Ytot_n),
-                  "unable to compute topic statistics");
-
         delta_db = log_delta.unaryExpr(exp);
-    } else {
 
-        CHK_RETL_(asap::regression::run_pmf_stat(data,
-                                                 log_beta,
-                                                 pos2row,
-                                                 options,
-                                                 Rtot_nk,
-                                                 Ytot_n),
-                  "unable to compute topic statistics");
+        const Index B = log_delta.cols();
+        delta_db = log_delta.unaryExpr(exp);
+
+        // 1. Estimate correlation induced by delta
+        TLOG_(verbose, "Estimate correlations with the batch effects");
+        Mat R0tot_nb, Y0tot_n;
+        CHK_RETL_(run_pmf_stat(data,
+                               log_delta,
+                               pos2row,
+                               options,
+                               R0tot_nb,
+                               Y0tot_n),
+                  "failed to compute null stat");
+
+        // 2. Take residuals
+        TLOG_(verbose, "Regress out the batch effect correlations");
+        residual_columns_inplace(Rtot_nk, R0tot_nb);
     }
 
     const Index N = Rtot_nk.rows(), K = Rtot_nk.cols();

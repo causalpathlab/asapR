@@ -32,8 +32,6 @@ asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZ
 #'
 #' @param knn How many nearest neighbours we want (default: 10)
 #'
-#' @param r_log_delta D x B log batch effect matrix
-#'
 #' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
@@ -41,8 +39,8 @@ asap_bbknn <- function(data_nk_vec, row_names_vec, KNN_PER_BATCH = 3L, BLOCK_SIZ
 #' @param CELL_NORM sample normalization constant (default: 1e4)
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #'
-asap_build_interacting_columns <- function(y_dn, z_dm, log_beta, beta_row_names, knn = 10L, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L) {
-    .Call('_asapR_asap_build_interacting_columns', PACKAGE = 'asapR', y_dn, z_dm, log_beta, beta_row_names, knn, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE)
+asap_build_interacting_columns <- function(y_dn, z_dm, log_beta, beta_row_names, knn = 10L, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L) {
+    .Call('_asapR_asap_build_interacting_columns', PACKAGE = 'asapR', y_dn, z_dm, log_beta, beta_row_names, knn, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE)
 }
 
 #' Identify pairs of columns interacting with one another
@@ -55,8 +53,6 @@ asap_build_interacting_columns <- function(y_dn, z_dm, log_beta, beta_row_names,
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
 #' @param knn How many nearest neighbours we want (default: 10)
-#'
-#' @param r_log_delta D x B log batch effect matrix
 #'
 #' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
 #' @param row_file_rhs right-hand-side row names (gene/feature names)
@@ -74,8 +70,8 @@ asap_build_interacting_columns <- function(y_dn, z_dm, log_beta, beta_row_names,
 #' @param MAX_COL_WORD maximum words per line in `col_files[i]`
 #' @param COL_WORD_SEP word separation character to replace white space
 #'
-asap_build_interaction_columns_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn = 10L, r_log_delta = NULL, mtx_file_rhs = NULL, row_file_rhs = NULL, col_file_rhs = NULL, idx_file_rhs = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_build_interaction_columns_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn, r_log_delta, mtx_file_rhs, row_file_rhs, col_file_rhs, idx_file_rhs, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_build_interaction_columns_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn = 10L, mtx_file_rhs = NULL, row_file_rhs = NULL, col_file_rhs = NULL, idx_file_rhs = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = TRUE, NUM_THREADS = 1L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_build_interaction_columns_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, knn, mtx_file_rhs, row_file_rhs, col_file_rhs, idx_file_rhs, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Generate approximate pseudo-bulk data by random projections
@@ -534,7 +530,7 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of parallel threads (default: 1)
 #'
-#' @param stdize_r standardize correlation matrix R (default: TRUE)
+#' @param do_stdize_r standardize correlation matrix R (default: FALSE)
 #' @param verbose (default: TRUE)
 #'
 #' @return a list that contains:
@@ -545,8 +541,8 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #'  \item log.theta.sd (N x K) standard deviation matrix
 #' }
 #'
-asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 0L, stdize_r = TRUE, verbose = TRUE) {
-    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', beta_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, stdize_r, verbose)
+asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 0L, do_stdize_r = FALSE, verbose = TRUE) {
+    .Call('_asapR_asap_topic_pmf', PACKAGE = 'asapR', beta_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, do_stdize_r, verbose)
 }
 
 #' PMF statistics to estimate factor loading
@@ -555,7 +551,8 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
 #' @param r_log_delta D x B log batch effect matrix
-#' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+#' @param do_stdize_beta use standardized log_beta (Default: FALSE)
+#' @param do_stdize_r standardize correlation matrix R (default: FALSE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -575,8 +572,8 @@ asap_topic_pmf <- function(beta_dk, R_nk, Y_n, a0 = 1.0, b0 = 1.0, max_iter = 10
 #'  \item rownames row names
 #' }
 #'
-asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L) {
-    .Call('_asapR_asap_pmf_stat', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE)
+asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = FALSE, do_stdize_r = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L) {
+    .Call('_asapR_asap_pmf_stat', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE)
 }
 
 #' PMF statistics to estimate factor loading
@@ -588,7 +585,7 @@ asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
 #' @param r_log_delta D x B log batch effect matrix
-#' @param do_stdize_beta use standardized log_beta (Default: TRUE)
+#' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -609,8 +606,8 @@ asap_pmf_stat <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do
 #'  \item rownames column names
 #' }
 #'
-asap_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_pmf_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = FALSE, do_stdize_r = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, CELL_NORM = 1e4, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_stat_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' PMF statistics to estimate factor loading
@@ -625,6 +622,7 @@ asap_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, 
 #' @param r_batch_names batch names (optional)
 #' @param rename_columns append batch name at the end of each column name (default: FALSE)
 #' @param do_stdize_beta use standardized log_beta (default: TRUE)
+#' @param do_stdize_r standardize correlation matrix R (default: FALSE)
 #' @param do_log1p do log(1+y) transformation (default: FALSE)
 #' @param verbose verbosity
 #' @param NUM_THREADS number of threads in data reading
@@ -645,8 +643,8 @@ asap_pmf_stat_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, 
 #'  \item colnames column names
 #' }
 #'
-asap_pmf_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = FALSE, do_stdize_beta = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_pmf_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = FALSE, do_stdize_beta = FALSE, do_stdize_r = FALSE, do_log1p = FALSE, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Topic statistics to estimate factor loading

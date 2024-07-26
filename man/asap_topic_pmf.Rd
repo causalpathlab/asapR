@@ -12,7 +12,7 @@ asap_topic_pmf(
   b0 = 1,
   max_iter = 10L,
   NUM_THREADS = 0L,
-  stdize_r = TRUE,
+  do_stdize_r = FALSE,
   verbose = TRUE
 )
 }
@@ -31,7 +31,7 @@ asap_topic_pmf(
 
 \item{NUM_THREADS}{number of parallel threads (default: 1)}
 
-\item{stdize_r}{standardize correlation matrix R (default: TRUE)}
+\item{do_stdize_r}{standardize correlation matrix R (default: FALSE)}
 
 \item{verbose}{(default: TRUE)}
 }

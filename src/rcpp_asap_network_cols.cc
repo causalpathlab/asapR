@@ -10,8 +10,6 @@
 //'
 //' @param knn How many nearest neighbours we want (default: 10)
 //'
-//' @param r_log_delta D x B log batch effect matrix
-//'
 //' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
@@ -21,19 +19,17 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_build_interacting_columns(
-    const Eigen::SparseMatrix<float> &y_dn,
-    const Eigen::SparseMatrix<float> &z_dm,
-    const Eigen::MatrixXf log_beta,
-    const Rcpp::StringVector beta_row_names,
-    const std::size_t knn = 10,
-    const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
-    const bool do_stdize_beta = true,
-    const bool do_log1p = false,
-    const bool verbose = true,
-    const std::size_t NUM_THREADS = 1,
-    const double CELL_NORM = 1e4,
-    const std::size_t BLOCK_SIZE = 1000)
+asap_build_interacting_columns(const Eigen::SparseMatrix<float> &y_dn,
+                               const Eigen::SparseMatrix<float> &z_dm,
+                               const Eigen::MatrixXf log_beta,
+                               const Rcpp::StringVector beta_row_names,
+                               const std::size_t knn = 10,
+                               const bool do_stdize_beta = true,
+                               const bool do_log1p = false,
+                               const bool verbose = true,
+                               const std::size_t NUM_THREADS = 1,
+                               const double CELL_NORM = 1e4,
+                               const std::size_t BLOCK_SIZE = 1000)
 {
 
     asap::regression::stat_options_t regOpt;
@@ -58,7 +54,6 @@ asap_build_interacting_columns(
     CHK_RETL_(run_asap_regression_both(lhs_data,
                                        rhs_data,
                                        log_beta,
-                                       r_log_delta,
                                        pos2row,
                                        regOpt,
                                        self_interaction,
@@ -106,8 +101,6 @@ asap_build_interacting_columns(
 //' @param beta_row_names row names log_beta (D vector)
 //' @param knn How many nearest neighbours we want (default: 10)
 //'
-//' @param r_log_delta D x B log batch effect matrix
-//'
 //' @param mtx_file_rhs right-hand-side matrix-market-formatted data file (bgzip)
 //' @param row_file_rhs right-hand-side row names (gene/feature names)
 //' @param col_file_rhs right-hand-side column names (cell/column names)
@@ -134,7 +127,6 @@ asap_build_interaction_columns_mtx(
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
     const std::size_t knn = 10,
-    const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
     const Rcpp::Nullable<std::string> mtx_file_rhs = R_NilValue,
     const Rcpp::Nullable<std::string> row_file_rhs = R_NilValue,
     const Rcpp::Nullable<std::string> col_file_rhs = R_NilValue,
@@ -205,7 +197,6 @@ asap_build_interaction_columns_mtx(
     CHK_RETL_(run_asap_regression_both(lhs_data,
                                        rhs_data,
                                        log_beta,
-                                       r_log_delta,
                                        pos2row,
                                        regOpt,
                                        self_interaction,

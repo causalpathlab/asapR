@@ -15,6 +15,7 @@ asap_pmf_stat_cbind_mtx(
   r_batch_names = NULL,
   rename_columns = FALSE,
   do_stdize_beta = FALSE,
+  do_stdize_r = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 0L,
@@ -37,6 +38,8 @@ asap_pmf_stat_cbind_mtx(
 \item{rename_columns}{append batch name at the end of each column name (default: FALSE)}
 
 \item{do_stdize_beta}{use standardized log_beta (default: TRUE)}
+
+\item{do_stdize_r}{standardize correlation matrix R (default: FALSE)}
 
 \item{do_log1p}{do log(1+y) transformation (default: FALSE)}
 

@@ -10,7 +10,6 @@ asap_build_interacting_columns(
   log_beta,
   beta_row_names,
   knn = 10L,
-  r_log_delta = NULL,
   do_stdize_beta = TRUE,
   do_log1p = FALSE,
   verbose = TRUE,
@@ -29,8 +28,6 @@ asap_build_interacting_columns(
 \item{beta_row_names}{row names log_beta (D vector)}
 
 \item{knn}{How many nearest neighbours we want (default: 10)}
-
-\item{r_log_delta}{D x B log batch effect matrix}
 
 \item{do_stdize_beta}{use standardized log_beta (Default: TRUE)}
 

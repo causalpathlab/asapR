@@ -12,7 +12,8 @@ asap_pmf_stat_mtx(
   log_beta,
   beta_row_names,
   r_log_delta = NULL,
-  do_stdize_beta = TRUE,
+  do_stdize_beta = FALSE,
+  do_stdize_r = FALSE,
   do_log1p = FALSE,
   verbose = FALSE,
   NUM_THREADS = 0L,
@@ -39,7 +40,7 @@ asap_pmf_stat_mtx(
 
 \item{r_log_delta}{D x B log batch effect matrix}
 
-\item{do_stdize_beta}{use standardized log_beta (Default: TRUE)}
+\item{do_stdize_beta}{use standardized log_beta (Default: FALSE)}
 
 \item{do_log1p}{do log(1+y) transformation}
 

@@ -12,7 +12,6 @@ asap_build_interaction_columns_mtx(
   log_beta,
   beta_row_names,
   knn = 10L,
-  r_log_delta = NULL,
   mtx_file_rhs = NULL,
   row_file_rhs = NULL,
   col_file_rhs = NULL,
@@ -43,8 +42,6 @@ asap_build_interaction_columns_mtx(
 \item{beta_row_names}{row names log_beta (D vector)}
 
 \item{knn}{How many nearest neighbours we want (default: 10)}
-
-\item{r_log_delta}{D x B log batch effect matrix}
 
 \item{mtx_file_rhs}{right-hand-side matrix-market-formatted data file (bgzip)}
 
