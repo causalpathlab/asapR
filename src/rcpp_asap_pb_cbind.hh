@@ -118,7 +118,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                                        << offset << " cells");
     }
 
-    if (B > 1) {
+    if (B > 1 && do_batch_adj) {
 
         at_least_one_op<Mat> at_least_one;
         at_least_zero_op<Mat> at_least_zero;

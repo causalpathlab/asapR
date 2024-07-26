@@ -228,6 +228,7 @@ asap_random_bulk_mtx(
     // Regress out X_nr
     if (X_nr.cols() > 0 && X_nr.rows() == N) {
         Mat Qt = Q_kn.transpose(); // N x K
+        standardize_columns_inplace(Qt);
         residual_columns_inplace(Qt, X_nr);
         standardize_columns_inplace(Qt);
         Q_kn = Qt.transpose();
@@ -240,6 +241,7 @@ asap_random_bulk_mtx(
     // Regress out YtX_nr
     if (YtX_nr.cols() > 0 && YtX_nr.rows() == N) {
         Mat Qt = Q_kn.transpose(); // N x K
+        standardize_columns_inplace(Qt);
         residual_columns_inplace(Qt, YtX_nr);
         standardize_columns_inplace(Qt);
         Q_kn = Qt.transpose();

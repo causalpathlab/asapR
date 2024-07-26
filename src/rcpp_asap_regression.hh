@@ -395,15 +395,13 @@ run_pmf_stat_adj(Data &data,
 
     TLOG_(verbose, "regress out batch effects from the correlation statistics");
 
-    standardize_columns_inplace(R0tot_nk);
-
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
     for (Index k = 0; k < K; ++k) {
         ColVec x = R0tot_nk.col(k);
-        ColVec y = Rtot_nk.col(k);
+        ColVec y = (Rtot_nk.col(k).array() - Rtot_nk.col(k).mean()).matrix();
         residual_columns_inplace(y, x);
         Rtot_nk.col(k) = y;
     }

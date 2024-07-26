@@ -663,6 +663,21 @@ public:
         X.array().rowwise() /= (rowSd.array() + eps);
     }
 
+    void colwise_centre(const Scalar eps = 1e-8)
+    {
+        rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
+        rowNobs.array() += eps;
+
+        rowMean = X.unaryExpr(obs_val).colwise().sum().cwiseQuotient(rowNobs);
+
+        if (rate_m > 0) {
+            rowMu *= (1. - rate_m);
+            rowMu += rate_m * rowMean;
+        }
+
+        X.array().rowwise() -= rowMu.array();
+    }
+
     void colwise_scale(const Scalar eps = 1e-8)
     {
         rowNobs = X.unaryExpr(is_obs_val).colwise().sum();
@@ -751,6 +766,18 @@ standardize_columns_inplace(Eigen::MatrixBase<Derived> &X_,
 
 template <typename Derived>
 void
+centre_columns_inplace(Eigen::MatrixBase<Derived> &X_,
+                       const typename Derived::Scalar EPS = 1e-8)
+{
+    using Scalar = typename Derived::Scalar;
+
+    Derived &X = X_.derived();
+    stdizer_t<Derived> std_op(X);
+    std_op.colwise_centre(EPS);
+}
+
+template <typename Derived>
+void
 scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
                       const typename Derived::Scalar EPS = 1e-8)
 {
@@ -780,31 +807,27 @@ residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
 
     ASSERT(X.rows() == Yraw.rows(), "incompatible Y and X");
 
-    if (X.cols() < 1) {
-        // nothing to do
-    } else if (X.cols() == 1) {
+    Derived2 Xstd = X;
+    standardize_columns_inplace(Xstd);
 
-        const Scalar denom = X.cwiseProduct(X).sum();
+    if (Xstd.cols() < 1) {
+        // nothing to do
+    } else if (Xstd.cols() == 1) {
+
+        const Scalar denom = Xstd.cwiseProduct(Xstd).sum();
         for (Index k = 0; k < Yraw.cols(); ++k) {
             const Scalar b =
-                (X.transpose() * Yraw.col(k)).sum() / (denom + eps);
-            Yout.col(k) = Yraw.col(k) - b * X.col(0);
+                (Xstd.transpose() * Yraw.col(k)).sum() / (denom + eps);
+            Yout.col(k) = Yraw.col(k) - b * Xstd.col(0);
         }
 
     } else {
         const std::size_t r =
-            std::min(X.rows(), std::min(X.cols(), Yraw.cols()));
+            std::min(Xstd.rows(), std::min(Xstd.cols(), Yraw.cols()));
 
-        // if (X.rows() < 1000) {
-        //     Eigen::BDCSVD<Derived> svd_x;
-        //     svd_x.compute(X, Eigen::ComputeThinU | Eigen::ComputeThinV);
-        //     d = svd_x.singularValues();
-        //     u = svd_x.matrixU();
-        // } else {
-        // }
         const std::size_t lu_iter = 5;
         RandomizedSVD<Derived> svd_x(r, lu_iter);
-        svd_x.compute(X);
+        svd_x.compute(Xstd);
         ColVec d = svd_x.singularValues();
         Mat u = svd_x.matrixU();
 
