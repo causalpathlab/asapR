@@ -7,12 +7,12 @@
 asap_topic_pmf(
   beta_dk,
   R_nk,
-  Y_n,
+  Ysum_n,
   a0 = 1,
   b0 = 1,
   max_iter = 10L,
   NUM_THREADS = 0L,
-  do_stdize_r = FALSE,
+  do_stdize_r = TRUE,
   verbose = TRUE
 )
 }
@@ -21,7 +21,7 @@ asap_topic_pmf(
 
 \item{R_nk}{correlation matrix (sample N x factor K)}
 
-\item{Y_n}{sum vector (sample N x 1)}
+\item{Ysum_n}{sum vector (sample N x 1)}
 
 \item{a0}{gamma(a0, b0) (default: 1)}
 

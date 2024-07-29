@@ -393,28 +393,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// asap_topic_pmf
-Rcpp::List asap_topic_pmf(const Eigen::MatrixXf beta_dk, const Eigen::MatrixXf R_nk, const Eigen::MatrixXf Y_n, const double a0, const double b0, const std::size_t max_iter, const std::size_t NUM_THREADS, const bool do_stdize_r, const bool verbose);
-RcppExport SEXP _asapR_asap_topic_pmf(SEXP beta_dkSEXP, SEXP R_nkSEXP, SEXP Y_nSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP NUM_THREADSSEXP, SEXP do_stdize_rSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type beta_dk(beta_dkSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type R_nk(R_nkSEXP);
-    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Y_n(Y_nSEXP);
-    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
-    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
-    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    Rcpp::traits::input_parameter< const bool >::type do_stdize_r(do_stdize_rSEXP);
-    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_topic_pmf(beta_dk, R_nk, Y_n, a0, b0, max_iter, NUM_THREADS, do_stdize_r, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
-// asap_pmf_stat
-Rcpp::List asap_pmf_stat(const Eigen::SparseMatrix<float>& y_dn, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const double CELL_NORM, const std::size_t BLOCK_SIZE);
-RcppExport SEXP _asapR_asap_pmf_stat(SEXP y_dnSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP r_log_deltaSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP CELL_NORMSEXP, SEXP BLOCK_SIZESEXP) {
+// asap_pmf_regression
+Rcpp::List asap_pmf_regression(const Eigen::SparseMatrix<float>& y_dn, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const double a0, const double b0, const std::size_t max_iter, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE);
+RcppExport SEXP _asapR_asap_pmf_regression(SEXP y_dnSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP r_log_deltaSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -425,17 +406,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type do_stdize_beta(do_stdize_betaSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_stdize_r(do_stdize_rSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    Rcpp::traits::input_parameter< const double >::type CELL_NORM(CELL_NORMSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_pmf_stat(y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE));
+    rcpp_result_gen = Rcpp::wrap(asap_pmf_regression(y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE));
     return rcpp_result_gen;
 END_RCPP
 }
-// asap_pmf_stat_mtx
-Rcpp::List asap_pmf_stat_mtx(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const double CELL_NORM, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
-RcppExport SEXP _asapR_asap_pmf_stat_mtx(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP r_log_deltaSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP CELL_NORMSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
+// asap_pmf_regression_mtx
+Rcpp::List asap_pmf_regression_mtx(const std::string mtx_file, const std::string row_file, const std::string col_file, const std::string idx_file, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const double a0, const double b0, const std::size_t max_iter, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
+RcppExport SEXP _asapR_asap_pmf_regression_mtx(SEXP mtx_fileSEXP, SEXP row_fileSEXP, SEXP col_fileSEXP, SEXP idx_fileSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP r_log_deltaSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -449,21 +432,42 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type do_stdize_beta(do_stdize_betaSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_stdize_r(do_stdize_rSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
-    Rcpp::traits::input_parameter< const double >::type CELL_NORM(CELL_NORMSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_ROW_WORD(MAX_ROW_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type ROW_WORD_SEP(ROW_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_pmf_stat_mtx(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, CELL_NORM, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
+    rcpp_result_gen = Rcpp::wrap(asap_pmf_regression_mtx(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
+    return rcpp_result_gen;
+END_RCPP
+}
+// asap_topic_pmf
+Rcpp::List asap_topic_pmf(const Eigen::MatrixXf beta_dk, const Eigen::MatrixXf R_nk, const Eigen::MatrixXf Ysum_n, const double a0, const double b0, const std::size_t max_iter, const std::size_t NUM_THREADS, const bool do_stdize_r, const bool verbose);
+RcppExport SEXP _asapR_asap_topic_pmf(SEXP beta_dkSEXP, SEXP R_nkSEXP, SEXP Ysum_nSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP NUM_THREADSSEXP, SEXP do_stdize_rSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type beta_dk(beta_dkSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type R_nk(R_nkSEXP);
+    Rcpp::traits::input_parameter< const Eigen::MatrixXf >::type Ysum_n(Ysum_nSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type do_stdize_r(do_stdize_rSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(asap_topic_pmf(beta_dk, R_nk, Ysum_n, a0, b0, max_iter, NUM_THREADS, do_stdize_r, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // asap_pmf_stat_cbind_mtx
-Rcpp::List asap_pmf_stat_cbind_mtx(const std::vector<std::string> mtx_files, const std::vector<std::string> row_files, const std::vector<std::string> col_files, const std::vector<std::string> idx_files, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> log_delta, const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names, const bool rename_columns, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
-RcppExport SEXP _asapR_asap_pmf_stat_cbind_mtx(SEXP mtx_filesSEXP, SEXP row_filesSEXP, SEXP col_filesSEXP, SEXP idx_filesSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP log_deltaSEXP, SEXP r_batch_namesSEXP, SEXP rename_columnsSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
+Rcpp::List asap_pmf_stat_cbind_mtx(const std::vector<std::string> mtx_files, const std::vector<std::string> row_files, const std::vector<std::string> col_files, const std::vector<std::string> idx_files, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> log_delta, const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names, const bool rename_columns, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const double a0, const double b0, const std::size_t max_iter, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
+RcppExport SEXP _asapR_asap_pmf_stat_cbind_mtx(SEXP mtx_filesSEXP, SEXP row_filesSEXP, SEXP col_filesSEXP, SEXP idx_filesSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP log_deltaSEXP, SEXP r_batch_namesSEXP, SEXP rename_columnsSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -480,13 +484,16 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type do_stdize_r(do_stdize_rSEXP);
     Rcpp::traits::input_parameter< const bool >::type do_log1p(do_log1pSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< const double >::type a0(a0SEXP);
+    Rcpp::traits::input_parameter< const double >::type b0(b0SEXP);
+    Rcpp::traits::input_parameter< const std::size_t >::type max_iter(max_iterSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type NUM_THREADS(NUM_THREADSSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type BLOCK_SIZE(BLOCK_SIZESEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_ROW_WORD(MAX_ROW_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type ROW_WORD_SEP(ROW_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_pmf_stat_cbind_mtx(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
+    rcpp_result_gen = Rcpp::wrap(asap_pmf_stat_cbind_mtx(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, a0, b0, max_iter, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -566,9 +573,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// stretch_matrix_columns
-Rcpp::NumericMatrix stretch_matrix_columns(const Eigen::MatrixXf Y, const double qq_min, const double qq_max, const double std_min, const double std_max, const bool verbose);
-RcppExport SEXP _asapR_stretch_matrix_columns(SEXP YSEXP, SEXP qq_minSEXP, SEXP qq_maxSEXP, SEXP std_minSEXP, SEXP std_maxSEXP, SEXP verboseSEXP) {
+// asap_stretch_nn_matrix_columns
+Rcpp::NumericMatrix asap_stretch_nn_matrix_columns(const Eigen::MatrixXf Y, const double qq_min, const double qq_max, const double std_min, const double std_max, const bool verbose);
+RcppExport SEXP _asapR_asap_stretch_nn_matrix_columns(SEXP YSEXP, SEXP qq_minSEXP, SEXP qq_maxSEXP, SEXP std_minSEXP, SEXP std_maxSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -578,7 +585,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type std_min(std_minSEXP);
     Rcpp::traits::input_parameter< const double >::type std_max(std_maxSEXP);
     Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(stretch_matrix_columns(Y, qq_min, qq_max, std_min, std_max, verbose));
+    rcpp_result_gen = Rcpp::wrap(asap_stretch_nn_matrix_columns(Y, qq_min, qq_max, std_min, std_max, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -856,14 +863,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_fit_pmf_delta", (DL_FUNC) &_asapR_asap_fit_pmf_delta, 15},
     {"_asapR_asap_fit_pmf_larch", (DL_FUNC) &_asapR_asap_fit_pmf_larch, 14},
     {"_asapR_asap_fit_pmf_rbind", (DL_FUNC) &_asapR_asap_fit_pmf_rbind, 11},
+    {"_asapR_asap_pmf_regression", (DL_FUNC) &_asapR_asap_pmf_regression, 13},
+    {"_asapR_asap_pmf_regression_mtx", (DL_FUNC) &_asapR_asap_pmf_regression_mtx, 20},
     {"_asapR_asap_topic_pmf", (DL_FUNC) &_asapR_asap_topic_pmf, 9},
-    {"_asapR_asap_pmf_stat", (DL_FUNC) &_asapR_asap_pmf_stat, 11},
-    {"_asapR_asap_pmf_stat_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_mtx, 18},
-    {"_asapR_asap_pmf_stat_cbind_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_cbind_mtx, 19},
+    {"_asapR_asap_pmf_stat_cbind_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_cbind_mtx, 22},
     {"_asapR_asap_pmf_stat_interacting_columns_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_interacting_columns_mtx, 22},
     {"_asapR_asap_topic_pmf_rbind", (DL_FUNC) &_asapR_asap_topic_pmf_rbind, 9},
     {"_asapR_asap_pmf_stat_rbind", (DL_FUNC) &_asapR_asap_pmf_stat_rbind, 15},
-    {"_asapR_stretch_matrix_columns", (DL_FUNC) &_asapR_stretch_matrix_columns, 6},
+    {"_asapR_asap_stretch_nn_matrix_columns", (DL_FUNC) &_asapR_asap_stretch_nn_matrix_columns, 6},
     {"_asapR_fit_poisson_cluster_rows", (DL_FUNC) &_asapR_fit_poisson_cluster_rows, 9},
     {"_asapR_collapse_network", (DL_FUNC) &_asapR_collapse_network, 5},
     {"_asapR_decompose_network", (DL_FUNC) &_asapR_decompose_network, 4},

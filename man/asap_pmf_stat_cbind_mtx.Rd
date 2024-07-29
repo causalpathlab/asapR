@@ -14,10 +14,13 @@ asap_pmf_stat_cbind_mtx(
   log_delta = NULL,
   r_batch_names = NULL,
   rename_columns = FALSE,
-  do_stdize_beta = FALSE,
-  do_stdize_r = FALSE,
+  do_stdize_beta = TRUE,
+  do_stdize_r = TRUE,
   do_log1p = FALSE,
   verbose = FALSE,
+  a0 = 1,
+  b0 = 1,
+  max_iter = 10L,
   NUM_THREADS = 0L,
   BLOCK_SIZE = 1000L,
   MAX_ROW_WORD = 2L,
@@ -39,11 +42,17 @@ asap_pmf_stat_cbind_mtx(
 
 \item{do_stdize_beta}{use standardized log_beta (default: TRUE)}
 
-\item{do_stdize_r}{standardize correlation matrix R (default: FALSE)}
+\item{do_stdize_r}{standardize correlation matrix R (default: TRUE)}
 
 \item{do_log1p}{do log(1+y) transformation (default: FALSE)}
 
 \item{verbose}{verbosity}
+
+\item{a0}{gamma(a0, b0) (default: 1)}
+
+\item{b0}{gamma(a0, b0) (default: 1)}
+
+\item{max_iter}{maximum iterations (default: 10)}
 
 \item{NUM_THREADS}{number of threads in data reading}
 

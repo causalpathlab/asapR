@@ -12,9 +12,12 @@
 //' @param r_batch_names batch names (optional)
 //' @param rename_columns append batch name at the end of each column name (default: FALSE)
 //' @param do_stdize_beta use standardized log_beta (default: TRUE)
-//' @param do_stdize_r standardize correlation matrix R (default: FALSE)
+//' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 //' @param do_log1p do log(1+y) transformation (default: FALSE)
 //' @param verbose verbosity
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
@@ -45,10 +48,13 @@ asap_pmf_stat_cbind_mtx(
     const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
     const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names = R_NilValue,
     const bool rename_columns = false,
-    const bool do_stdize_beta = false,
-    const bool do_stdize_r = false,
+    const bool do_stdize_beta = true,
+    const bool do_stdize_r = true,
     const bool do_log1p = false,
     const bool verbose = false,
+    const double a0 = 1.0,
+    const double b0 = 1.0,
+    const std::size_t max_iter = 10,
     const std::size_t NUM_THREADS = 0,
     const std::size_t BLOCK_SIZE = 1000,
     const std::size_t MAX_ROW_WORD = 2,
@@ -57,17 +63,20 @@ asap_pmf_stat_cbind_mtx(
     const char COL_WORD_SEP = '@')
 {
 
+    using RNG = dqrng::xoshiro256plus;
+    RNG rng;
+
     asap::regression::stat_options_t options;
 
     options.do_stdize_x = do_stdize_beta;
+    options.do_stdize_r = do_stdize_r;
     options.do_log1p = do_log1p;
     options.verbose = verbose;
-    options.BLOCK_SIZE = BLOCK_SIZE;
-    options.MAX_ROW_WORD = MAX_ROW_WORD;
-    options.ROW_WORD_SEP = ROW_WORD_SEP;
-    options.MAX_COL_WORD = MAX_COL_WORD;
-    options.COL_WORD_SEP = COL_WORD_SEP;
     options.NUM_THREADS = NUM_THREADS;
+    options.BLOCK_SIZE = BLOCK_SIZE;
+    options.max_iter = max_iter;
+    options.a0 = a0;
+    options.b0 = b0;
 
     /////////////////
     // check input //
@@ -150,7 +159,11 @@ asap_pmf_stat_cbind_mtx(
     columns.reserve(Ntot);
     batch_indexes.reserve(Ntot);
 
+    using gamma_t = gamma_param_t<Mat, RNG>;
+
     TLOG_(verbose, "Accumulating statistics...");
+    std::vector<std::size_t> batch_sizes;
+    batch_sizes.reserve(num_data_batch);
 
     for (Index b = 0; b < num_data_batch; ++b) {
 
@@ -204,24 +217,74 @@ asap_pmf_stat_cbind_mtx(
         R_nk.middleRows(lb, r_b_nk.rows()) = r_b_nk;
         Y_n.middleRows(lb, y_b_n.rows()) = y_b_n;
 
+        batch_sizes.emplace_back(r_b_nk.rows());
+
         TLOG_(verbose,
               "processed  [ " << (b + 1) << " ] / [ " << num_data_batch
                               << " ]");
     }
 
-    if (do_stdize_r) {
-        standardize_columns_inplace(R_nk);
+    if (options.do_stdize_r) {
+        asap::util::stretch_matrix_columns_inplace(R_nk);
     }
 
-    if (log_delta.isNotNull()) {
+    std::vector<std::size_t> lb_index;
+    std::vector<std::size_t> ub_index;
+
+    {
+        std::size_t n_sofar = 0;
+        for (Index b = 0; b < num_data_batch; ++b) {
+            const std::size_t lb = n_sofar;
+            const std::size_t bs = batch_sizes.at(b);
+            n_sofar += bs;
+            const std::size_t ub = n_sofar;
+            lb_index.emplace_back(lb);
+            ub_index.emplace_back(ub);
+        }
+    }
+
+    exp_op<Mat> exp;
+    softmax_op_t<Mat> softmax;
+
+    Mat theta_ntot_k(Ntot, K), log_theta_ntot_k(Ntot, K);
+    theta_ntot_k.setZero();
+    log_theta_ntot_k.setZero();
+
+    if (log_delta.isNull()) {
+        logDelta_db.setZero();
+
+        TLOG_(verbose, "Calibrating the loading coefficients (theta)");
+
+        for (Index b = 0; b < num_data_batch; ++b) {
+            const std::size_t lb = lb_index.at(b);
+            const std::size_t bs = batch_sizes.at(b);
+
+            Mat theta_b, log_theta_b;
+
+            CHECK_(asap::regression::run_pmf_theta(logBeta_dk,
+                                                   R_nk.middleRows(lb, bs),
+                                                   Y_n.middleRows(lb, bs),
+                                                   theta_b,
+                                                   log_theta_b,
+                                                   a0,
+                                                   b0,
+                                                   max_iter,
+                                                   options.do_stdize_r,
+                                                   verbose),
+                   "unable to calibrate theta values");
+
+            theta_ntot_k.middleRows(lb, bs) = theta_b;
+            log_theta_ntot_k.middleRows(lb, bs) = log_theta_b;
+        }
+
+    } else if (log_delta.isNotNull()) {
+
         logDelta_db = Rcpp::as<Mat>(log_delta);
         const Index B = logDelta_db.cols();
 
         // 1. Estimate correlation induced by delta
         TLOG_(verbose, "Estimate correlations with the batch effects");
         Mat R0_nb = Mat::Zero(Ntot, B);
-
-        Index n_sofar = 0;
 
         for (Index b = 0; b < num_data_batch; ++b) {
 
@@ -236,7 +299,9 @@ asap_pmf_stat_cbind_mtx(
                             options.MAX_ROW_WORD,
                             options.ROW_WORD_SEP);
 
-            const Index lb = n_sofar;
+            const std::size_t lb = lb_index.at(b);
+            const std::size_t bs = batch_sizes.at(b);
+
             Mat r0_b_nb, y0_b_n;
 
             CHK_RETL_(asap::regression::run_pmf_stat(data,
@@ -247,9 +312,7 @@ asap_pmf_stat_cbind_mtx(
                                                      y0_b_n),
                       "unable to compute topic statistics");
 
-            const Index nb = r0_b_nb.rows();
-            n_sofar += nb;
-            R0_nb.middleRows(lb, r0_b_nb.rows()) = r0_b_nb;
+            R0_nb.middleRows(lb, bs) = r0_b_nb;
 
             TLOG_(verbose,
                   "processed  [ " << (b + 1) << " ] / [ " << num_data_batch
@@ -259,9 +322,34 @@ asap_pmf_stat_cbind_mtx(
         // 2. Take residuals
         TLOG_(verbose, "Regress out the batch effect correlations");
         residual_columns_inplace(R_nk, R0_nb);
+        if (options.do_stdize_r) {
+            asap::util::stretch_matrix_columns_inplace(R_nk);
+        }
 
-    } else {
-        logDelta_db.setZero();
+        // 3. Estimate theta based on the new R_nk
+        TLOG_(verbose, "Calibrating the loading coefficients (theta)");
+
+        for (Index b = 0; b < num_data_batch; ++b) {
+            const std::size_t lb = lb_index.at(b);
+            const std::size_t bs = batch_sizes.at(b);
+
+            Mat theta_b, log_theta_b;
+
+            CHECK_(asap::regression::run_pmf_theta(logBeta_dk,
+                                                   R_nk.middleRows(lb, bs),
+                                                   Y_n.middleRows(lb, bs),
+                                                   theta_b,
+                                                   log_theta_b,
+                                                   a0,
+                                                   b0,
+                                                   max_iter,
+                                                   options.do_stdize_r,
+                                                   verbose),
+                   "unable to calibrate theta values");
+
+            theta_ntot_k.middleRows(lb, bs) = theta_b;
+            log_theta_ntot_k.middleRows(lb, bs) = log_theta_b;
+        }
     }
 
     TLOG_(verbose, "Got em all");
@@ -277,10 +365,10 @@ asap_pmf_stat_cbind_mtx(
 
     TLOG_(verbose, "Done");
 
-    exp_op<Mat> exp;
-
     return List::create(_["beta"] = named(logBeta_dk.unaryExpr(exp), d_, k_),
                         _["corr"] = named(R_nk, columns, k_),
+                        _["theta"] = named(theta_ntot_k, columns, k_),
+                        _["log.theta"] = named(log_theta_ntot_k, columns, k_),
                         _["colsum"] = named_rows(Y_n, columns),
                         _["batch.names"] = batch_names,
                         _["batch.index"] = batch_indexes,

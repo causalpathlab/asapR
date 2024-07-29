@@ -1,4 +1,5 @@
 #include "rcpp_asap.hh"
+#include "rcpp_asap_util.hh"
 #include "gamma_parameter.hh"
 #include "rcpp_asap_batch.hh"
 #include "rcpp_mtx_data.hh"
@@ -20,7 +21,11 @@ struct stat_options_t {
         , MAX_COL_WORD(100)
         , COL_WORD_SEP('@')
         , do_stdize_x(true)
-        , CELL_NORM(1e4)
+        , do_stdize_r(true)
+        , a0(1.)
+        , b0(1.)
+        , CELL_NORM(0)
+        , max_iter(10)
     {
     }
 
@@ -33,8 +38,20 @@ struct stat_options_t {
     std::size_t MAX_COL_WORD;
     char COL_WORD_SEP;
     bool do_stdize_x;
+    bool do_stdize_r;
+    double a0;
+    double b0;
     double CELL_NORM;
+    std::size_t max_iter;
 };
+
+template <typename Data, typename Derived, typename Derived2>
+Rcpp::List run_pmf_regression(Data &data,
+                              const Eigen::MatrixBase<Derived> &log_beta,
+                              const Eigen::MatrixBase<Derived2> &log_delta,
+                              const std::vector<std::string> &row_names,
+                              const std::vector<std::string> &col_names,
+                              const stat_options_t &options);
 
 template <typename Data,
           typename Derived1,
@@ -70,12 +87,12 @@ pmf_stat_mtx(const std::string mtx_file,
 
 template <typename Derived1, typename Derived2, typename Derived3>
 int
-pmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
-          const Eigen::MatrixBase<Derived1> &_log_x,
-          const std::vector<std::string> &pos2row,
-          const stat_options_t &options,
-          Eigen::MatrixBase<Derived2> &_r_nk,
-          Eigen::MatrixBase<Derived3> &_y_n)
+pmf_stat(const Eigen::SparseMatrix<float> &y_dn,
+         const Eigen::MatrixBase<Derived1> &_log_x,
+         const std::vector<std::string> &pos2row,
+         const stat_options_t &options,
+         Eigen::MatrixBase<Derived2> &_r_nk,
+         Eigen::MatrixBase<Derived3> &_y_n)
 {
     eigenSparse_data_t data(y_dn, pos2row);
     return run_pmf_stat(data, _log_x, pos2row, options, _r_nk, _y_n);
@@ -84,6 +101,76 @@ pmf_stat_(const Eigen::SparseMatrix<float> &y_dn,
 ////////////////////////////
 // implementation details //
 ////////////////////////////
+
+template <typename IN1,
+          typename IN2,
+          typename IN3,
+          typename RET1,
+          typename RET2>
+int
+run_pmf_theta(const Eigen::MatrixBase<IN1> &log_beta_dk, // log dictionary
+              const Eigen::MatrixBase<IN2> &r_nk,        // correlation
+              const Eigen::MatrixBase<IN3> &ysum_n,      // y sum
+              Eigen::MatrixBase<RET1> &theta,            // theta
+              Eigen::MatrixBase<RET2> &log_theta,        // log theta
+              const double a0 = 1.0,
+              const double b0 = 1.0,
+              const std::size_t max_iter = 10,
+              const bool do_stdize_col = true,
+              const bool verbose = true)
+{
+    using RNG = dqrng::xoshiro256plus;
+    using gamma_t = gamma_param_t<Mat, RNG>;
+    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
+
+    RNG rng;
+
+    exp_op<Mat> exp;
+    softmax_op_t<Mat> softmax;
+
+    const Mat beta_dk = log_beta_dk.unaryExpr(exp);
+    const std::size_t N = r_nk.rows();
+    const std::size_t D = beta_dk.rows();
+    const std::size_t K = beta_dk.cols();
+
+    ASSERT_RET(ysum_n.rows() == N,
+               "check ysum_n: " << ysum_n.rows() << " x " << ysum_n.cols()
+                                << " vs. " << N);
+
+    const ColVec degree_n = ysum_n / static_cast<Scalar>(D);
+
+    gamma_t param_theta_nk(N, K, a0, b0, rng); // n x K
+    Mat logRho_nk(N, K), rho_nk(N, K);         // n x K
+
+    const Mat x_nk = degree_n * beta_dk.colwise().sum(); // N x K
+
+    const Scalar qq_min = .01, qq_max = .99;
+
+    for (std::size_t t = 0; t < max_iter; ++t) {
+        logRho_nk = r_nk + param_theta_nk.log_mean();
+
+        if (do_stdize_col) {
+            asap::util::stretch_matrix_columns_inplace(logRho_nk,
+                                                       qq_min,
+                                                       qq_max,
+                                                       verbose);
+        }
+
+        for (Index jj = 0; jj < N; ++jj) {
+            logRho_nk.row(jj) = softmax.log_row(logRho_nk.row(jj));
+        }
+        rho_nk = logRho_nk.unaryExpr(exp);
+
+        param_theta_nk.update(ysum_n.asDiagonal() * rho_nk, x_nk);
+        param_theta_nk.calibrate();
+    }
+    theta.resize(N, K);
+    log_theta.resize(N, K);
+    theta = param_theta_nk.mean();
+    log_theta = param_theta_nk.log_mean();
+
+    return EXIT_SUCCESS;
+}
 
 template <typename Data,
           typename Derived1,
@@ -98,7 +185,6 @@ run_pmf_stat(Data &data,
              Eigen::MatrixBase<Derived3> &_y_n)
 {
 
-    const Scalar cell_norm = options.CELL_NORM;
     const bool do_log1p = options.do_log1p;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS =
@@ -107,12 +193,14 @@ run_pmf_stat(Data &data,
 
     TLOG_(verbose, NUM_THREADS << " threads");
 
-    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
     Mat logX_dk = _log_x.derived();
+
+    const Scalar cell_norm = options.CELL_NORM;
+
     if (options.do_stdize_x) {
-        standardize_columns_inplace(logX_dk);
+        asap::util::stretch_matrix_columns_inplace(logX_dk);
     }
 
     Mat &Rtot_nk = _r_nk.derived();
@@ -167,15 +255,18 @@ run_pmf_stat(Data &data,
 #endif
     for (Index lb = 0; lb < N; lb += block_size) {
         const Index ub = std::min(N, block_size + lb);
-        SpMat _y = data.read_reloc(lb, ub);
-        normalize_columns_inplace(_y);
-        const Mat y = _y * cell_norm;
+        Mat y = data.read_reloc(lb, ub);
+
+        if (cell_norm >= 1.) {
+            normalize_columns_inplace(y);
+            y *= cell_norm;
+        }
 
         ///////////////////////////////////////
         // do log1p transformation if needed //
         ///////////////////////////////////////
 
-        const Mat y_dn = do_log1p ? y.unaryExpr(log1p) : y;
+        const Mat y_dn = (do_log1p ? y.unaryExpr(log1p) : y);
 
         const Index n = y_dn.cols();
 
@@ -221,6 +312,111 @@ run_pmf_stat(Data &data,
     TLOG_(verbose, "done -> topic stat");
 
     return EXIT_SUCCESS;
+}
+
+template <typename Data, typename Derived, typename Derived2>
+Rcpp::List
+run_pmf_regression(Data &data,
+                   const Eigen::MatrixBase<Derived> &log_beta,
+                   const Eigen::MatrixBase<Derived2> &log_delta,
+                   const std::vector<std::string> &row_names,
+                   const std::vector<std::string> &col_names,
+                   const stat_options_t &options)
+{
+
+    const bool do_log1p = options.do_log1p;
+    const bool verbose = options.verbose;
+    const std::size_t NUM_THREADS =
+        (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
+    const std::size_t BLOCK_SIZE = options.BLOCK_SIZE;
+    const bool do_stdize_col = options.do_stdize_r;
+    const Scalar a0 = options.a0, b0 = options.b0;
+    const std::size_t max_iter = options.max_iter;
+
+    exp_op<Mat> exp;
+
+    const Index D = log_beta.rows();
+
+    Mat Rtot_nk, Ytot_n, delta_db;
+
+    CHK_RETL_(run_pmf_stat(data, log_beta, row_names, options, Rtot_nk, Ytot_n),
+              "failed to compute topic pmf stat");
+
+    const std::size_t N = Rtot_nk.rows(), K = Rtot_nk.cols();
+    Mat theta_nk(N, K), log_theta_nk(N, K);
+    theta_nk.setZero();
+    log_theta_nk.setZero();
+
+    if (log_delta.rows() == D) {
+
+        const Index B = log_delta.cols();
+
+        TLOG_(verbose, "Correlations with" << B << " delta factors");
+
+        Mat R0tot_nb, Y0tot_n;
+        CHK_RETL_(run_pmf_stat(data,
+                               log_delta,
+                               row_names,
+                               options,
+                               R0tot_nb,
+                               Y0tot_n),
+                  "failed to compute null stat");
+
+        // 2. Take residuals
+        TLOG_(verbose, "Regress out the batch effect correlations");
+        residual_columns_inplace(Rtot_nk, R0tot_nb);
+
+        if (do_stdize_col) {
+            asap::util::stretch_matrix_columns_inplace(Rtot_nk);
+        }
+
+        // 3. Estimate theta based on the new R
+        CHK_RETL_(run_pmf_theta(log_beta,
+                                Rtot_nk,
+                                Ytot_n,
+                                theta_nk,
+                                log_theta_nk,
+                                a0,
+                                b0,
+                                max_iter,
+                                do_stdize_col,
+                                verbose),
+                  "unable to calibrate theta values");
+
+    } else {
+
+        TLOG_(verbose, "Calibrating the loading coefficients (theta)");
+
+        CHK_RETL_(run_pmf_theta(log_beta,
+                                Rtot_nk,
+                                Ytot_n,
+                                theta_nk,
+                                log_theta_nk,
+                                a0,
+                                b0,
+                                max_iter,
+                                do_stdize_col,
+                                verbose),
+                  "unable to calibrate theta values");
+    }
+
+    using namespace rcpp::util;
+    using namespace Rcpp;
+
+    const std::vector<std::string> &d_ = row_names;
+    std::vector<std::string> k_;
+    for (std::size_t k = 1; k <= K; ++k) {
+        k_.push_back(std::to_string(k));
+    }
+
+    return List::create(_["beta"] = named(log_beta.unaryExpr(exp), d_, k_),
+                        _["delta"] = named(log_delta.unaryExpr(exp), d_, k_),
+                        _["corr"] = named(Rtot_nk, col_names, k_),
+                        _["theta"] = named(theta_nk, col_names, k_),
+                        _["log.theta"] = named(log_theta_nk, col_names, k_),
+                        _["colsum"] = named_rows(Ytot_n, row_names),
+                        _["rownames"] = row_names,
+                        _["colnames"] = col_names);
 }
 
 }} // namespace asap::regression
