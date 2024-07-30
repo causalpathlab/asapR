@@ -1,5 +1,5 @@
 ---
-title: "3. Expedite Poisson-NMF estimation via alternating regression models"
+title: "4. Expedite Poisson-NMF estimation via alternating regression models"
 author: "Yongjin Park"
 ---
 

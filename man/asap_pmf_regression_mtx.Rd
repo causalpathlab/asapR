@@ -48,6 +48,12 @@ asap_pmf_regression_mtx(
 
 \item{do_log1p}{do log(1+y) transformation}
 
+\item{a0}{gamma(a0, b0) (default: 1)}
+
+\item{b0}{gamma(a0, b0) (default: 1)}
+
+\item{max_iter}{maximum iterations (default: 10)}
+
 \item{verbose}{verbosity}
 
 \item{NUM_THREADS}{number of threads in data reading}

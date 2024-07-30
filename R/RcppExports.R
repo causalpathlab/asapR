@@ -530,6 +530,9 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of threads in data reading
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
@@ -566,6 +569,9 @@ asap_pmf_regression <- function(y_dn, log_beta, beta_row_names, r_log_delta = NU
 #' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
+#' @param a0 gamma(a0, b0) (default: 1)
+#' @param b0 gamma(a0, b0) (default: 1)
+#' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of threads in data reading
 #'
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
@@ -634,6 +640,7 @@ asap_topic_pmf <- function(beta_dk, R_nk, Ysum_n, a0 = 1.0, b0 = 1.0, max_iter =
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of threads in data reading
+#' 
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 #' @param ROW_WORD_SEP word separation character to replace white space
@@ -643,7 +650,10 @@ asap_topic_pmf <- function(beta_dk, R_nk, Ysum_n, a0 = 1.0, b0 = 1.0, max_iter =
 #' @return a list that contains:
 #' \itemize{
 #'  \item beta the dictionary matrix (row x factor)
-#'  \item corr empirical correlation matrices (column x factor)
+#'  \item delta the dictionary matrix of batch effects (row x batch)
+#'  \item corr empirical correlation (column x factor)
+#'  \item theta factor loading (column x factor)
+#'  \item log.theta log-scaled factor loading (column x factor)
 #'  \item colsum column sum (column x 1)
 #'  \item rownames row names
 #'  \item batch.names batch names (based on
@@ -651,8 +661,8 @@ asap_topic_pmf <- function(beta_dk, R_nk, Ysum_n, a0 = 1.0, b0 = 1.0, max_iter =
 #'  \item colnames column names
 #' }
 #'
-asap_pmf_stat_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = FALSE, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, verbose = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_pmf_stat_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, a0, b0, max_iter, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_regression_cbind_mtx <- function(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta = NULL, r_batch_names = NULL, rename_columns = FALSE, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, verbose = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_regression_cbind_mtx', PACKAGE = 'asapR', mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, a0, b0, max_iter, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Topic statistics to estimate factor loading

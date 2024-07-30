@@ -1,11 +1,9 @@
-pandoc: '2.12'
-pkgdown: 2.0.6
+pandoc: 2.9.2.1
+pkgdown: 2.1.0
 pkgdown_sha: ~
 articles:
   introduction: introduction.html
-  note_batch_correction: note_batch_correction.html
+  note_batch_correction_1_concept: note_batch_correction_1_concept.html
+  note_batch_correction_2_asap: note_batch_correction_2_asap.html
   note_faster_nmf_approximation: note_faster_nmf_approximation.html
-  note_interaction_topic: note_interaction_topic.html
-  note_multi_nmf: note_multi_nmf.html
-last_built: 2024-01-31T18:39Z
-
+last_built: 2024-07-30T01:31Z

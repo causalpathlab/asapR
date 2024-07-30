@@ -10,6 +10,9 @@
 //' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of threads in data reading
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
@@ -100,6 +103,9 @@ asap_pmf_regression(
 //' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
+//' @param a0 gamma(a0, b0) (default: 1)
+//' @param b0 gamma(a0, b0) (default: 1)
+//' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of threads in data reading
 //'
 //' @param BLOCK_SIZE disk I/O block size (number of columns)

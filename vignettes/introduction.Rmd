@@ -45,17 +45,17 @@ How can we estimate cell topic proportions ASAP?
 ## Step 1: Fast pseudo-bulk sampling
 
 ```{r step1}
-.bulk <- asap_random_bulk(asap.data$mtx,
-                          asap.data$row,
-                          asap.data$col,
-                          asap.data$idx,
-                          num_factors = 5)
+.bulk <- asap_random_bulk_mtx(asap.data$mtx,
+                              asap.data$row,
+                              asap.data$col,
+                              asap.data$idx,
+                              num_factors = 5)
 ```
 
 We can squeeze `r .info$max.col` cells into `r ncol(.bulk$PB)` pseudo-bulk samples.
 
 ```{r}
-Y <- stretch_matrix_columns(.bulk$PB)*100
+Y <- asap_stretch_nn_matrix_columns(.bulk$PB)*100
 ```
 Some gene-gene correlation structures are preserved in the PB data.
 
@@ -67,7 +67,7 @@ pheatmap(t(Y))
 
 
 ```{r step2}
-.nmf <- asap_fit_nmf(Y,
+.nmf <- asap_fit_pmf(Y,
                      maxK = 5,
                      max_iter = 200,
                      svd_init = TRUE,
@@ -107,12 +107,12 @@ plot.struct(.bulk.topic$prop) +
 
 
 ```{r step3}
-.stat <- asap_topic_stat(asap.data$mtx,
-                         asap.data$row,
-                         asap.data$col,
-                         asap.data$idx,
-                         log_beta = .nmf$log.beta,
-                         beta_row_names = .bulk$rownames)
+.stat <- asap_pmf_regression_mtx(asap.data$mtx,
+                                 asap.data$row,
+                                 asap.data$col,
+                                 asap.data$idx,
+                                 log_beta = .nmf$log.beta,
+                                 beta_row_names = .bulk$rownames)
 
 R <- apply(.stat$corr, 2, scale)
 ```
@@ -132,8 +132,7 @@ for(k in 1:4){
 We can quantify topic proportions based on the correlation results.
 
 ```{r}
-.pmf <- asap_topic_pmf(.nmf$beta, R, .stat$colsum, max_iter = 10)
-.topic <- pmf2topic(.pmf$beta, .pmf$theta)
+.topic <- pmf2topic(.stat$beta, .stat$theta)
 ```
 
 ```{r fig_topic_heatmap, fig.width=8, fig.height=3}

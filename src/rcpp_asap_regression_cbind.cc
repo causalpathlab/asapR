@@ -19,6 +19,7 @@
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of threads in data reading
+//' 
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -28,7 +29,10 @@
 //' @return a list that contains:
 //' \itemize{
 //'  \item beta the dictionary matrix (row x factor)
-//'  \item corr empirical correlation matrices (column x factor)
+//'  \item delta the dictionary matrix of batch effects (row x batch)
+//'  \item corr empirical correlation (column x factor)
+//'  \item theta factor loading (column x factor)
+//'  \item log.theta log-scaled factor loading (column x factor)
 //'  \item colsum column sum (column x 1)
 //'  \item rownames row names
 //'  \item batch.names batch names (based on
@@ -38,7 +42,7 @@
 //'
 // [[Rcpp::export]]
 Rcpp::List
-asap_pmf_stat_cbind_mtx(
+asap_pmf_regression_cbind_mtx(
     const std::vector<std::string> mtx_files,
     const std::vector<std::string> row_files,
     const std::vector<std::string> col_files,

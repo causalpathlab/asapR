@@ -465,9 +465,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// asap_pmf_stat_cbind_mtx
-Rcpp::List asap_pmf_stat_cbind_mtx(const std::vector<std::string> mtx_files, const std::vector<std::string> row_files, const std::vector<std::string> col_files, const std::vector<std::string> idx_files, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> log_delta, const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names, const bool rename_columns, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const double a0, const double b0, const std::size_t max_iter, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
-RcppExport SEXP _asapR_asap_pmf_stat_cbind_mtx(SEXP mtx_filesSEXP, SEXP row_filesSEXP, SEXP col_filesSEXP, SEXP idx_filesSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP log_deltaSEXP, SEXP r_batch_namesSEXP, SEXP rename_columnsSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
+// asap_pmf_regression_cbind_mtx
+Rcpp::List asap_pmf_regression_cbind_mtx(const std::vector<std::string> mtx_files, const std::vector<std::string> row_files, const std::vector<std::string> col_files, const std::vector<std::string> idx_files, const Eigen::MatrixXf log_beta, const Rcpp::StringVector beta_row_names, const Rcpp::Nullable<Eigen::MatrixXf> log_delta, const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names, const bool rename_columns, const bool do_stdize_beta, const bool do_stdize_r, const bool do_log1p, const bool verbose, const double a0, const double b0, const std::size_t max_iter, const std::size_t NUM_THREADS, const std::size_t BLOCK_SIZE, const std::size_t MAX_ROW_WORD, const char ROW_WORD_SEP, const std::size_t MAX_COL_WORD, const char COL_WORD_SEP);
+RcppExport SEXP _asapR_asap_pmf_regression_cbind_mtx(SEXP mtx_filesSEXP, SEXP row_filesSEXP, SEXP col_filesSEXP, SEXP idx_filesSEXP, SEXP log_betaSEXP, SEXP beta_row_namesSEXP, SEXP log_deltaSEXP, SEXP r_batch_namesSEXP, SEXP rename_columnsSEXP, SEXP do_stdize_betaSEXP, SEXP do_stdize_rSEXP, SEXP do_log1pSEXP, SEXP verboseSEXP, SEXP a0SEXP, SEXP b0SEXP, SEXP max_iterSEXP, SEXP NUM_THREADSSEXP, SEXP BLOCK_SIZESEXP, SEXP MAX_ROW_WORDSEXP, SEXP ROW_WORD_SEPSEXP, SEXP MAX_COL_WORDSEXP, SEXP COL_WORD_SEPSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -493,7 +493,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const char >::type ROW_WORD_SEP(ROW_WORD_SEPSEXP);
     Rcpp::traits::input_parameter< const std::size_t >::type MAX_COL_WORD(MAX_COL_WORDSEXP);
     Rcpp::traits::input_parameter< const char >::type COL_WORD_SEP(COL_WORD_SEPSEXP);
-    rcpp_result_gen = Rcpp::wrap(asap_pmf_stat_cbind_mtx(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, a0, b0, max_iter, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
+    rcpp_result_gen = Rcpp::wrap(asap_pmf_regression_cbind_mtx(mtx_files, row_files, col_files, idx_files, log_beta, beta_row_names, log_delta, r_batch_names, rename_columns, do_stdize_beta, do_stdize_r, do_log1p, verbose, a0, b0, max_iter, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -866,7 +866,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_asapR_asap_pmf_regression", (DL_FUNC) &_asapR_asap_pmf_regression, 13},
     {"_asapR_asap_pmf_regression_mtx", (DL_FUNC) &_asapR_asap_pmf_regression_mtx, 20},
     {"_asapR_asap_topic_pmf", (DL_FUNC) &_asapR_asap_topic_pmf, 9},
-    {"_asapR_asap_pmf_stat_cbind_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_cbind_mtx, 22},
+    {"_asapR_asap_pmf_regression_cbind_mtx", (DL_FUNC) &_asapR_asap_pmf_regression_cbind_mtx, 22},
     {"_asapR_asap_pmf_stat_interacting_columns_mtx", (DL_FUNC) &_asapR_asap_pmf_stat_interacting_columns_mtx, 22},
     {"_asapR_asap_topic_pmf_rbind", (DL_FUNC) &_asapR_asap_topic_pmf_rbind, 9},
     {"_asapR_asap_pmf_stat_rbind", (DL_FUNC) &_asapR_asap_pmf_stat_rbind, 15},

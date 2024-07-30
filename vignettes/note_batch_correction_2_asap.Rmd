@@ -1,0 +1,143 @@
+---
+title: "3. Batch correction incorporated in ASAP"
+author: "Yongjin Park"
+---
+
+### A generative scheme for a single-cell count matrix with multiplicative batch effects
+
+For each gene $g$ and cell $j$, the gene expression $Y_{gj}$ were sampled from Poisson distribution with the rate parameter:
+
+$$\lambda_{gj} = \lambda_{gj}^{\textsf{unbiased}} \times \prod_{k} \delta_{gk}^{X_{kj}},$$
+
+affected by the batch effects $\delta_{gk}$. Letting $X_{kj}$ be a batch membership matrix, assigning a cell $j$ to a batch $k$ if and only if $X_{kj}=1$, we assume the average gene expression rates are linearly affected by in the log-transformed space:
+
+$$\mathbb{E}\!\left[\ln Y_{gj}\right] = \ln \left( \sum_{t} \beta_{gt} \theta_{jt} \right) + \sum_{k} \ln\delta_{gk} X_{kj}.$$
+
+
+```{r simulation_to_confirm}
+library(ggplot2)
+set.seed(1331)
+
+m <- 500 # genes
+n <- 1000 # cells
+nb <- 2 # batches
+
+## 1. batch membership
+X <- matrix(0, n, nb)
+batch <- sample(nb, n, replace = TRUE)
+for(b in 1:nb){
+    X[batch == b, b] <- 1
+}
+
+## 2. batch effects
+W.true <- matrix(rnorm(m*nb), m, nb)
+ln.delta <- apply(W.true %*% t(X), 2, scale)
+
+## 3. true effects
+K <- 5
+.beta <- matrix(rgamma(m * K, 1), m, K)
+.theta <- matrix(rgamma(n * K, 1), n, K)
+lambda.true <- .beta %*% t(.theta)
+kk <- kmeans(log1p(.theta), 3, nstart=100)$cluster
+
+lambda <- lambda.true * exp(ln.delta)
+yy <- apply(lambda, 2, function(l) sapply(l, rpois, n=1))
+oo <- order(apply(t(.theta), 2, which.max))
+```
+
+```{r}
+library(asapR)
+y.data <- lapply(1:nb, function(b) yy[, batch == b, drop = F])
+y.data <- lapply(y.data, function(y) Matrix::Matrix(y, sparse = T))
+```
+
+First, we can construct pseudo bulk profiles without considering batch labels, hoping that Poisson Matrix Factorization (PMF) method on the pseudo bulk data could identify meaningful topic-specific frequency patterns.
+
+```{r}
+pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, do_batch_adj = F)
+pmf.out <- asap_fit_pmf(pb.out$PB, maxK=5)
+
+stat0 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
+                             log_beta = pmf.out$log.beta,
+                             beta_row_names = pb.out$rownames,
+                             do_stdize_beta = T, do_stdize_r = T,
+                             verbose = T)
+```
+
+We can explicitly incorporate experimental designs to the pseudo bulk data construction so that the we can deconfound batch effects and the resulting average matrix.
+
+```{r}
+pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9)
+pmf.out <- asap_fit_pmf(pb.out$PB, maxK=5)
+
+stat1 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
+                             log_beta = pmf.out$log.beta,
+                             beta_row_names = pb.out$rownames,
+                             r_log_delta = pb.out$log.batch.effect,
+                             do_stdize_beta = T, do_stdize_r = T,
+                             verbose = T)
+
+stat.b <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
+                              log_beta = pb.out$log.batch.effect,
+                              beta_row_names = pb.out$rownames,
+                              do_stdize_beta = T, do_stdize_r = T,
+                              verbose = T)
+```
+
+```{r include = F}
+plot.struct <- function(.prop, .order = NULL){
+    if(is.null(.order)){
+        .order <- order(apply(.prop, 1, which.max))
+    }
+    .melt <- reshape2::melt(.prop)
+    .melt$Var1 <- factor(.melt$Var1, .order)
+
+    ggplot(.melt, aes(Var1,value,fill=as.factor(Var2))) +
+        geom_bar(stat="identity") +
+        scale_fill_brewer("Topics", palette = "Paired") +
+        ylab("topic proportions") +
+        theme(axis.ticks.x = element_blank()) +
+        theme(axis.text.x = element_blank()) +
+        xlab(paste0(nrow(.prop), " samples"))
+}
+```
+
+### Naive PMF analysis
+
+```{r fig_topic_confounded, fig.width=7, fig.height=2}
+topic0 <- pmf2topic(stat0$beta, stat0$theta)
+plot.struct(topic0$prop, oo) +
+    ggtitle("sorted by true topics")
+```
+
+When we sorted samples by true topic patterns, block structures should emerge if the PMF algorithm was applied to unbiased data. However, no apparent block patterns emerge.
+
+```{r fig_batch_confounded, fig.width=7, fig.height=2}
+topic.batch <- pmf2topic(stat.b$beta, stat.b$theta)
+plot.struct(topic.batch$prop, order(batch)) +
+    ggtitle("sorted by batch labels")
+```
+
+Instead, we found batch-specific patterns dominate the overall PMF results. 
+
+```{r fig_topic_confounded_batch, fig.width=7, fig.height=2}
+plot.struct(topic0$prop, order(batch)) +
+    ggtitle("sorted by batch labels")
+```
+
+### After adjusting batch-specific effects
+
+On the other hand, we can recapitulate true topic-specific block structures from the deconfounded data. This was clearly demonstrated in the following PMF results.
+
+```{r fig_topic_adjusted, fig.width=7, fig.height=2}
+topic1 <- pmf2topic(stat1$beta, stat1$theta)
+plot.struct(topic1$prop, oo) +
+    ggtitle("sorted by true topics")
+```
+
+Yet, we do not see any batch-specific effects.
+
+```{r fig_topic_adjusted_batch, fig.width=7, fig.height=2}
+plot.struct(topic1$prop, order(batch)) +
+    ggtitle("sorted by batch labels")
+```
