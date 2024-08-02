@@ -43,6 +43,8 @@ kk <- kmeans(log1p(.theta), 3, nstart=100)$cluster
 lambda <- lambda.true * exp(ln.delta)
 yy <- apply(lambda, 2, function(l) sapply(l, rpois, n=1))
 oo <- order(apply(t(.theta), 2, which.max))
+
+control.features <- unique(as.vector(apply(.beta, 2, function(x) order(x)[1:100])))
 ```
 
 ```{r}
@@ -67,7 +69,8 @@ stat0 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
 We can explicitly incorporate experimental designs to the pseudo bulk data construction so that the we can deconfound batch effects and the resulting average matrix.
 
 ```{r}
-pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9)
+D <- max(sapply(y.data, function(x) nrow(x)))
+pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, row_names = 1:D, control_features = control.features)
 pmf.out <- asap_fit_pmf(pb.out$PB, maxK=5)
 
 stat1 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),

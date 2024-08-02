@@ -51,8 +51,9 @@ Rcpp::List
 asap_random_bulk_cbind(
     const std::vector<Eigen::SparseMatrix<float>> y_dn_vec,
     const std::size_t num_factors,
-    const Rcpp::Nullable<Rcpp::StringVector> r_row_names = R_NilValue,
-    const Rcpp::Nullable<Rcpp::StringVector> r_batch_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> row_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> control_features = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> batch_names = R_NilValue,
     const std::size_t rseed = 42,
     const bool verbose = true,
     const std::size_t NUM_THREADS = 0,
@@ -65,6 +66,7 @@ asap_random_bulk_cbind(
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
+    const std::size_t MIN_CONTROL_ROWS = 10,
     const double a0 = 1,
     const double b0 = 1)
 {
@@ -97,39 +99,45 @@ asap_random_bulk_cbind(
 
     TLOG_(verbose, Ntot << " columns");
 
-    std::vector<std::string> batch_names, pos2row;
+    std::vector<std::string> _batch_names, _row_names, control_rows;
 
-    if (r_batch_names.isNotNull()) {
-        rcpp::util::copy(Rcpp::StringVector(r_batch_names), batch_names);
+    if (batch_names.isNotNull()) {
+        rcpp::util::copy(Rcpp::StringVector(batch_names), _batch_names);
     } else {
         for (Index b = 0; b < B; ++b) {
-            batch_names.emplace_back(std::to_string(b + 1));
+            _batch_names.emplace_back(std::to_string(b + 1));
         }
     }
 
-    if (r_row_names.isNotNull()) {
-        rcpp::util::copy(Rcpp::StringVector(r_row_names), pos2row);
+    if (row_names.isNotNull()) {
+        rcpp::util::copy(Rcpp::StringVector(row_names), _row_names);
     } else {
         for (Index r = 0; r < D; ++r) {
-            pos2row.emplace_back(std::to_string(r + 1));
+            _row_names.emplace_back(std::to_string(r + 1));
         }
     }
 
     std::unordered_map<std::string, Index> row2pos;
-    for (Index r = 0; r < pos2row.size(); ++r) {
-        row2pos[pos2row.at(r)] = r;
+    make_position_dict(_row_names, row2pos);
+
+    if (control_features.isNotNull()) {
+        TLOG_(verbose, "Parsing control features");
+        rcpp::util::copy(Rcpp::StringVector(control_features), control_rows);
+    } else {
+        control_rows.clear();
     }
 
-    ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
-    ASSERT_RETL(pos2row.size() == D, "check the rows_restrict");
+    ASSERT_RETL(_batch_names.size() == B, "check the r_batch_names");
+    ASSERT_RETL(_row_names.size() == D, "check the rows_restrict");
 
-    std::vector<std::string> columns;
-    columns.reserve(Ntot);
+    std::vector<std::string> _column_names;
+    _column_names.reserve(Ntot);
 
     std::vector<eigenSparse_data_t> data_loaders;
 
     for (Index b = 0; b < B; ++b) {
-        data_loaders.emplace_back(eigenSparse_data_t(y_dn_vec.at(b), pos2row));
+        data_loaders.emplace_back(
+            eigenSparse_data_t(y_dn_vec.at(b), _row_names));
     }
 
     for (Index b = 0; b < B; ++b) {
@@ -139,9 +147,9 @@ asap_random_bulk_cbind(
     // assign unique column names
     {
         for (Index b = 0; b < B; ++b) {
-            const std::string bname = batch_names.at(b);
+            const std::string bname = _batch_names.at(b);
             for (Index j = 0; j < data_loaders.at(b).max_col(); ++j) {
-                columns.emplace_back(std::to_string(j + 1) + "_" + bname);
+                _column_names.emplace_back(std::to_string(j + 1) + "_" + bname);
             }
         }
     }
@@ -168,11 +176,13 @@ asap_random_bulk_cbind(
     options.NUM_THREADS = NUM_THREADS;
     options.CELL_NORM = CELL_NORM;
     options.BLOCK_SIZE = BLOCK_SIZE;
+    options.MIN_CONTROL_FEATURES = MIN_CONTROL_ROWS;
 
     return run_asap_pb_cbind(data_loaders,
-                             pos2row,
-                             columns,
-                             batch_names,
+                             _row_names,
+                             _column_names,
+                             _batch_names,
+                             control_rows,
                              options);
 }
 
@@ -232,8 +242,9 @@ asap_random_bulk_cbind_mtx(
     const std::vector<std::string> col_files,
     const std::vector<std::string> idx_files,
     const std::size_t num_factors,
-    const Rcpp::Nullable<Rcpp::StringVector> r_batch_names = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> batch_names = R_NilValue,
     const Rcpp::Nullable<Rcpp::StringVector> rows_restrict = R_NilValue,
+    const Rcpp::Nullable<Rcpp::StringVector> control_features = R_NilValue,
     const bool rename_columns = true,
     const bool take_union_rows = false,
     const std::size_t rseed = 42,
@@ -248,6 +259,7 @@ asap_random_bulk_cbind_mtx(
     const std::size_t KNN_CELL = 10,
     const std::size_t CELL_PER_SAMPLE = 100,
     const std::size_t BATCH_ADJ_ITER = 100,
+    const std::size_t MIN_CONTROL_ROWS = 10,
     const double a0 = 1,
     const double b0 = 1,
     const std::size_t MAX_ROW_WORD = 2,
@@ -276,6 +288,7 @@ asap_random_bulk_cbind_mtx(
     options.NUM_THREADS = NUM_THREADS;
     options.CELL_NORM = CELL_NORM;
     options.BLOCK_SIZE = BLOCK_SIZE;
+    options.MIN_CONTROL_FEATURES = MIN_CONTROL_ROWS;
 
     const Index B = mtx_files.size();
 
@@ -300,23 +313,23 @@ asap_random_bulk_cbind_mtx(
         }
     }
 
-    std::vector<std::string> batch_names;
+    std::vector<std::string> _batch_names;
 
     if (rename_columns) {
-        if (r_batch_names.isNotNull()) {
-            rcpp::util::copy(Rcpp::StringVector(r_batch_names), batch_names);
+        if (batch_names.isNotNull()) {
+            rcpp::util::copy(Rcpp::StringVector(batch_names), _batch_names);
         } else {
             for (Index b = 0; b < B; ++b) {
-                batch_names.emplace_back(std::to_string(b + 1));
+                _batch_names.emplace_back(std::to_string(b + 1));
             }
         }
 
         if (verbose) {
-            for (auto b : batch_names)
+            for (auto b : _batch_names)
                 TLOG("batch: " << b)
         }
 
-        ASSERT_RETL(batch_names.size() == B, "check the r_batch_names");
+        ASSERT_RETL(_batch_names.size() == B, "check the batch_names");
     }
 
     TLOG_(verbose, "Checked the files");
@@ -325,18 +338,18 @@ asap_random_bulk_cbind_mtx(
     // first figure out global rows //
     //////////////////////////////////
 
-    std::vector<std::string> pos2row;
+    std::vector<std::string> _row_names, _column_names, control_rows;
     std::unordered_map<std::string, Index> row2pos;
 
     if (rows_restrict.isNotNull()) {
 
-        rcpp::util::copy(Rcpp::StringVector(rows_restrict), pos2row);
-        make_position_dict(pos2row, row2pos);
+        rcpp::util::copy(Rcpp::StringVector(rows_restrict), _row_names);
+        make_position_dict(_row_names, row2pos);
 
     } else {
 
         rcpp::util::take_common_names(row_files,
-                                      pos2row,
+                                      _row_names,
                                       row2pos,
                                       take_union_rows,
                                       MAX_ROW_WORD,
@@ -345,18 +358,25 @@ asap_random_bulk_cbind_mtx(
         TLOG_(verbose, "Found " << row2pos.size() << " row names");
     }
 
-    ASSERT_RETL(pos2row.size() > 0, "Empty row names!");
+    ASSERT_RETL(_row_names.size() > 0, "Empty row names!");
+
+    if (control_features.isNotNull()) {
+        TLOG_(verbose, "Parsing control features");
+        rcpp::util::copy(Rcpp::StringVector(control_features), control_rows);
+    } else {
+        control_rows.clear();
+    }
 
     auto count_add_cols = [](Index a, std::string mtx) -> Index {
         mm_info_reader_t info;
         CHECK(peek_bgzf_header(mtx, info));
         return a + info.max_col;
     };
+
     const Index Ntot =
         std::accumulate(mtx_files.begin(), mtx_files.end(), 0, count_add_cols);
 
-    std::vector<std::string> columns;
-    columns.reserve(Ntot);
+    _column_names.reserve(Ntot);
 
     for (Index b = 0; b < B; ++b) {
         std::vector<std::string> col_b;
@@ -366,12 +386,14 @@ asap_random_bulk_cbind_mtx(
                                  COL_WORD_SEP),
                   "unable to read " << col_files.at(b))
         if (rename_columns) {
-            const std::string bname = batch_names.at(b);
+            const std::string bname = _batch_names.at(b);
             auto app_b = [&bname](std::string &x) { x += "_" + bname; };
             std::for_each(col_b.begin(), col_b.end(), app_b);
         }
 
-        std::copy(col_b.begin(), col_b.end(), std::back_inserter(columns));
+        std::copy(col_b.begin(),
+                  col_b.end(),
+                  std::back_inserter(_column_names));
     }
 
     //////////////////////////////////
@@ -396,8 +418,9 @@ asap_random_bulk_cbind_mtx(
     }
 
     return run_asap_pb_cbind(data_loaders,
-                             pos2row,
-                             columns,
-                             batch_names,
+                             _row_names,
+                             _column_names,
+                             _batch_names,
+                             control_rows,
                              options);
 }

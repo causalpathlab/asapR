@@ -9,8 +9,9 @@ Horizontal concatenation.}
 asap_random_bulk_cbind(
   y_dn_vec,
   num_factors,
-  r_row_names = NULL,
-  r_batch_names = NULL,
+  row_names = NULL,
+  control_features = NULL,
+  batch_names = NULL,
   rseed = 42L,
   verbose = TRUE,
   NUM_THREADS = 0L,
@@ -23,6 +24,7 @@ asap_random_bulk_cbind(
   KNN_CELL = 10L,
   CELL_PER_SAMPLE = 100L,
   BATCH_ADJ_ITER = 100L,
+  MIN_CONTROL_ROWS = 10L,
   a0 = 1,
   b0 = 1
 )

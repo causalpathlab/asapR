@@ -10,19 +10,21 @@
 template <typename T>
 Rcpp::List
 run_asap_pb_cbind(std::vector<T> &data_loaders,
-                  const std::vector<std::string> &pos2row,
-                  const std::vector<std::string> &columns,
+                  const std::vector<std::string> &row_names,
+                  const std::vector<std::string> &column_names,
                   const std::vector<std::string> &batch_names,
+                  const std::vector<std::string> &control_rows,
                   const asap::pb::options_t &options)
 {
 
     using namespace asap::pb;
 
-    const Index B = data_loaders.size();
-    const Index D = pos2row.size();    // dimensionality
-    const Index Ntot = columns.size(); // samples
+    const Index Ndata = data_loaders.size();
+    const Index D = row_names.size();       // dimensionality
+    const Index Ntot = column_names.size(); // samples
 
-    ASSERT_RETL(B == batch_names.size(), "Should have matching batch names");
+    ASSERT_RETL(Ndata == batch_names.size(),
+                "Should have matching batch names");
 
     const Index K = options.K;
 
@@ -40,6 +42,9 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS =
         (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
+
+    const std::size_t min_control_features = options.MIN_CONTROL_FEATURES;
+
     const Index block_size = options.BLOCK_SIZE;
 
     log1p_op<Mat> log1p;
@@ -54,10 +59,29 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     {
         Index ntot = 0;
-        for (Index b = 0; b < B; ++b) { // each batch
+        for (Index b = 0; b < Ndata; ++b) { // each batch
             ntot += data_loaders.at(b).max_col();
         }
         ASSERT_RETL(Ntot == ntot, "|column names| != columns(data)");
+    }
+
+    ColVec select_controls(D);
+    if (control_rows.size() > 0) {
+        std::unordered_map<std::string, Index> controls;
+        make_position_dict(control_rows, controls);
+        select_controls = ColVec::Zero(D);
+        for (std::size_t d = 0; d < D; ++d) {
+            if (controls.count(row_names.at(d)) > 0) {
+                select_controls(d) = 1.;
+            }
+        }
+        if (select_controls.sum() < min_control_features) {
+            WLOG("Found too little control features overlap with the rows");
+            WLOG(D << " features will be considered control features.");
+            select_controls.setOnes();
+        }
+    } else {
+        select_controls.setOnes();
     }
 
     /////////////////////////////////////////////
@@ -79,7 +103,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     Index offset = 0;
 
-    for (Index b = 0; b < B; ++b) {
+    for (Index b = 0; b < Ndata; ++b) {
 
         const Index Nb = data_loaders.at(b).max_col();
         batch_glob_map.emplace_back(std::vector<Index> {});
@@ -95,10 +119,12 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             SpMat _y_dn = do_log1p ?
                 data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p) :
                 data_loaders.at(b).read_reloc(lb, ub);
+
             normalize_columns_inplace(_y_dn);
+
             const Mat y_dn = _y_dn * cell_norm;
 
-            Mat temp_kn = R_kd * y_dn;
+            Mat temp_kn = R_kd * select_controls.asDiagonal() * y_dn;
 
 #pragma omp critical
             {
@@ -118,15 +144,15 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                                        << offset << " cells");
     }
 
-    if (B > 1 && do_batch_adj) {
+    if (Ndata > 1 && do_batch_adj) {
 
         at_least_one_op<Mat> at_least_one;
         at_least_zero_op<Mat> at_least_zero;
         const Scalar tol = 1e-4;
 
-        Mat s1_kb = Mat::Zero(K, B);
-        Mat s2_kb = Mat::Zero(K, B);
-        Mat n_kb = Mat::Zero(K, B);
+        Mat s1_kb = Mat::Zero(K, Ndata);
+        Mat s2_kb = Mat::Zero(K, Ndata);
+        Mat n_kb = Mat::Zero(K, Ndata);
         for (Index j = 0; j < batch_membership.size(); ++j) {
             const Index b = batch_membership.at(j);
             s1_kb.col(b) += Q_kn.col(j);
@@ -167,7 +193,6 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     ASSERT_RETL(vv.rows() == Ntot, " failed SVD for Q");
 
-    Mat Q_nk = Q_kn.transpose();           // N x K
     Mat Qstd_nk = standardize_columns(vv); // N x K
 
     TLOG_(verbose,
@@ -242,10 +267,10 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     Mat ysum_ds = Mat::Zero(D, S);
     RowVec size_s = RowVec::Zero(S);
 
-    Mat delta_num_db = Mat::Zero(D, B);   // gene x batch numerator
-    Mat delta_denom_db = Mat::Zero(D, B); // gene x batch denominator
-    Mat n_bs = Mat::Zero(B, S);           // batch x PB freq
-    Mat prob_bs = Mat::Zero(B, S);        // batch x PB prob
+    Mat delta_num_db = Mat::Zero(D, Ndata);   // gene x batch numerator
+    Mat delta_denom_db = Mat::Zero(D, Ndata); // gene x batch denominator
+    Mat n_bs = Mat::Zero(Ndata, S);           // batch x PB freq
+    Mat prob_bs = Mat::Zero(Ndata, S);        // batch x PB prob
 
     Mat delta_db, log_delta_db;
 
@@ -253,7 +278,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         offset = 0;
         delta_num_db.setZero();
 
-        for (Index b = 0; b < B; ++b) { // each batch
+        for (Index b = 0; b < Ndata; ++b) { // each batch
 
             const Index Nb = data_loaders.at(b).max_col();
 
@@ -302,7 +327,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     Mat zsum_ds; // data x PB
 
-    if (B > 1 && do_batch_adj) {
+    if (Ndata > 1 && do_batch_adj) {
 
         TLOG_(verbose,
               "Building annoy index using random proj. results "
@@ -314,7 +339,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
 #endif
-        for (Index b = 0; b < B; ++b) {
+        for (Index b = 0; b < Ndata; ++b) {
 
             const std::vector<Index> &batch_cells = batch_glob_map.at(b);
             const Index Nb = batch_cells.size();
@@ -357,7 +382,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
             const std::size_t nneigh_max =
                 std::max(static_cast<std::size_t>(1),
-                         static_cast<std::size_t>((B - 1) * KNN_CELL));
+                         static_cast<std::size_t>((Ndata - 1) * KNN_CELL));
             Mat z_per_cell = Mat::Zero(D, nneigh_max);
             ColVec w_per_cell = ColVec::Zero(nneigh_max);
 
@@ -382,7 +407,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
                 Eigen::Map<Mat>(query.data(), 1, rank) = Qstd_nk.row(glob);
 
-                for (Index b = 0; b < B; ++b) {
+                for (Index b = 0; b < Ndata; ++b) {
                     if (a != b) {
 
                         std::vector<Index> neigh_index;
@@ -438,7 +463,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         Rcpp::Rcerr << std::endl;
         TLOG_(verbose, "Collected sufficient statistics");
 
-        gamma_param_t<Mat, RNG> delta_param(D, B, a0, b0, rng);
+        gamma_param_t<Mat, RNG> delta_param(D, Ndata, a0, b0, rng);
         gamma_param_t<Mat, RNG> mu_param(D, S, a0, b0, rng);
         gamma_param_t<Mat, RNG> gamma_param(D, S, a0, b0, rng);
 
@@ -454,7 +479,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
         Mat gamma_ds = Mat::Ones(D, S); // bias on the side of CF
 
-        delta_db.resize(D, B); // gene x batch
+        delta_db.resize(D, Ndata); // gene x batch
         delta_db.setOnes();
 
         for (std::size_t t = 0; t < BATCH_ADJ_ITER; ++t) {
@@ -533,7 +558,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     TLOG_(verbose, "position and batch names");
 
-    std::vector<std::string> d_ = pos2row;
+    std::vector<std::string> d_ = row_names;
     std::vector<std::string> s_;
     for (std::size_t s = 1; s <= S; ++s)
         s_.push_back(std::to_string(s));
@@ -571,8 +596,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         _["positions"] = r_positions,
                         _["rand.dict"] = R_kd,
                         _["rand.proj"] = Qstd_nk,
-                        _["colnames"] = columns,
-                        _["rownames"] = pos2row);
+                        _["colnames"] = column_names,
+                        _["rownames"] = row_names);
 }
 
 #endif

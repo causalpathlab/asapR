@@ -26,6 +26,7 @@ struct options_t {
         , a0(1)
         , b0(1)
         , CELL_NORM(10000)
+        , MIN_CONTROL_FEATURES(10)
     {
     }
 
@@ -44,6 +45,7 @@ struct options_t {
     double a0;
     double b0;
     double CELL_NORM;
+    std::size_t MIN_CONTROL_FEATURES;
 };
 
 template <typename Derived>
