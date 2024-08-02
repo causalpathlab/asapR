@@ -291,7 +291,15 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             for (Index lb = 0; lb < Nb; lb += block_size) {
 
                 const Index ub = std::min(Nb, block_size + lb);
+
                 const Mat y = data_loaders.at(b).read_reloc(lb, ub);
+
+                ///////////////////////////////////////////////////////
+                // Restrict on the control rows: This is inefficient //
+                // but we can keep it for better readability         //
+                ///////////////////////////////////////////////////////
+
+                const Mat z = select_controls.asDiagonal() * y;
 
 #pragma omp critical
                 {
@@ -305,7 +313,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                             n_bs(b, s) = n_bs(b, s) + 1.;
                         }
                     }
-                    delta_num_db.col(b) += y.rowwise().sum();
+
+                    delta_num_db.col(b) += z.rowwise().sum();
                 }
             }
 
@@ -413,11 +422,16 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         std::vector<Index> neigh_index;
                         std::vector<Scalar> neigh_dist;
 
+                        //////////////////////////////////
+                        // Restrict on the control rows //
+                        //////////////////////////////////
+
                         const Mat z =
-                            data_loaders.at(b).read_matched_reloc(query,
-                                                                  KNN_CELL,
-                                                                  neigh_index,
-                                                                  neigh_dist);
+                            (select_controls.asDiagonal() *
+                             data_loaders.at(b).read_matched_reloc(query,
+                                                                   KNN_CELL,
+                                                                   neigh_index,
+                                                                   neigh_dist));
 
                         for (Index k = 0; k < z.cols(); ++k) {
                             z_per_cell.col(nneigh) = z.col(k);
@@ -487,9 +501,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             // shared components  //
             ////////////////////////
             mu_param.update(ysum_ds + zsum_ds,
-                            delta_db * n_bs +
-                                ((gamma_ds.array().rowwise() * size_s.array()))
-                                    .matrix());
+                            delta_db * n_bs + gamma_ds * size_s.asDiagonal());
             mu_param.calibrate();
             mu_ds = mu_param.mean();
 
@@ -497,9 +509,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             // residual for z //
             ////////////////////
 
-            gamma_param
-                .update(zsum_ds,
-                        (mu_ds.array().rowwise() * size_s.array()).matrix());
+            gamma_param.update(zsum_ds, mu_ds * size_s.asDiagonal());
             gamma_param.calibrate();
             gamma_ds = gamma_param.mean();
 
