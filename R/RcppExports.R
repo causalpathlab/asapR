@@ -640,7 +640,7 @@ asap_topic_pmf <- function(beta_dk, R_nk, Ysum_n, a0 = 1.0, b0 = 1.0, max_iter =
 #' @param b0 gamma(a0, b0) (default: 1)
 #' @param max_iter maximum iterations (default: 10)
 #' @param NUM_THREADS number of threads in data reading
-#' 
+#'
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
 #' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 #' @param ROW_WORD_SEP word separation character to replace white space

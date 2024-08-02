@@ -111,8 +111,8 @@ int
 run_pmf_theta(const Eigen::MatrixBase<IN1> &log_beta_dk, // log dictionary
               const Eigen::MatrixBase<IN2> &r_nk,        // correlation
               const Eigen::MatrixBase<IN3> &ysum_n,      // y sum
-              Eigen::MatrixBase<RET1> &theta,            // theta
-              Eigen::MatrixBase<RET2> &log_theta,        // log theta
+              Eigen::MatrixBase<RET1> &_theta,           // theta
+              Eigen::MatrixBase<RET2> &_log_theta,       // log theta
               const double a0 = 1.0,
               const double b0 = 1.0,
               const std::size_t max_iter = 10,
@@ -142,6 +142,12 @@ run_pmf_theta(const Eigen::MatrixBase<IN1> &log_beta_dk, // log dictionary
     gamma_t param_theta_nk(N, K, a0, b0, rng); // n x K
     Mat logRho_nk(N, K), rho_nk(N, K);         // n x K
 
+    RET1 &theta = _theta.derived();
+    RET2 &log_theta = _log_theta.derived();
+
+    theta = Mat::Zero(N, K);
+    log_theta = Mat::Zero(N, K);
+
     const Mat x_nk = degree_n * beta_dk.colwise().sum(); // N x K
 
     const Scalar qq_min = .01, qq_max = .99;
@@ -164,10 +170,9 @@ run_pmf_theta(const Eigen::MatrixBase<IN1> &log_beta_dk, // log dictionary
         param_theta_nk.update(ysum_n.asDiagonal() * rho_nk, x_nk);
         param_theta_nk.calibrate();
     }
-    theta.resize(N, K);
-    log_theta.resize(N, K);
-    theta = param_theta_nk.mean();
-    log_theta = param_theta_nk.log_mean();
+
+    theta += param_theta_nk.mean();
+    log_theta += param_theta_nk.log_mean();
 
     return EXIT_SUCCESS;
 }

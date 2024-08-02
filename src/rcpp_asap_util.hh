@@ -62,7 +62,7 @@ void
 stretch_matrix_columns_inplace(Eigen::MatrixBase<Derived> &_y,
                                const typename Derived::Scalar qq_min = 0.01,
                                const typename Derived::Scalar qq_max = 0.99,
-                               const bool verbose = true)
+                               const bool verbose = false)
 {
 
     Derived &Ystd = _y.derived();

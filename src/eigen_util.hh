@@ -792,57 +792,58 @@ template <typename Derived, typename Derived2>
 void
 residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,
                          const Eigen::MatrixBase<Derived2> &_xx,
-                         const typename Derived::Scalar eps = 1e-8)
+                         const typename Derived::Scalar eps = 1e-8,
+                         bool verbose = false)
 {
     using Index = typename Derived::Index;
     using Scalar = typename Derived::Scalar;
-
     using Mat =
         Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
-
-    const Derived Yraw = _yy.derived(); // copy to avoid aliasing issues
-    Derived &Yout = _yy.derived();
-    const Derived2 &X = _xx.derived();
     using ColVec = typename Eigen::internal::plain_col_type<Derived>::type;
 
-    ASSERT(X.rows() == Yraw.rows(), "incompatible Y and X");
+    Derived &Yout = _yy.derived();
+    const Derived2 &X = _xx.derived();
 
-    Derived2 Xstd = X;
-    standardize_columns_inplace(Xstd);
+    Mat Xstd = standardize_columns(X); // copy standardized version
+    ASSERT(Xstd.rows() == Yout.rows(), "incompatible Y and X");
+    TLOG_(verbose, "Standardized X: " << Xstd.rows() << " x " << Xstd.cols());
 
     if (Xstd.cols() < 1) {
         // nothing to do
     } else if (Xstd.cols() == 1) {
 
         const Scalar denom = Xstd.cwiseProduct(Xstd).sum();
-        for (Index k = 0; k < Yraw.cols(); ++k) {
+        for (Index k = 0; k < Yout.cols(); ++k) {
+
             const Scalar b =
-                (Xstd.transpose() * Yraw.col(k)).sum() / (denom + eps);
-            Yout.col(k) = Yraw.col(k) - b * Xstd.col(0);
+                (Xstd.transpose() * Yout.col(k)).sum() / (denom + eps);
+            Yout.col(k) -= b * Xstd.col(0);
         }
 
     } else {
-        const std::size_t r =
-            std::min(Xstd.rows(), std::min(Xstd.cols(), Yraw.cols()));
+        const std::size_t r = std::min(Xstd.rows(), Xstd.cols());
 
         const std::size_t lu_iter = 5;
         RandomizedSVD<Derived> svd_x(r, lu_iter);
         svd_x.compute(Xstd);
         ColVec d = svd_x.singularValues();
-        Mat u = svd_x.matrixU();
+        const Mat u = svd_x.matrixU();
 
-        for (Index k = 0; k < r; ++k) {
-            if (d(k) < eps)
-                u.col(k).setZero();
-        }
+        TLOG_(verbose, "Randomized SVD: " << u.rows() << " x " << u.cols());
 
         // X theta = X inv(X'X) X' Y
         //         = U D V' V inv(D^2) V' (U D V')' Y
         //         = U inv(D) V' V D U' Y
         //         = U U' Y
 
-        Yout = Yraw - u * u.transpose() * Yraw;
+        const Mat Yhat = u * (u.transpose() * Yout);
+        TLOG_(verbose,
+              "computed Yhat " << Yhat.rows() << " x " << Yhat.cols() << " -> "
+                               << Yout.rows() << " x " << Yout.cols());
+        Yout -= Yhat;
     }
+
+    TLOG_(verbose, "successfully regressed out");
 }
 
 template <typename Derived>
@@ -899,7 +900,7 @@ setConstant(Eigen::SparseMatrixBase<Derived> &mat,
     using Scalar = typename Derived::Scalar;
     auto fill_const = [val](const Scalar &x) { return val; };
     Derived &Mat = mat.derived();
-    Mat = Mat.unaryExpr(fill_const);
+    Mat = Mat.unaryExpr(fill_const).eval();
 }
 
 template <typename Derived>
@@ -1142,7 +1143,9 @@ XY_nobs(const Eigen::MatrixBase<T1> &X,
 {
     is_obs_op<T1> op1;
     is_obs_op<T2> op2;
-    ret.derived() = (X.unaryExpr(op1) * Y.unaryExpr(op2)).array() + pseudo;
+    ret.derived() = ((X.unaryExpr(op1) * Y.unaryExpr(op2)).array() + pseudo)
+                        .matrix()
+                        .eval();
 }
 
 template <typename T1, typename T2, typename Ret>
@@ -1157,7 +1160,7 @@ XY_nobs(const Eigen::MatrixBase<T1> &X,
     add_pseudo_op<Ret> op_add(pseudo);
 
     times_set(X.unaryExpr(op1), Y.unaryExpr(op2), ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1173,8 +1176,10 @@ XYZ_nobs(const Eigen::MatrixBase<T1> &X,
     is_obs_op<T3> op3;
 
     ret.derived() =
-        (X.unaryExpr(op1) * Y.unaryExpr(op2) * Z.unaryExpr(op3)).array() +
-        pseudo;
+        ((X.unaryExpr(op1) * Y.unaryExpr(op2) * Z.unaryExpr(op3)).array() +
+         pseudo)
+            .matrix()
+            .eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1192,7 +1197,7 @@ XYZ_nobs(const Eigen::MatrixBase<T1> &X,
 
     auto YZ = (Y.unaryExpr(op2) * Z.unaryExpr(op3)).eval();
     times_set(X.unaryExpr(op1), YZ, ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1210,7 +1215,7 @@ XYZ_nobs(const Eigen::MatrixBase<T1> &X,
 
     auto YZ = (Y.unaryExpr(op2) * Z.unaryExpr(op3)).eval();
     times_set(X.unaryExpr(op1), YZ, ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1228,7 +1233,7 @@ XYZ_nobs(const Eigen::MatrixBase<T1> &X,
 
     auto YZ = (Y.unaryExpr(op2) * Z.unaryExpr(op3)).eval();
     times_set(X.unaryExpr(op1), YZ, ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1246,7 +1251,7 @@ XYZ_nobs(const Eigen::SparseMatrixBase<T1> &X,
 
     auto YZ = (Y.unaryExpr(op2) * Z.unaryExpr(op3)).eval();
     times_set(X.unaryExpr(op1), YZ, ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 template <typename T1, typename T2, typename T3, typename Ret>
@@ -1264,7 +1269,7 @@ XYZ_nobs(const Eigen::MatrixBase<T1> &X,
 
     auto YZ = (Y.unaryExpr(op2) * Z.unaryExpr(op3)).eval();
     times_set(X.unaryExpr(op1), YZ, ret);
-    ret.derived() = ret.unaryExpr(op_add);
+    ret.derived() = ret.unaryExpr(op_add).eval();
 }
 
 ////////////////////////////////////////////////////////////////

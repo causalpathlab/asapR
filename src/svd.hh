@@ -27,12 +27,12 @@ public:
 
     using Vec = Eigen::Matrix<typename T::Scalar, Eigen::Dynamic, 1>;
 
-    T matrixU() const { return U; }
-    T matrixV() const { return V; }
-    Vec singularValues() const { return D; }
+    const T matrixU() const { return U; }
+    const T matrixV() const { return V; }
+    const Vec singularValues() const { return D; }
 
     template <typename Derived>
-    void compute(const Eigen::MatrixBase<Derived> &X)
+    void compute(Eigen::MatrixBase<Derived> const &X)
     {
         using Index = typename Derived::Index;
         const Index nr = X.rows();
@@ -94,7 +94,7 @@ private:
 
     template <typename Derived>
     void
-    rand_subspace_iteration(const Eigen::MatrixBase<Derived> &X, // data matrix
+    rand_subspace_iteration(Eigen::MatrixBase<Derived> const &X, // data matrix
                             const int rank_and_oversample)
     { // rank + alpha
 

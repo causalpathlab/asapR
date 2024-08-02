@@ -19,7 +19,7 @@
 //' @param b0 gamma(a0, b0) (default: 1)
 //' @param max_iter maximum iterations (default: 10)
 //' @param NUM_THREADS number of threads in data reading
-//' 
+//'
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
 //' @param MAX_ROW_WORD maximum words per line in `row_files[i]`
 //' @param ROW_WORD_SEP word separation character to replace white space
@@ -70,8 +70,9 @@ asap_pmf_regression_cbind_mtx(
     using RNG = dqrng::xoshiro256plus;
     RNG rng;
 
-    asap::regression::stat_options_t options;
+    using namespace asap::regression;
 
+    stat_options_t options;
     options.do_stdize_x = do_stdize_beta;
     options.do_stdize_r = do_stdize_r;
     options.do_log1p = do_log1p;
@@ -210,13 +211,15 @@ asap_pmf_regression_cbind_mtx(
 
         Mat r_b_nk, y_b_n;
 
-        CHK_RETL_(asap::regression::run_pmf_stat(data,
-                                                 logBeta_dk,
-                                                 pos2row,
-                                                 options,
-                                                 r_b_nk,
-                                                 y_b_n),
+        CHK_RETL_(run_pmf_stat(data,
+                               logBeta_dk,
+                               pos2row,
+                               options,
+                               r_b_nk,
+                               y_b_n),
                   "unable to compute topic statistics");
+
+        TLOG_(verbose, "computed topic statistics");
 
         R_nk.middleRows(lb, r_b_nk.rows()) = r_b_nk;
         Y_n.middleRows(lb, y_b_n.rows()) = y_b_n;
@@ -263,18 +266,20 @@ asap_pmf_regression_cbind_mtx(
             const std::size_t lb = lb_index.at(b);
             const std::size_t bs = batch_sizes.at(b);
 
+            TLOG_(verbose, "N = " << bs << " cells");
+
             Mat theta_b, log_theta_b;
 
-            CHECK_(asap::regression::run_pmf_theta(logBeta_dk,
-                                                   R_nk.middleRows(lb, bs),
-                                                   Y_n.middleRows(lb, bs),
-                                                   theta_b,
-                                                   log_theta_b,
-                                                   a0,
-                                                   b0,
-                                                   max_iter,
-                                                   options.do_stdize_r,
-                                                   verbose),
+            CHECK_(run_pmf_theta(logBeta_dk,
+                                 R_nk.middleRows(lb, bs),
+                                 Y_n.middleRows(lb, bs),
+                                 theta_b,
+                                 log_theta_b,
+                                 a0,
+                                 b0,
+                                 max_iter,
+                                 options.do_stdize_r,
+                                 verbose),
                    "unable to calibrate theta values");
 
             theta_ntot_k.middleRows(lb, bs) = theta_b;
@@ -287,7 +292,7 @@ asap_pmf_regression_cbind_mtx(
         const Index B = logDelta_db.cols();
 
         // 1. Estimate correlation induced by delta
-        TLOG_(verbose, "Estimate correlations with the batch effects");
+        TLOG_(verbose, "Estimate correlations with " << B << " delta vars.");
         Mat R0_nb = Mat::Zero(Ntot, B);
 
         for (Index b = 0; b < num_data_batch; ++b) {
@@ -306,26 +311,40 @@ asap_pmf_regression_cbind_mtx(
             const std::size_t lb = lb_index.at(b);
             const std::size_t bs = batch_sizes.at(b);
 
+            {
+                mm_info_reader_t info;
+                CHECK(peek_bgzf_header(mtx_files.at(b), info));
+                TLOG_(verbose,
+                      "N " << bs << " cells in data "
+                           << " [" << info.max_row << " x " << info.max_col
+                           << "]");
+            }
+
             Mat r0_b_nb, y0_b_n;
 
-            CHK_RETL_(asap::regression::run_pmf_stat(data,
-                                                     logDelta_db,
-                                                     pos2row,
-                                                     options,
-                                                     r0_b_nb,
-                                                     y0_b_n),
+            CHK_RETL_(run_pmf_stat(data,
+                                   logDelta_db,
+                                   pos2row,
+                                   options,
+                                   r0_b_nb,
+                                   y0_b_n),
                       "unable to compute topic statistics");
+
+            TLOG_(verbose,
+                  "computed batch statistics: [" << lb << " .. " << (bs + lb)
+                                                 << "]");
 
             R0_nb.middleRows(lb, bs) = r0_b_nb;
 
             TLOG_(verbose,
-                  "processed  [ " << (b + 1) << " ] / [ " << num_data_batch
-                                  << " ]");
+                  "step 2: processed  [ " << (b + 1) << " ] / [ "
+                                          << num_data_batch << " ]");
         }
 
         // 2. Take residuals
         TLOG_(verbose, "Regress out the batch effect correlations");
-        residual_columns_inplace(R_nk, R0_nb);
+        residual_columns_inplace(R_nk, R0_nb, 1e-4, verbose);
+
         if (options.do_stdize_r) {
             asap::util::stretch_matrix_columns_inplace(R_nk);
         }
@@ -339,20 +358,24 @@ asap_pmf_regression_cbind_mtx(
 
             Mat theta_b, log_theta_b;
 
-            CHECK_(asap::regression::run_pmf_theta(logBeta_dk,
-                                                   R_nk.middleRows(lb, bs),
-                                                   Y_n.middleRows(lb, bs),
-                                                   theta_b,
-                                                   log_theta_b,
-                                                   a0,
-                                                   b0,
-                                                   max_iter,
-                                                   options.do_stdize_r,
-                                                   verbose),
+            CHECK_(run_pmf_theta(logBeta_dk,
+                                 R_nk.middleRows(lb, bs),
+                                 Y_n.middleRows(lb, bs),
+                                 theta_b,
+                                 log_theta_b,
+                                 a0,
+                                 b0,
+                                 max_iter,
+                                 options.do_stdize_r,
+                                 verbose),
                    "unable to calibrate theta values");
 
             theta_ntot_k.middleRows(lb, bs) = theta_b;
             log_theta_ntot_k.middleRows(lb, bs) = log_theta_b;
+
+            TLOG_(verbose,
+                  "Step 3: processed  [ " << (b + 1) << " ] / [ "
+                                          << num_data_batch << " ]");
         }
     }
 
