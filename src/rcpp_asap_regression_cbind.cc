@@ -9,7 +9,7 @@
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
 //' @param log_delta D x B log batch effects
-//' @param r_batch_names batch names (optional)
+//' @param batch_names batch names (optional)
 //' @param rename_columns append batch name at the end of each column name (default: FALSE)
 //' @param do_stdize_beta use standardized log_beta (default: TRUE)
 //' @param do_stdize_r standardize correlation matrix R (default: TRUE)
@@ -50,7 +50,7 @@ asap_pmf_regression_cbind_mtx(
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
     const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
-    const Rcpp::Nullable<Eigen::MatrixXf> r_batch_names = R_NilValue,
+    const Rcpp::Nullable<Eigen::MatrixXf> batch_names = R_NilValue,
     const bool rename_columns = false,
     const bool do_stdize_beta = true,
     const bool do_stdize_r = true,
@@ -116,18 +116,18 @@ asap_pmf_regression_cbind_mtx(
         }
     }
 
-    std::vector<std::string> batch_names;
+    std::vector<std::string> _batch_names;
 
     if (rename_columns) {
-        if (r_batch_names.isNotNull()) {
-            batch_names = rcpp::util::copy(Rcpp::StringVector(r_batch_names));
+        if (batch_names.isNotNull()) {
+            _batch_names = rcpp::util::copy(Rcpp::StringVector(batch_names));
         } else {
             for (Index b = 0; b < num_data_batch; ++b) {
-                batch_names.emplace_back(std::to_string(b + 1));
+                _batch_names.emplace_back(std::to_string(b + 1));
             }
         }
-        ASSERT_RETL(batch_names.size() == num_data_batch,
-                    "check the r_batch_names");
+        ASSERT_RETL(_batch_names.size() == num_data_batch,
+                    "check the batch_names");
     }
 
     TLOG_(verbose, "Checked the files");
@@ -182,7 +182,7 @@ asap_pmf_regression_cbind_mtx(
                   "unable to read " << col_files.at(b))
 
         if (rename_columns) {
-            const std::string bname = batch_names.at(b);
+            const std::string bname = _batch_names.at(b);
             auto app_b = [&bname](std::string &x) { x += "_" + bname; };
             std::for_each(col_b.begin(), col_b.end(), app_b);
         }
@@ -397,7 +397,7 @@ asap_pmf_regression_cbind_mtx(
                         _["theta"] = named(theta_ntot_k, columns, k_),
                         _["log.theta"] = named(log_theta_ntot_k, columns, k_),
                         _["colsum"] = named_rows(Y_n, columns),
-                        _["batch.names"] = batch_names,
+                        _["batch.names"] = _batch_names,
                         _["batch.index"] = batch_indexes,
                         _["rownames"] = pos2row,
                         _["colnames"] = columns);
