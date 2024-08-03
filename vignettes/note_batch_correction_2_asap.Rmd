@@ -44,7 +44,7 @@ lambda <- lambda.true * exp(ln.delta)
 yy <- apply(lambda, 2, function(l) sapply(l, rpois, n=1))
 oo <- order(apply(t(.theta), 2, which.max))
 
-control.features <- unique(as.vector(apply(.beta, 2, function(x) order(x)[1:100])))
+control.features <- order(apply(.beta, 1, sd))[1:50]
 ```
 
 ```{r}
@@ -57,7 +57,7 @@ First, we can construct pseudo bulk profiles without considering batch labels, h
 
 ```{r}
 pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, do_batch_adj = F)
-pmf.out <- asap_fit_pmf(pb.out$PB, maxK=5)
+pmf.out <- asap_fit_pmf(pb.out$PB, maxK=7)
 
 stat0 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
                              log_beta = pmf.out$log.beta,
@@ -70,8 +70,8 @@ We can explicitly incorporate experimental designs to the pseudo bulk data const
 
 ```{r}
 D <- max(sapply(y.data, function(x) nrow(x)))
-pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, row_names = 1:D, control_features = control.features)
-pmf.out <- asap_fit_pmf(pb.out$PB, maxK=5)
+pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, row_names = 1:D, control_features = control.features, BLOCK_SIZE = 37)
+pmf.out <- asap_fit_pmf(pb.out$PB, maxK=7)
 
 stat1 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
                              log_beta = pmf.out$log.beta,
@@ -113,15 +113,7 @@ plot.struct(topic0$prop, oo) +
     ggtitle("sorted by true topics")
 ```
 
-When we sorted samples by true topic patterns, block structures should emerge if the PMF algorithm was applied to unbiased data. However, no apparent block patterns emerge.
-
-```{r fig_batch_confounded, fig.width=7, fig.height=2}
-topic.batch <- pmf2topic(stat.b$beta, stat.b$theta)
-plot.struct(topic.batch$prop, order(batch)) +
-    ggtitle("sorted by batch labels")
-```
-
-Instead, we found batch-specific patterns dominate the overall PMF results. 
+When we sorted samples by true topic patterns, block structures should emerge if the PMF algorithm was applied to unbiased data. However, no apparent block patterns emerge. Instead, we found batch-specific patterns dominate the overall PMF results. 
 
 ```{r fig_topic_confounded_batch, fig.width=7, fig.height=2}
 plot.struct(topic0$prop, order(batch)) +
@@ -138,7 +130,15 @@ plot.struct(topic1$prop, oo) +
     ggtitle("sorted by true topics")
 ```
 
-Yet, we do not see any batch-specific effects.
+By modelling batch0-specific factors...
+
+```{r fig_batch_confounded, fig.width=7, fig.height=2}
+topic.batch <- pmf2topic(stat.b$beta, stat.b$theta)
+plot.struct(topic.batch$prop, order(batch)) +
+    ggtitle("sorted by batch labels")
+```
+
+we do not see any batch-specific effects.
 
 ```{r fig_topic_adjusted_batch, fig.width=7, fig.height=2}
 plot.struct(topic1$prop, order(batch)) +

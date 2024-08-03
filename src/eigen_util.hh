@@ -788,6 +788,35 @@ scale_columns_inplace(Eigen::MatrixBase<Derived> &X_,
     std_op.colwise_scale(EPS);
 }
 
+template <typename Derived>
+std::pair<typename Derived::Scalar, typename Derived::Scalar>
+quantile(const Eigen::MatrixBase<Derived> &X,
+         const typename Derived::Scalar qq1,
+         const typename Derived::Scalar qq2)
+{
+
+    std::vector<typename Derived::Scalar> linearized(X.size());
+    Eigen::Map<Derived>(linearized.data(), X.rows(), X.cols()) = X;
+
+    const typename Derived::Scalar nn = linearized.size();
+
+    const std::size_t p1 = std::ceil(qq1 * nn), p2 = std::ceil(qq2 * nn);
+    typename Derived::Scalar lb, ub;
+
+    using std::nth_element;
+
+    nth_element(linearized.begin(), linearized.begin() + p1, linearized.end());
+    lb = linearized.at(p1);
+
+    nth_element(linearized.begin() + p1 + 1,
+                linearized.begin() + p2,
+                linearized.end());
+
+    ub = linearized.at(p2);
+
+    return std::make_pair(lb, ub);
+}
+
 template <typename Derived, typename Derived2>
 void
 residual_columns_inplace(Eigen::MatrixBase<Derived> &_yy,

@@ -61,7 +61,7 @@ asap_random_bulk_cbind_mtx(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
-\item{do_batch_adj}{(default: FALSE)}
+\item{do_batch_adj}{(default: TRUE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 

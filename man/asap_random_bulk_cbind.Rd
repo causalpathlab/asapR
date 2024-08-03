@@ -44,7 +44,7 @@ asap_random_bulk_cbind(
 
 \item{BLOCK_SIZE}{disk I/O block size (number of columns)}
 
-\item{do_batch_adj}{(default: FALSE)}
+\item{do_batch_adj}{(default: TRUE)}
 
 \item{do_log1p}{log(x + 1) transformation (default: FALSE)}
 
@@ -63,8 +63,6 @@ asap_random_bulk_cbind(
 \item{b0}{gamma(a0, b0) (default: 1)}
 
 \item{take_union_rows}{take union of rows (default: FALSE)}
-
-\item{weighted_rand_proj}{save random projection (default: FALSE)}
 
 \item{MAX_ROW_WORD}{maximum words per line in \code{row_files[i]}}
 

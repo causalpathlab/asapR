@@ -128,11 +128,11 @@ asap_random_bulk_mtx <- function(mtx_file, row_file, col_file, idx_file, num_fac
 #' @param NUM_THREADS number of threads in data reading
 #' @param CELL_NORM normalization constant per each data point
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_batch_adj (default: FALSE)
+#' @param do_batch_adj (default: TRUE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: TRUE)
 #' @param save_aux_data save auxiliary data (default: FALSE)
-#' @param weighted_rand_proj save random projection (default: FALSE)
+#' 
 #' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 #' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 #' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -181,7 +181,7 @@ asap_random_bulk_cbind <- function(y_dn_vec, num_factors, row_names = NULL, cont
 #' @param NUM_THREADS number of threads in data reading
 #' @param CELL_NORM normalization constant per each data point
 #' @param BLOCK_SIZE disk I/O block size (number of columns)
-#' @param do_batch_adj (default: FALSE)
+#' @param do_batch_adj (default: TRUE)
 #' @param do_log1p log(x + 1) transformation (default: FALSE)
 #' @param do_down_sample down-sampling (default: TRUE)
 #' @param save_aux_data save random projection (default: FALSE)
@@ -525,7 +525,7 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #' @param y_dn sparse data matrix (D x N)
 #' @param log_beta D x K log dictionary/design matrix
 #' @param beta_row_names row names log_beta (D vector)
-#' @param r_log_delta D x B log batch effect matrix
+#' @param log_delta D x B log batch effect matrix
 #' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 #' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 #' @param do_log1p do log(1+y) transformation
@@ -552,8 +552,8 @@ asap_fit_pmf_rbind <- function(y_dn_vec, maxK, max_iter = 100L, verbose = TRUE, 
 #'  \item colnames column/sample names
 #' }
 #'
-asap_pmf_regression <- function(y_dn, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L) {
-    .Call('_asapR_asap_pmf_regression', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
+asap_pmf_regression <- function(y_dn, log_beta, beta_row_names, log_delta = NULL, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L) {
+    .Call('_asapR_asap_pmf_regression', PACKAGE = 'asapR', y_dn, log_beta, beta_row_names, log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE)
 }
 
 #' PMF regression
@@ -565,7 +565,7 @@ asap_pmf_regression <- function(y_dn, log_beta, beta_row_names, r_log_delta = NU
 #' @param log_beta D x K log dictionary/design matrix (default: TRUE)
 #' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 #' @param beta_row_names row names log_beta (D vector)
-#' @param r_log_delta D x B log batch effect matrix
+#' @param log_delta D x B log batch effect matrix
 #' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 #' @param do_log1p do log(1+y) transformation
 #' @param verbose verbosity
@@ -592,8 +592,8 @@ asap_pmf_regression <- function(y_dn, log_beta, beta_row_names, r_log_delta = NU
 #'  \item colnames column/sample names
 #' }
 #'
-asap_pmf_regression_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta = NULL, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
-    .Call('_asapR_asap_pmf_regression_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, r_log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
+asap_pmf_regression_mtx <- function(mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, log_delta = NULL, do_stdize_beta = TRUE, do_stdize_r = TRUE, do_log1p = FALSE, a0 = 1.0, b0 = 1.0, max_iter = 10L, verbose = FALSE, NUM_THREADS = 0L, BLOCK_SIZE = 1000L, MAX_ROW_WORD = 2L, ROW_WORD_SEP = '_', MAX_COL_WORD = 100L, COL_WORD_SEP = '@') {
+    .Call('_asapR_asap_pmf_regression_mtx', PACKAGE = 'asapR', mtx_file, row_file, col_file, idx_file, log_beta, beta_row_names, log_delta, do_stdize_beta, do_stdize_r, do_log1p, a0, b0, max_iter, verbose, NUM_THREADS, BLOCK_SIZE, MAX_ROW_WORD, ROW_WORD_SEP, MAX_COL_WORD, COL_WORD_SEP)
 }
 
 #' Calibrate topic proportions based on sufficient statistics

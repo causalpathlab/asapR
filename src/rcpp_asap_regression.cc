@@ -5,7 +5,7 @@
 //' @param y_dn sparse data matrix (D x N)
 //' @param log_beta D x K log dictionary/design matrix
 //' @param beta_row_names row names log_beta (D vector)
-//' @param r_log_delta D x B log batch effect matrix
+//' @param log_delta D x B log batch effect matrix
 //' @param do_stdize_beta use standardized log_beta (Default: TRUE)
 //' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 //' @param do_log1p do log(1+y) transformation
@@ -38,7 +38,7 @@ asap_pmf_regression(
     const Eigen::SparseMatrix<float> &y_dn,
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
-    const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
+    const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
     const bool do_stdize_beta = true,
     const bool do_stdize_r = true,
     const bool do_log1p = false,
@@ -69,12 +69,12 @@ asap_pmf_regression(
 
     eigenSparse_data_t data(y_dn, row_names);
 
-    Mat log_delta;
+    Mat _log_delta;
 
-    if (r_log_delta.isNotNull()) {
-        log_delta = Rcpp::as<Mat>(r_log_delta);
+    if (log_delta.isNotNull()) {
+        _log_delta = Rcpp::as<Mat>(log_delta);
     } else {
-        log_delta = Mat::Ones(log_beta.rows(), 1);
+        _log_delta = Mat::Ones(log_beta.rows(), 1);
     }
 
     std::vector<std::string> col_names;
@@ -84,7 +84,7 @@ asap_pmf_regression(
 
     return run_pmf_regression(data,
                               log_beta,
-                              log_delta,
+                              _log_delta,
                               row_names,
                               col_names,
                               options);
@@ -99,7 +99,7 @@ asap_pmf_regression(
 //' @param log_beta D x K log dictionary/design matrix (default: TRUE)
 //' @param do_stdize_r standardize correlation matrix R (default: TRUE)
 //' @param beta_row_names row names log_beta (D vector)
-//' @param r_log_delta D x B log batch effect matrix
+//' @param log_delta D x B log batch effect matrix
 //' @param do_stdize_beta use standardized log_beta (Default: FALSE)
 //' @param do_log1p do log(1+y) transformation
 //' @param verbose verbosity
@@ -135,7 +135,7 @@ asap_pmf_regression_mtx(
     const std::string idx_file,
     const Eigen::MatrixXf log_beta,
     const Rcpp::StringVector beta_row_names,
-    const Rcpp::Nullable<Eigen::MatrixXf> r_log_delta = R_NilValue,
+    const Rcpp::Nullable<Eigen::MatrixXf> log_delta = R_NilValue,
     const bool do_stdize_beta = true,
     const bool do_stdize_r = true,
     const bool do_log1p = false,
@@ -177,12 +177,12 @@ asap_pmf_regression_mtx(
 
     mtx_data_t data(tup, options.MAX_ROW_WORD, options.ROW_WORD_SEP);
 
-    Mat log_delta;
+    Mat _log_delta;
 
-    if (r_log_delta.isNotNull()) {
-        log_delta = Rcpp::as<Mat>(r_log_delta);
+    if (log_delta.isNotNull()) {
+        _log_delta = Rcpp::as<Mat>(log_delta);
     } else {
-        log_delta = Mat::Ones(log_beta.rows(), 1);
+        _log_delta = Mat::Ones(log_beta.rows(), 1);
     }
 
     std::vector<std::string> col_names;
@@ -191,7 +191,7 @@ asap_pmf_regression_mtx(
 
     return run_pmf_regression(data,
                               log_beta,
-                              log_delta,
+                              _log_delta,
                               row_names,
                               col_names,
                               options);
@@ -231,54 +231,33 @@ asap_topic_pmf(const Eigen::MatrixXf beta_dk,
                const bool verbose = true)
 {
 
-    using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
-    using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
-
-    exp_op<Mat> exp;
-    softmax_op_t<Mat> softmax;
-
-    using RNG = dqrng::xoshiro256plus;
-    using gamma_t = gamma_param_t<Mat, RNG>;
-    RNG rng;
-
     const std::size_t nthreads =
         (NUM_THREADS > 0 ? NUM_THREADS : omp_get_max_threads());
 
     Eigen::setNbThreads(nthreads);
 
-    const Index D = beta_dk.rows();
-    const Index K = beta_dk.cols();
-    const Index N = R_nk.rows();
+    safe_log_op<Mat> log_op(1e-8);
+    Mat log_beta = beta_dk.unaryExpr(log_op);
+    asap::util::stretch_matrix_columns_inplace(log_beta);
 
-    ASSERT_RETL(Ysum_n.rows() == R_nk.rows(),
-                "R and Y must have the same number of rows");
+    const std::size_t N = R_nk.rows();
+    const std::size_t D = beta_dk.rows();
+    const std::size_t K = beta_dk.cols();
 
-    Mat logRho_nk(N, K), rho_nk(N, K);   // N x K
-    gamma_t theta_nk(N, K, a0, b0, rng); // N x K
-
-    ColVec degree_n = Ysum_n / static_cast<Scalar>(D);
-    Mat x_nk = degree_n * beta_dk.colwise().sum(); // N x K
-
-    Mat r_nk = R_nk;
-    if (do_stdize_r) {
-        asap::util::stretch_matrix_columns_inplace(r_nk);
-    }
-
-    for (std::size_t t = 0; t < max_iter; ++t) {
-
-        logRho_nk = r_nk + theta_nk.log_mean();
-
-        for (Index jj = 0; jj < N; ++jj) {
-            logRho_nk.row(jj) = softmax.log_row(logRho_nk.row(jj));
-        }
-        rho_nk = logRho_nk.unaryExpr(exp);
-
-        theta_nk.update(Ysum_n.asDiagonal() * rho_nk, x_nk);
-        theta_nk.calibrate();
-    }
+    Mat theta(N, K), log_theta(N, K);
+    CHK_RETL_(asap::regression::run_pmf_theta(log_beta,
+                                              R_nk,
+                                              Ysum_n,
+                                              theta,
+                                              log_theta,
+                                              a0,
+                                              b0,
+                                              max_iter,
+                                              do_stdize_r,
+                                              verbose),
+              "Unable to compute theta");
 
     return Rcpp::List::create(Rcpp::_["beta"] = beta_dk,
-                              Rcpp::_["theta"] = theta_nk.mean(),
-                              Rcpp::_["log.theta"] = theta_nk.log_mean(),
-                              Rcpp::_["log.theta.sd"] = theta_nk.log_sd());
+                              Rcpp::_["theta"] = theta,
+                              Rcpp::_["log.theta"] = log_theta);
 }

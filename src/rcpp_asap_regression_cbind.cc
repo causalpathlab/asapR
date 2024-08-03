@@ -232,7 +232,7 @@ asap_pmf_regression_cbind_mtx(
     }
 
     if (options.do_stdize_r) {
-        asap::util::stretch_matrix_columns_inplace(R_nk);
+        standardize_columns_inplace(R_nk);
     }
 
     std::vector<std::size_t> lb_index;
@@ -295,6 +295,21 @@ asap_pmf_regression_cbind_mtx(
         TLOG_(verbose, "Estimate correlations with " << B << " delta vars.");
         Mat R0_nb = Mat::Zero(Ntot, B);
 
+        const ColVec row_mean = logDelta_db.unaryExpr(exp).rowwise().mean();
+        const Scalar mean_threshold = 1e-2;
+
+        std::vector<Index> delta_sub_idx;
+        std::vector<std::string> delta_sub_rows;
+        for (Index r = 0; r < D; ++r) {
+            if (row_mean(r) > mean_threshold) {
+                delta_sub_idx.emplace_back(r);
+                delta_sub_rows.emplace_back(pos2row.at(r));
+            }
+        }
+        const Mat log_delta_sub = row_sub(logDelta_db, delta_sub_idx);
+
+        options.do_stdize_x = false;
+
         for (Index b = 0; b < num_data_batch; ++b) {
 
             /////////////////////////////
@@ -323,8 +338,8 @@ asap_pmf_regression_cbind_mtx(
             Mat r0_b_nb, y0_b_n;
 
             CHK_RETL_(run_pmf_stat(data,
-                                   logDelta_db,
-                                   pos2row,
+                                   log_delta_sub,
+                                   delta_sub_rows,
                                    options,
                                    r0_b_nb,
                                    y0_b_n),
@@ -342,13 +357,13 @@ asap_pmf_regression_cbind_mtx(
         }
 
         // 2. Take residuals
-        asap::util::stretch_matrix_columns_inplace(R0_nb);
+        standardize_columns_inplace(R0_nb);
 
         TLOG_(verbose, "Regress out the batch effect correlations");
         residual_columns_inplace(R_nk, R0_nb, 1e-4, verbose);
 
         if (options.do_stdize_r) {
-            asap::util::stretch_matrix_columns_inplace(R_nk);
+            standardize_columns_inplace(R_nk);
         }
 
         // 3. Estimate theta based on the new R_nk

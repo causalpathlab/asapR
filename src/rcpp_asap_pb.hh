@@ -27,6 +27,9 @@ struct options_t {
         , b0(1)
         , CELL_NORM(10000)
         , MIN_CONTROL_FEATURES(10)
+        , do_outlier_qc(true)
+        , qc_q_min(0)
+        , qc_q_max(0.9999)
     {
     }
 
@@ -46,6 +49,9 @@ struct options_t {
     double b0;
     double CELL_NORM;
     std::size_t MIN_CONTROL_FEATURES;
+    bool do_outlier_qc;
+    double qc_q_min;
+    double qc_q_max;
 };
 
 template <typename Derived>

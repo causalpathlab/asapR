@@ -12,11 +12,11 @@
 //' @param NUM_THREADS number of threads in data reading
 //' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_batch_adj (default: FALSE)
+//' @param do_batch_adj (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: TRUE)
 //' @param save_aux_data save auxiliary data (default: FALSE)
-//' @param weighted_rand_proj save random projection (default: FALSE)
+//' 
 //' @param KNN_CELL k-NN cells per batch between different batches (default: 10)
 //' @param CELL_PER_SAMPLE down-sampling cell per sample (default: 100)
 //' @param BATCH_ADJ_ITER batch Adjustment steps (default: 100)
@@ -201,7 +201,7 @@ asap_random_bulk_cbind(
 //' @param NUM_THREADS number of threads in data reading
 //' @param CELL_NORM normalization constant per each data point
 //' @param BLOCK_SIZE disk I/O block size (number of columns)
-//' @param do_batch_adj (default: FALSE)
+//' @param do_batch_adj (default: TRUE)
 //' @param do_log1p log(x + 1) transformation (default: FALSE)
 //' @param do_down_sample down-sampling (default: TRUE)
 //' @param save_aux_data save random projection (default: FALSE)

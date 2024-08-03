@@ -3,6 +3,7 @@
 
 #include "rcpp_asap.hh"
 #include "rcpp_asap_stat.hh"
+#include "rcpp_asap_util.hh"
 #include "rcpp_mtx_data.hh"
 #include "rcpp_eigenSparse_data.hh"
 #include "rcpp_asap_pb.hh"
@@ -36,8 +37,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     const std::size_t KNN_CELL = options.KNN_CELL;
     const std::size_t CELL_PER_SAMPLE = options.CELL_PER_SAMPLE;
     const std::size_t BATCH_ADJ_ITER = options.BATCH_ADJ_ITER;
-    const double a0 = options.a0;
-    const double b0 = options.b0;
+    const Scalar a0 = options.a0, b0 = options.b0;
     const std::size_t rseed = options.rseed;
     const bool verbose = options.verbose;
     const std::size_t NUM_THREADS =
@@ -45,9 +45,14 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
     const std::size_t min_control_features = options.MIN_CONTROL_FEATURES;
 
+    const bool do_outlier_qc = options.do_outlier_qc;
+    const Scalar q_min = options.qc_q_min, q_max = options.qc_q_max;
+
     const Index block_size = options.BLOCK_SIZE;
 
     log1p_op<Mat> log1p;
+    at_least_one_op<Mat> at_least_one;
+
     using RowVec = typename Eigen::internal::plain_row_type<Mat>::type;
     using ColVec = typename Eigen::internal::plain_col_type<Mat>::type;
 
@@ -65,23 +70,27 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         ASSERT_RETL(Ntot == ntot, "|column names| != columns(data)");
     }
 
-    ColVec select_controls(D);
+    ColVec neg_features(D), pos_features(D);
     if (control_rows.size() > 0) {
         std::unordered_map<std::string, Index> controls;
         make_position_dict(control_rows, controls);
-        select_controls = ColVec::Zero(D);
+        neg_features = ColVec::Zero(D);
+        pos_features = ColVec::Ones(D);
         for (std::size_t d = 0; d < D; ++d) {
             if (controls.count(row_names.at(d)) > 0) {
-                select_controls(d) = 1.;
+                neg_features(d) = 1.;
+                pos_features(d) = 0.;
             }
         }
-        if (select_controls.sum() < min_control_features) {
+        if (neg_features.sum() < min_control_features) {
             WLOG("Found too little control features overlap with the rows");
             WLOG(D << " features will be considered control features.");
-            select_controls.setOnes();
+            neg_features.setOnes();
         }
     } else {
-        select_controls.setOnes();
+        // we will ignore
+        neg_features.setOnes();
+        pos_features.setOnes();
     }
 
     /////////////////////////////////////////////
@@ -95,6 +104,12 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     sample_random_projection(D, K, rseed, R_kd);
 
     Mat Q_kn = Mat::Zero(K, Ntot);
+    Mat X_nk; // negative control
+
+    if (control_rows.size() > 0 && neg_features.sum() > 0) {
+        X_nk.resize(K, Ntot);
+        X_nk.setZero();
+    }
 
     std::vector<std::vector<Index>> batch_glob_map;
     std::vector<Index> batch_membership(Ntot);
@@ -108,6 +123,9 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         const Index Nb = data_loaders.at(b).max_col();
         batch_glob_map.emplace_back(std::vector<Index> {});
 
+        Mat Q_kn_b = Mat::Zero(K, Nb);
+        Mat Q0_kn_b = Mat::Zero(K, Nb);
+
 #if defined(_OPENMP)
 #pragma omp parallel num_threads(NUM_THREADS)
 #pragma omp for
@@ -116,84 +134,74 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
             const Index ub = std::min(Nb, block_size + lb);
 
-            SpMat _y_dn = do_log1p ?
+            Mat y_dn = do_log1p ?
                 data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p) :
                 data_loaders.at(b).read_reloc(lb, ub);
 
-            normalize_columns_inplace(_y_dn);
+            if (do_outlier_qc) {
+                auto [q1, q2] = quantile(y_dn, q_min, q_max);
+                clamp_op<Mat> clamp(q1, q2);
+                y_dn.noalias() = y_dn.unaryExpr(clamp);
+            }
 
-            const Mat y_dn = _y_dn * cell_norm;
-
-            Mat temp_kn = R_kd * select_controls.asDiagonal() * y_dn;
+            const ColVec denom = y_dn.transpose()
+                                     .rowwise()
+                                     .sum()
+                                     .unaryExpr(at_least_one)
+                                     .cwiseInverse();
 
 #pragma omp critical
             {
-                for (Index loc = 0; loc < temp_kn.cols(); ++loc) {
+                Q_kn_b.middleCols(lb, y_dn.cols()) =
+                    (R_kd * pos_features.asDiagonal() * y_dn *
+                     denom.asDiagonal());
+
+                Q0_kn_b.middleCols(lb, y_dn.cols()) =
+                    (R_kd * neg_features.asDiagonal() * y_dn *
+                     denom.asDiagonal());
+
+                for (Index loc = 0; loc < y_dn.cols(); ++loc) {
                     const Index glob = loc + lb + offset;
                     batch_glob_map[b].emplace_back(glob);
                     batch_membership[glob] = b;
-                    Q_kn.col(glob) = temp_kn.col(loc);
                 }
             }
         }
+
+        if (control_rows.size() > 0 && neg_features.sum() > 0) {
+            X_nk.middleRows(offset, Nb) = Q0_kn_b.transpose();
+        }
+
+        Q_kn.middleCols(offset, Nb) = Q_kn_b;
 
         offset += Nb;
 
         TLOG_(verbose,
               "Random proj file set [" << (b + 1) << "] of " << Nb << " / "
                                        << offset << " cells");
-    }
+    } // batch
 
-    if (Ndata > 1 && do_batch_adj) {
-
-        at_least_one_op<Mat> at_least_one;
-        at_least_zero_op<Mat> at_least_zero;
-        const Scalar tol = 1e-4;
-
-        Mat s1_kb = Mat::Zero(K, Ndata);
-        Mat s2_kb = Mat::Zero(K, Ndata);
-        Mat n_kb = Mat::Zero(K, Ndata);
-        for (Index j = 0; j < batch_membership.size(); ++j) {
-            const Index b = batch_membership.at(j);
-            s1_kb.col(b) += Q_kn.col(j);
-            s2_kb.col(b) += Q_kn.col(j).cwiseProduct(Q_kn.col(j));
-            n_kb.col(b).array() += 1.;
-        }
-
-        Mat mu_kb = s1_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one));
-        Mat sig_kb = (s2_kb.cwiseQuotient(n_kb.unaryExpr(at_least_one)) -
-                      mu_kb.cwiseProduct(mu_kb))
-                         .unaryExpr(at_least_zero)
-                         .cwiseSqrt();
-
-        for (Index j = 0; j < batch_membership.size(); ++j) {
-            const Index b = batch_membership.at(j);
-            Q_kn.col(j) -= mu_kb.col(b);
-            Q_kn.col(j).array() /= (sig_kb.array().col(b) + tol);
-        }
-
-        TLOG_(verbose,
-              "Regressed out "
-                  << "batch info from Q: " << Q_kn.rows() << " x "
-                  << Q_kn.cols());
+    if (control_rows.size() > 0 && neg_features.sum() > 0) {
+        Mat Y_nk = Q_kn.transpose();
+        residual_columns_inplace(Y_nk, X_nk);
+        Q_kn = Y_nk.transpose();
+        TLOG_(verbose, "removed control feature effects");
     }
 
     /////////////////////////////////////////////////
     // Step 2. Orthogonalize the projection matrix //
     /////////////////////////////////////////////////
 
-    Mat vv;
-
+    Mat Qstd_nk;
     {
         const std::size_t lu_iter = 5;
         RandomizedSVD<Mat> svd(Q_kn.rows(), lu_iter);
         svd.compute(Q_kn);
-        vv = svd.matrixV();
+        Qstd_nk = svd.matrixV();
     }
 
-    ASSERT_RETL(vv.rows() == Ntot, " failed SVD for Q");
-
-    Mat Qstd_nk = standardize_columns(vv); // N x K
+    ASSERT_RETL(Qstd_nk.rows() == Ntot, " failed SVD for Q");
+    standardize_columns_inplace(Qstd_nk);
 
     TLOG_(verbose,
           "SVD on the projected: " << Qstd_nk.rows() << " x "
@@ -264,6 +272,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
               << " for " << pb_cells.size() << " samples");
 
     Mat mu_ds = Mat::Ones(D, S);
+    Mat mu_cf_ds;
     Mat ysum_ds = Mat::Zero(D, S);
     RowVec size_s = RowVec::Zero(S);
 
@@ -292,7 +301,11 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
                 const Index ub = std::min(Nb, block_size + lb);
 
-                const Mat y = data_loaders.at(b).read_reloc(lb, ub);
+                Mat y = data_loaders.at(b).read_reloc(lb, ub);
+                normalize_columns_inplace(y);
+                y *= cell_norm;
+
+                Mat z = neg_features.asDiagonal() * y;
 
 #pragma omp critical
                 {
@@ -307,15 +320,15 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         }
                     }
 
-                    delta_num_db.col(b) += y.rowwise().sum();
+                    delta_num_db.col(b) += z.rowwise().sum();
                 }
             }
 
             offset += Nb;
 
             TLOG_(verbose,
-                  "Take observed data [" << (b + 1) << "] for pseudobulk for "
-                                         << Nb << " / " << offset << " cells");
+                  "Obs data [" << (b + 1) << "] -> PB " << Nb << " / " << offset
+                               << " cells");
         } // for each batch
     }
 
@@ -416,10 +429,11 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         std::vector<Scalar> neigh_dist;
 
                         const Mat z =
-                            data_loaders.at(b).read_matched_reloc(query,
-                                                                  KNN_CELL,
-                                                                  neigh_index,
-                                                                  neigh_dist);
+                            (neg_features.asDiagonal() *
+                             data_loaders.at(b).read_matched_reloc(query,
+                                                                   KNN_CELL,
+                                                                   neigh_index,
+                                                                   neigh_dist));
 
                         for (Index k = 0; k < z.cols(); ++k) {
                             z_per_cell.col(nneigh) = z.col(k);
@@ -479,7 +493,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                   << " using " << Eigen::nbThreads()
                   << " Eigen library threads");
 
-        Mat gamma_ds = Mat::Ones(D, S); // bias on the side of CF
+        mu_cf_ds.resize(D, S); // bias on the side of CF
+        mu_cf_ds.setOnes();
 
         delta_db.resize(D, Ndata); // gene x batch
         delta_db.setOnes();
@@ -489,7 +504,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
             // shared components  //
             ////////////////////////
             mu_param.update(ysum_ds + zsum_ds,
-                            delta_db * n_bs + gamma_ds * size_s.asDiagonal());
+                            delta_db * n_bs + mu_cf_ds * size_s.asDiagonal());
             mu_param.calibrate();
             mu_ds = mu_param.mean();
 
@@ -499,7 +514,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
             gamma_param.update(zsum_ds, mu_ds * size_s.asDiagonal());
             gamma_param.calibrate();
-            gamma_ds = gamma_param.mean();
+            mu_cf_ds = gamma_param.mean();
 
             ///////////////////////////////
             // batch-specific components //
@@ -580,6 +595,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     TLOG_(verbose, "Done");
 
     return List::create(_["PB"] = named(mu_ds, d_, s_),
+                        _["CF"] = named(mu_cf_ds, d_, s_),
                         _["mean"] = named(mean_ds, d_, s_),
                         _["sum"] = named(ysum_ds, d_, s_),
                         _["matched.sum"] = named(zsum_ds, d_, s_),

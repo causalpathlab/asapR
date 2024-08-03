@@ -11,7 +11,7 @@ asap_pmf_regression_mtx(
   idx_file,
   log_beta,
   beta_row_names,
-  r_log_delta = NULL,
+  log_delta = NULL,
   do_stdize_beta = TRUE,
   do_stdize_r = TRUE,
   do_log1p = FALSE,
@@ -40,7 +40,7 @@ asap_pmf_regression_mtx(
 
 \item{beta_row_names}{row names log_beta (D vector)}
 
-\item{r_log_delta}{D x B log batch effect matrix}
+\item{log_delta}{D x B log batch effect matrix}
 
 \item{do_stdize_beta}{use standardized log_beta (Default: FALSE)}
 
