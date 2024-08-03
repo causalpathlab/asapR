@@ -342,6 +342,8 @@ asap_pmf_regression_cbind_mtx(
         }
 
         // 2. Take residuals
+        asap::util::stretch_matrix_columns_inplace(R0_nb);
+
         TLOG_(verbose, "Regress out the batch effect correlations");
         residual_columns_inplace(R_nk, R0_nb, 1e-4, verbose);
 

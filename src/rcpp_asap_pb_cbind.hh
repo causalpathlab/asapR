@@ -294,13 +294,6 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
                 const Mat y = data_loaders.at(b).read_reloc(lb, ub);
 
-                ///////////////////////////////////////////////////////
-                // Restrict on the control rows: This is inefficient //
-                // but we can keep it for better readability         //
-                ///////////////////////////////////////////////////////
-
-                const Mat z = select_controls.asDiagonal() * y;
-
 #pragma omp critical
                 {
                     for (Index loc = 0; loc < (ub - lb); ++loc) {
@@ -314,7 +307,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         }
                     }
 
-                    delta_num_db.col(b) += z.rowwise().sum();
+                    delta_num_db.col(b) += y.rowwise().sum();
                 }
             }
 
@@ -422,16 +415,11 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
                         std::vector<Index> neigh_index;
                         std::vector<Scalar> neigh_dist;
 
-                        //////////////////////////////////
-                        // Restrict on the control rows //
-                        //////////////////////////////////
-
                         const Mat z =
-                            (select_controls.asDiagonal() *
-                             data_loaders.at(b).read_matched_reloc(query,
-                                                                   KNN_CELL,
-                                                                   neigh_index,
-                                                                   neigh_dist));
+                            data_loaders.at(b).read_matched_reloc(query,
+                                                                  KNN_CELL,
+                                                                  neigh_index,
+                                                                  neigh_dist);
 
                         for (Index k = 0; k < z.cols(); ++k) {
                             z_per_cell.col(nneigh) = z.col(k);

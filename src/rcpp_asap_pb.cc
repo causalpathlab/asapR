@@ -329,7 +329,7 @@ asap_random_bulk_mtx(
     TLOG_(verbose, "Pseudobulk estimation");
 
     gamma_param_t<Mat, RNG> mu_param(D, S, a0, b0, rng);
-    Mat temp_ds = Mat::Ones(D, S).array().rowwise() * size_s.array();
+    Mat temp_ds = Mat::Ones(D, S) * size_s.asDiagonal();
     mu_param.update(ysum_ds, temp_ds);
     mu_param.calibrate();
     mu_ds = mu_param.mean();
