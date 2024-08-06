@@ -803,16 +803,33 @@ quantile(const Eigen::MatrixBase<Derived> &X,
     const std::size_t p1 = std::ceil(qq1 * nn), p2 = std::ceil(qq2 * nn);
     typename Derived::Scalar lb, ub;
 
-    using std::nth_element;
+    if (p1 < p2) {
 
-    nth_element(linearized.begin(), linearized.begin() + p1, linearized.end());
-    lb = linearized.at(p1);
+        using std::nth_element;
 
-    nth_element(linearized.begin() + p1 + 1,
-                linearized.begin() + p2,
-                linearized.end());
+        nth_element(linearized.begin(),
+                    linearized.begin() + p1,
+                    linearized.end());
+        nth_element(linearized.begin() + p1 + 1,
+                    linearized.begin() + p2,
+                    linearized.end());
 
-    ub = linearized.at(p2);
+        if (p1 < linearized.size()) {
+            lb = linearized.at(p1);
+        } else {
+            lb = *std::min_element(linearized.begin(), linearized.end());
+        }
+
+        if (p2 < linearized.size()) {
+            ub = linearized.at(p2);
+        } else {
+            ub = *std::max_element(linearized.begin(), linearized.end());
+        }
+
+    } else {
+        lb = *std::min_element(linearized.begin(), linearized.end());
+        ub = *std::max_element(linearized.begin(), linearized.end());
+    }
 
     return std::make_pair(lb, ub);
 }

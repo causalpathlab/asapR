@@ -266,40 +266,49 @@ for(iter in 1:100){
 Can we recover the original batch effects?
 
 ```{r fig.width=6, fig.height=5}
+pdf("fig_batch_delta_corr.pdf", width=6, height=5)
 par(mfrow=c(1,2))
 plot(.delta.db[,1], W.true[,1], pch=19, xlab="estimated delta", ylab="true delta effect", main="batch1")
 plot(.delta.db[,2], W.true[,2], pch=19, xlab="estimated delta", ylab="true delta effect", main="batch2")
+dev.off()
 ```
 
 Are they independent of the cell type effects?
 
 ```{r fig.width=6, fig.height=5}
+pdf("fig_batch_true_corr.pdf", width=6, height=5)
 y.true <- sweep(lambda.true %*% X, 2, colSums(X), `/`)
 par(mfrow=c(1,2))
 plot(.delta.db[,1], y.true[,1], pch=19, xlab="estimated delta", ylab="true y mean", main="batch1")
 plot(.delta.db[,2], y.true[,2], pch=19, xlab="estimated delta", ylab="true y mean", main="batch2")
+dev.off()
 ```
 
 While adjusting the estimated batch effects, can we recover the unbiased cell type effects? The following is before adjustment:
 
 ```{r fig.width=6, fig.height=5}
 ybar <- sweep(yy %*% X, 2, colSums(X), `/`)
+pdf("fig_batch_mean_corr.pdf", width=6, height=5)
 par(mfrow=c(1,2))
 plot(ybar[,1], y.true[,1], pch=19, xlab="sample mean", ylab="true y mean", log="x", main="batch1")
 plot(ybar[,2], y.true[,2], pch=19, xlab="sample mean", ylab="true y mean", log="x", main="batch2")
+dev.off()
 ```
 
 Here, we adjusted the batch effects:
 
 ```{r fig.width=6, fig.height=5}
 ybar.adj <- sweep((yy / .delta.db[, batch]) %*% X, 2, colSums(X), `/`)
+pdf("fig_batch_adjusted_corr.pdf", width=6, height=5)
 par(mfrow=c(1,2))
 plot(ybar.adj[,1], y.true[,1], pch=19, xlab="adjusted sample mean", ylab="true y mean", log="x", main="batch1")
 plot(ybar.adj[,2], y.true[,2], pch=19, xlab="adjusted sample mean", ylab="true y mean", log="x", main="batch2")
+dev.off()
 ```
 
 
-```{r fig.width=6, rig.height=5}
+```{r fig.width=8, rig.height=6}
+pdf("fig_batch_tsne_comparison.pdf", width=8, height=6)
 par(mfrow=c(1,2))
 .tsne <- Rtsne::Rtsne(log(1 + t(yy)), num_threads=4)$Y
 plot(.tsne[,1], .tsne[,2], col=batch, pch=19, cex=.5, main="before batch adj",
@@ -308,5 +317,6 @@ legend("topleft", c("batch #1", "batch #2"), col=1:2, pch=19)
 .tsne <- Rtsne::Rtsne(log(1 + t(yy/.delta.db[,batch])), num_threads=4)$Y
 plot(.tsne[,1], .tsne[,2], col=batch, pch=19, cex=.5, main="after batch adj",
      xlab = "tsne1", ylab = "tsne2")
+dev.off()
 ```
 

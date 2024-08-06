@@ -48,7 +48,8 @@ control.features <- order(apply(.beta, 1, sd))[1:50]
 ```
 
 ```{r}
-library(asapR)
+## library(asapR)
+devtools::load_all(".")
 y.data <- lapply(1:nb, function(b) yy[, batch == b, drop = F])
 y.data <- lapply(y.data, function(y) Matrix::Matrix(y, sparse = T))
 ```
@@ -56,7 +57,7 @@ y.data <- lapply(y.data, function(y) Matrix::Matrix(y, sparse = T))
 First, we can construct pseudo bulk profiles without considering batch labels, hoping that Poisson Matrix Factorization (PMF) method on the pseudo bulk data could identify meaningful topic-specific frequency patterns.
 
 ```{r}
-pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, do_batch_adj = F)
+pb.out <- asap_random_bulk_cbind(y.data, num_factors = 9, do_batch_adj = F, BLOCK_SIZE=37)
 pmf.out <- asap_fit_pmf(pb.out$PB, maxK=7)
 
 stat0 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
@@ -76,7 +77,7 @@ pmf.out <- asap_fit_pmf(pb.out$PB, maxK=7)
 stat1 <- asap_pmf_regression(Matrix::Matrix(yy, sparse=T),
                              log_beta = pmf.out$log.beta,
                              beta_row_names = pb.out$rownames,
-                             r_log_delta = pb.out$log.batch.effect,
+                             log_delta = pb.out$log.batch.effect,
                              do_stdize_beta = T, do_stdize_r = T,
                              verbose = T)
 
@@ -111,6 +112,7 @@ plot.struct <- function(.prop, .order = NULL){
 topic0 <- pmf2topic(stat0$beta, stat0$theta)
 plot.struct(topic0$prop, oo) +
     ggtitle("sorted by true topics")
+ggsave("fig_topic_confounded.pdf", width=7, height=2)
 ```
 
 When we sorted samples by true topic patterns, block structures should emerge if the PMF algorithm was applied to unbiased data. However, no apparent block patterns emerge. Instead, we found batch-specific patterns dominate the overall PMF results. 
@@ -118,6 +120,7 @@ When we sorted samples by true topic patterns, block structures should emerge if
 ```{r fig_topic_confounded_batch, fig.width=7, fig.height=2}
 plot.struct(topic0$prop, order(batch)) +
     ggtitle("sorted by batch labels")
+ggsave("fig_topic_confounded_batch.pdf", width=7, height=2)
 ```
 
 ### After adjusting batch-specific effects
@@ -128,6 +131,7 @@ On the other hand, we can recapitulate true topic-specific block structures from
 topic1 <- pmf2topic(stat1$beta, stat1$theta)
 plot.struct(topic1$prop, oo) +
     ggtitle("sorted by true topics")
+ggsave("fig_topic_adjusted.pdf", width=7, height=2)
 ```
 
 By modelling batch0-specific factors...
@@ -136,6 +140,7 @@ By modelling batch0-specific factors...
 topic.batch <- pmf2topic(stat.b$beta, stat.b$theta)
 plot.struct(topic.batch$prop, order(batch)) +
     ggtitle("sorted by batch labels")
+ggsave("fig_batch_confounded.pdf", width=7, height=2)
 ```
 
 we do not see any batch-specific effects.
@@ -143,4 +148,5 @@ we do not see any batch-specific effects.
 ```{r fig_topic_adjusted_batch, fig.width=7, fig.height=2}
 plot.struct(topic1$prop, order(batch)) +
     ggtitle("sorted by batch labels")
+ggsave("fig_topic_adjusted_batch.pdf", width=7, height=2)
 ```

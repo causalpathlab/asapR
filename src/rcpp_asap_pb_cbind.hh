@@ -44,8 +44,8 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
 
     const std::size_t min_control_features = options.MIN_CONTROL_FEATURES;
-
     const bool do_outlier_qc = options.do_outlier_qc;
+
     const Scalar q_min = options.qc_q_min, q_max = options.qc_q_max;
 
     const Index block_size = options.BLOCK_SIZE;
@@ -107,7 +107,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
     Mat X_nk; // negative control
 
     if (control_rows.size() > 0 && neg_features.sum() > 0) {
-        X_nk.resize(K, Ntot);
+        X_nk.resize(Ntot, K);
         X_nk.setZero();
     }
 
