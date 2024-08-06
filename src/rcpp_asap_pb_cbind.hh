@@ -44,7 +44,7 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
         (options.NUM_THREADS > 0 ? options.NUM_THREADS : omp_get_max_threads());
 
     const std::size_t min_control_features = options.MIN_CONTROL_FEATURES;
-    const bool do_outlier_qc = options.do_outlier_qc;
+    // const bool do_outlier_qc = options.do_outlier_qc;
 
     const Scalar q_min = options.qc_q_min, q_max = options.qc_q_max;
 
@@ -134,14 +134,12 @@ run_asap_pb_cbind(std::vector<T> &data_loaders,
 
             const Index ub = std::min(Nb, block_size + lb);
 
-            Mat y_dn = do_log1p ?
-                data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p) :
-                data_loaders.at(b).read_reloc(lb, ub);
+            Mat y_dn;
 
-            if (do_outlier_qc) {
-                auto [q1, q2] = quantile(y_dn, q_min, q_max);
-                clamp_op<Mat> clamp(q1, q2);
-                y_dn.noalias() = y_dn.unaryExpr(clamp);
+            if (do_log1p) {
+                y_dn = data_loaders.at(b).read_reloc(lb, ub).unaryExpr(log1p);
+            } else {
+                y_dn = data_loaders.at(b).read_reloc(lb, ub);
             }
 
             const ColVec denom = y_dn.transpose()
