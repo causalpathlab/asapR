@@ -319,6 +319,7 @@ visit_bgzf(const std::string bgz_file, FUN &fun)
         // parse triplets //
         ////////////////////
 
+	strbuf.clear();
         num_cols = 0;
 
         for (size_t pos = 0; pos < str->l; ++pos) {
@@ -415,7 +416,7 @@ visit_bgzf(const std::string bgz_file, FUN &fun)
 
         if (num_cols < 3) {
             WLOG(
-                "mmutil_bgzf_util.hh: mmutil_bgzf_util.hh: Found this incomplete line ["
+                "mmutil_bgzf_util.hh: Found this incomplete line ["
                 << num_nz << "]");
             state = S_EOW;
             continue;

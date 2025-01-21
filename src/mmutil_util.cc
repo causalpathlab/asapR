@@ -1,3 +1,4 @@
+#include "mmutil.hh"
 #include "mmutil_util.hh"
 
 namespace mmutil { namespace bgzf {
@@ -38,6 +39,10 @@ convert_bgzip(std::string in_file)
     ofs.close();
 
     TLOG("Created bgzip: " << in_file << " [" << lines << "] lines");
+
+    if (file_exists(in_file + ".index")) { //
+        remove_file(in_file + ".index");   //make sure to remove old index
+    }
 
     return EXIT_SUCCESS;
 }
